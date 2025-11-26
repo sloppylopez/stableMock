@@ -1,0 +1,49 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.1.5'
+    id 'io.spring.dependency-management' version '1.1.3'
+    id 'com.stablemock' version '1.0-SNAPSHOT'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()  // For local StableMock builds
+}
+
+ext {
+    snapshot_testing_version = '3.2.0'
+}
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter'
+    
+    // Feign Client
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign:4.0.4'
+    
+    // Use local StableMock build (run './gradlew publishToMavenLocal' from parent)
+    testImplementation('com.stablemock:stablemock:1.0-SNAPSHOT') {
+        exclude group: 'org.slf4j', module: 'slf4j-nop'
+    }
+    
+    // Spring Boot Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    
+    // JUnit 5
+    testImplementation platform('org.junit:junit-bom:5.9.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    
+    // Snapshot Testing
+    testImplementation "io.github.origin-energy:java-snapshot-testing-junit5:${snapshot_testing_version}"
+    testImplementation "io.github.origin-energy:java-snapshot-testing-plugin-jackson:${snapshot_testing_version}"
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty 'stablemock.mode', System.getProperty('stablemock.mode')
+    systemProperty 'stablemock.showMatches', System.getProperty('stablemock.showMatches')
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+}
+

@@ -1,0 +1,37 @@
+plugins {
+    id 'java'
+    id 'io.quarkus' version '3.8.3'
+    id 'com.stablemock' version '1.0-SNAPSHOT'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    implementation enforcedPlatform('io.quarkus.platform:quarkus-bom:3.8.3')
+    
+    implementation 'io.quarkus:quarkus-rest-client'
+    implementation 'io.quarkus:quarkus-resteasy-reactive'
+    implementation 'io.quarkus:quarkus-arc'
+    
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.rest-assured:rest-assured'
+    testImplementation('com.stablemock:stablemock:1.0-SNAPSHOT') {
+        exclude group: 'org.slf4j', module: 'slf4j-nop'
+    }
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty 'stablemock.mode', System.getProperty('stablemock.mode')
+    systemProperty 'stablemock.showMatches', System.getProperty('stablemock.showMatches')
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+

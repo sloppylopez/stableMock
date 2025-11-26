@@ -1,0 +1,128 @@
+plugins {
+    id 'java-library'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'jacoco'  // Code coverage
+}
+
+group = 'com.stablemock'
+version = '1.0-SNAPSHOT'
+
+sourceCompatibility = '17'
+targetCompatibility = '17'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    withJavadocJar()  // Generate javadoc JAR
+    withSourcesJar()   // Generate sources JAR
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Upgraded to WireMock 3.13.2 to fix CVE-2023-44487 (HTTP/2 Rapid Reset vulnerability)
+    // Note: Maven coordinates changed from com.github.tomakehurst:wiremock-jre8 to org.wiremock:wiremock
+    api 'org.wiremock:wiremock-standalone:3.13.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'io.github.java-diff-utils:java-diff-utils:4.12'
+
+    // SLF4J implementation to suppress warnings
+    runtimeOnly 'org.slf4j:slf4j-nop:2.0.9'
+
+    implementation platform('org.junit:junit-bom:5.9.3')
+    api 'org.junit.jupiter:junit-jupiter-api:5.9.3'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.3'
+}
+
+gradlePlugin {
+    plugins {
+        stablemock {
+            id = 'com.stablemock'
+            implementationClass = 'com.stablemock.gradle.StableMockPlugin'
+        }
+    }
+}
+
+
+test {
+    useJUnitPlatform()
+    // System properties passed via -D flag are available via System.getProperty()
+    // This works cross-platform (Windows PowerShell, bash, etc.)
+    systemProperty 'stablemock.mode', System.getProperty('stablemock.mode', '')
+    systemProperty 'stablemock.showMatches', System.getProperty('stablemock.showMatches', '')
+    // Restore parallel execution - JaCoCo errors are harmless warnings
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        showStandardStreams = true
+    }
+    // Disable JaCoCo instrumentation to avoid assertion failures (coverage reports disabled)
+    // To enable coverage: remove this line and run 'gradlew test jacocoTestReport' separately
+    // finalizedBy jacocoTestReport
+
+    doLast {
+        // Print completion decoration after all tests finish
+        // Wait a moment for all parallel test output to flush
+        Thread.sleep(100)
+        String green = "\u001B[32m"
+        String reset = "\u001B[0m"
+        println()
+        println(green + ">>>===> StableMock Tests Complete! <===<<<" + reset)
+        println()
+    }
+}
+
+// JaCoCo Code Coverage
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    '**/gradle/**'  // Exclude Gradle plugin classes from coverage if desired
+            ])
+        }))
+    }
+}
+
+// Javadoc configuration
+javadoc {
+    options.encoding = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
+}
+
+tasks.withType(Jar) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Publishing configuration for local Maven repository only
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            
+            groupId = project.group
+            artifactId = 'stablemock'
+            version = project.version
+        }
+    }
+    
+    repositories {
+        mavenLocal()
+    }
+}

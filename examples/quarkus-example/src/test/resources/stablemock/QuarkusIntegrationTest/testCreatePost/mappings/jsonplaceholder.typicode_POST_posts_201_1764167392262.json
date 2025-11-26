@@ -1,0 +1,21 @@
+{
+  "id" : "5f2d8dac-09d8-4003-933a-7b3192f6071d",
+  "uuid" : "5f2d8dac-09d8-4003-933a-7b3192f6071d",
+  "name" : "posts",
+  "request" : {
+    "method" : "POST",
+    "url" : "/posts",
+    "bodyPatterns" : [ {
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true,
+      "equalToJson" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}"
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"title\": \"Test Title\",\n  \"body\": \"Test Body\",\n  \"userId\": 1,\n  \"id\": 101\n}",
+    "headers" : {
+      "contentTypeHeader" : [ "application/json; charset=utf-8" ]
+    }
+  }
+}

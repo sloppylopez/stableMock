@@ -1,0 +1,188 @@
+package com.stablemock.gradle;
+
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+import com.github.tomakehurst.wiremock.recording.RecordSpecBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.List;
+
+/**
+ * Manages WireMock server lifecycle for Gradle tasks.
+ */
+public class WireMockServerManager {
+    private WireMockServer wireMockServer;
+    private int port;
+    private String mode;
+    private String mappingsDir;
+    private String targetUrl; // Stored as comma-separated string for display
+
+    /**
+     * Find a free port on the system.
+     */
+    public static int findFreePort() {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to find free port", e);
+        }
+    }
+
+    /**
+     * Start WireMock server in playback mode.
+     */
+    public void startPlayback(String mappingsDirPath, Integer configuredPort) {
+        this.mappingsDir = mappingsDirPath;
+        this.mode = "PLAYBACK";
+        this.port = configuredPort != null ? configuredPort : findFreePort();
+
+        File mappingDir = new File(mappingsDirPath);
+        if (!mappingDir.exists() && !mappingDir.mkdirs()) {
+            throw new RuntimeException("Failed to create mappings directory: " + mappingDir.getAbsolutePath());
+        }
+
+        WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
+                .port(port)
+                .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
+                .usingFilesUnderDirectory(mappingDir.getAbsolutePath());
+
+        wireMockServer = new WireMockServer(config);
+        wireMockServer.start();
+
+        System.out.println("StableMock WireMock started in PLAYBACK mode on port: " + port);
+        System.out.println("Mappings directory: " + mappingDir.getAbsolutePath());
+    }
+
+    /**
+     * Start WireMock server in recording mode.
+     * Supports multiple target URLs - configures proxy stubs for each.
+     */
+    public void startRecording(String mappingsDirPath, List<String> targetUrls, Integer configuredPort) {
+        this.mappingsDir = mappingsDirPath;
+        this.targetUrl = String.join(", ", targetUrls);
+        this.mode = "RECORD";
+        this.port = configuredPort != null ? configuredPort : findFreePort();
+
+        if (targetUrls.isEmpty()) {
+            throw new IllegalArgumentException("At least one targetUrl must be provided for recording mode");
+        }
+
+        File mappingDir = new File(mappingsDirPath);
+        if (!mappingDir.exists() && !mappingDir.mkdirs()) {
+            throw new RuntimeException("Failed to create mappings directory: " + mappingDir.getAbsolutePath());
+        }
+
+        WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
+                .port(port)
+                .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
+                .usingFilesUnderDirectory(mappingDir.getAbsolutePath());
+
+        wireMockServer = new WireMockServer(config);
+        wireMockServer.start();
+
+        // Configure catch-all proxy stub
+        String primaryUrl = targetUrls.get(0);
+        wireMockServer.stubFor(
+                com.github.tomakehurst.wiremock.client.WireMock.any(
+                        com.github.tomakehurst.wiremock.client.WireMock.anyUrl()).willReturn(
+                                com.github.tomakehurst.wiremock.client.WireMock.aResponse().proxiedFrom(primaryUrl)));
+
+        System.out.println("StableMock WireMock started in RECORD mode on port: " + port);
+        String baseUrl = System.getProperty("stablemock.baseUrl");
+        if (baseUrl == null || baseUrl.isEmpty()) {
+            baseUrl = "http://localhost:" + port;
+        }
+        if (targetUrls.size() == 1) {
+            System.out.println("Recording mode. Proxying from " + baseUrl + " -> " + primaryUrl);
+        } else {
+            System.out.println("Recording mode. Proxying from " + baseUrl + " -> " + primaryUrl + " (first of " + targetUrls.size() + " configured URLs)");
+            List<String> otherUrls = targetUrls.subList(1, targetUrls.size());
+            System.out.println(
+                    "Note: All requests will be proxied to the first URL. Other URLs: " + String.join(", ", otherUrls));
+        }
+        System.out.println("Mappings will be saved to: " + mappingDir.getAbsolutePath());
+    }
+
+    /**
+     * Stop WireMock server and save mappings if in recording mode.
+     */
+    public void stop() {
+        if (wireMockServer == null) {
+            System.out.println("StableMock: No WireMock server running");
+            return;
+        }
+
+        if ("RECORD".equals(mode)) {
+            try {
+                saveMappings();
+            } catch (Exception e) {
+                System.err.println("StableMock: Error saving mappings: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            wireMockServer.stop();
+            System.out.println("StableMock WireMock stopped on port: " + port);
+        } catch (Exception e) {
+            System.err.println("StableMock: Error stopping WireMock server: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            wireMockServer = null;
+        }
+    }
+
+    /**
+     * Save recorded mappings to files.
+     */
+    private void saveMappings() throws IOException {
+        File mappingDir = new File(mappingsDir);
+        File mappingsSubDir = new File(mappingDir, "mappings");
+        File filesSubDir = new File(mappingDir, "__files");
+
+        if (!mappingsSubDir.exists() && !mappingsSubDir.mkdirs()) {
+            throw new IOException("Failed to create mappings subdirectory: " + mappingsSubDir.getAbsolutePath());
+        }
+        if (!filesSubDir.exists() && !filesSubDir.mkdirs()) {
+            throw new IOException("Failed to create __files subdirectory: " + filesSubDir.getAbsolutePath());
+        }
+
+        RecordSpecBuilder builder = new RecordSpecBuilder()
+                .forTarget(targetUrl)
+                .makeStubsPersistent(false)
+                .extractTextBodiesOver(255);
+
+        List<StubMapping> mappings = wireMockServer.snapshotRecord(builder.build()).getStubMappings();
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+
+        for (StubMapping mapping : mappings) {
+            String fileName = mapping.getName();
+            if (fileName == null) {
+                fileName = "mapping-" + mapping.getId() + ".json";
+            }
+            if (!fileName.toLowerCase().endsWith(".json")) {
+                fileName += ".json";
+            }
+            fileName = fileName.replaceAll("[^a-zA-Z0-9.-]", "_");
+
+            File file = new File(mappingsSubDir, fileName);
+            mapper.writeValue(file, mapping);
+        }
+
+        System.out.println("StableMock: Saved " + mappings.size() + " mappings to " + mappingsSubDir.getAbsolutePath());
+    }
+
+    /**
+     * Get current port.
+     */
+    public int getPort() {
+        return port;
+    }
+}

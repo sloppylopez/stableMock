@@ -1,0 +1,16 @@
+{
+  "id" : "c871f9c2-9d5c-4ab7-a056-f03dc16e1825",
+  "uuid" : "c871f9c2-9d5c-4ab7-a056-f03dc16e1825",
+  "name" : "users_1",
+  "request" : {
+    "method" : "GET",
+    "url" : "/users/1"
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "jsonplaceholder.typicode_GET_users_1_200_1764167391219.json",
+    "headers" : {
+      "contentTypeHeader" : [ "application/json; charset=utf-8" ]
+    }
+  }
+}

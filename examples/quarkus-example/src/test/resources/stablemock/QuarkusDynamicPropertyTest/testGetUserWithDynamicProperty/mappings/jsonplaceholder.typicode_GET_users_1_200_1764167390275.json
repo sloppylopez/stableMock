@@ -1,0 +1,16 @@
+{
+  "id" : "d64c4f14-3f05-4429-8509-625db1bf529b",
+  "uuid" : "d64c4f14-3f05-4429-8509-625db1bf529b",
+  "name" : "users_1",
+  "request" : {
+    "method" : "GET",
+    "url" : "/users/1"
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "jsonplaceholder.typicode_GET_users_1_200_1764167390275.json",
+    "headers" : {
+      "contentTypeHeader" : [ "application/json; charset=utf-8" ]
+    }
+  }
+}
