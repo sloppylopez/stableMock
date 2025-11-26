@@ -1,9 +1,0 @@
-{
-  "url" : "/posts",
-  "method" : "POST",
-  "contentType" : "application/json",
-  "timestamp" : 1764167389196,
-  "statusCode" : 201,
-  "body" : "{\r\n  \"title\" : \"My Post\",\r\n  \"body\" : \"Post Content\",\r\n  \"userId\" : 1\r\n}",
-  "detectedFields" : [ ]
-}
