@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug in Mockero
+about: Report a bug in StableMock
 title: '[BUG] '
 labels: bug
 assignees: ''
