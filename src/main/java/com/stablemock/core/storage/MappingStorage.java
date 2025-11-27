@@ -21,6 +21,14 @@ public final class MappingStorage {
     
     /**
      * Checks if a request URL matches any of the annotation URLs.
+     * <p>
+     * The matching logic:
+     * <ul>
+     *   <li>Parses each annotation URL to extract its path component</li>
+     *   <li>Returns true if the request URL starts with the annotation path</li>
+     *   <li>Returns true if the annotation path is empty (matches any request URL)</li>
+     *   <li>Returns true if URL parsing fails (fallback to permissive matching)</li>
+     * </ul>
      * 
      * @param requestUrl the URL from the request
      * @param annotationUrls the URLs from the annotation
@@ -34,7 +42,8 @@ public final class MappingStorage {
                 if (requestUrl.startsWith(annotationPath) || annotationPath.isEmpty()) {
                     return true;
                 }
-            } catch (Exception e) {
+            } catch (java.net.MalformedURLException e) {
+                // Fallback to permissive matching when URL cannot be parsed
                 return true;
             }
         }
