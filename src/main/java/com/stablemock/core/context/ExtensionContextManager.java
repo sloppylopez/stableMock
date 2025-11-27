@@ -1,6 +1,7 @@
 package com.stablemock.core.context;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.stablemock.core.server.WireMockServerManager;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.File;
@@ -59,6 +60,33 @@ public final class ExtensionContextManager {
         
         public void removePort() {
             store.remove("port");
+        }
+        
+        public void putAnnotationInfos(java.util.List<WireMockServerManager.AnnotationInfo> infos) {
+            store.put("annotationInfos", infos);
+        }
+        
+        @SuppressWarnings("unchecked")
+        public java.util.List<WireMockServerManager.AnnotationInfo> getAnnotationInfos() {
+            return store.get("annotationInfos", java.util.List.class);
+        }
+        
+        public void putServers(java.util.List<WireMockServer> servers) {
+            store.put("wireMockServers", servers);
+        }
+        
+        @SuppressWarnings("unchecked")
+        public java.util.List<WireMockServer> getServers() {
+            return store.get("wireMockServers", java.util.List.class);
+        }
+        
+        public void putPorts(java.util.List<Integer> ports) {
+            store.put("ports", ports);
+        }
+        
+        @SuppressWarnings("unchecked")
+        public java.util.List<Integer> getPorts() {
+            return store.get("ports", java.util.List.class);
         }
     }
     
@@ -123,6 +151,15 @@ public final class ExtensionContextManager {
         
         public Integer getExistingRequestCount() {
             return store.get("existingRequestCount", Integer.class);
+        }
+        
+        public void putAnnotationInfos(java.util.List<WireMockServerManager.AnnotationInfo> infos) {
+            store.put("annotationInfos", infos);
+        }
+        
+        @SuppressWarnings("unchecked")
+        public java.util.List<WireMockServerManager.AnnotationInfo> getAnnotationInfos() {
+            return store.get("annotationInfos", java.util.List.class);
         }
     }
 }

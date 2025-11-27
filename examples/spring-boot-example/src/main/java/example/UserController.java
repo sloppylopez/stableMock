@@ -29,5 +29,11 @@ public class UserController {
         String post = thirdPartyService.createPost(title, body, userId);
         return ResponseEntity.ok(post);
     }
+    
+    @GetMapping("/reqres/users/{id}")
+    public ResponseEntity<String> getUserFromReqRes(@PathVariable int id) {
+        String user = thirdPartyService.getUserFromReqRes(id);
+        return ResponseEntity.ok(user);
+    }
 }
 

@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.recording.RecordSpecBuilder;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+import com.stablemock.core.server.WireMockServerManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -161,7 +162,395 @@ public final class MappingStorage {
         System.out.println("StableMock: Saved " + testMethodMappings.size() + " mappings to " + testMethodMappingsSubDir.getAbsolutePath());
     }
     
+    public static void saveMappingsForTestMethodMultipleAnnotations(WireMockServer wireMockServer, 
+            File testMethodMappingsDir, File baseMappingsDir, 
+            java.util.List<WireMockServerManager.AnnotationInfo> annotationInfos, int existingRequestCount,
+            java.util.List<WireMockServer> allServers) throws IOException {
+        
+        // Get mappings from each server separately
+        for (WireMockServerManager.AnnotationInfo annotationInfo : annotationInfos) {
+            // Get the server for this annotation index
+            WireMockServer annotationServer = wireMockServer;
+            if (allServers != null && annotationInfo.index < allServers.size()) {
+                annotationServer = allServers.get(annotationInfo.index);
+            }
+            
+            if (annotationServer == null) {
+                System.err.println("StableMock: No server found for annotation " + annotationInfo.index + ", skipping");
+                continue;
+            }
+            
+            // Get serve events from this specific server
+            List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> allServeEvents = annotationServer.getAllServeEvents();
+            // For class-level servers, we track existingRequestCount from the primary server
+            // But for multiple servers, we need to track per-server. For now, use 0 as we're getting all events from this server
+            int serverExistingRequestCount = (annotationInfo.index == 0) ? existingRequestCount : 0;
+            List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> testMethodServeEvents = 
+                allServeEvents.size() > serverExistingRequestCount 
+                    ? allServeEvents.subList(serverExistingRequestCount, allServeEvents.size())
+                    : new java.util.ArrayList<>();
+            
+            if (testMethodServeEvents.isEmpty()) {
+                System.out.println("StableMock: No new requests recorded for annotation " + annotationInfo.index + " in this test method, skipping");
+                continue;
+            }
+            
+            // Get mappings from this server
+            RecordSpecBuilder builder = new RecordSpecBuilder()
+                    .makeStubsPersistent(true)
+                    .extractTextBodiesOver(255);
+            
+            if (annotationInfo.urls.length > 0) {
+                builder.forTarget(annotationInfo.urls[0]);
+            }
+
+            com.github.tomakehurst.wiremock.recording.SnapshotRecordResult result = annotationServer.snapshotRecord(builder.build());
+            List<StubMapping> allMappings = result.getStubMappings();
+            File annotationMappingsDir = new File(testMethodMappingsDir, "annotation_" + annotationInfo.index);
+            File annotationMappingsSubDir = new File(annotationMappingsDir, "mappings");
+            File annotationFilesSubDir = new File(annotationMappingsDir, "__files");
+
+            if (!annotationMappingsSubDir.exists() && !annotationMappingsSubDir.mkdirs()) {
+                throw new IOException("Failed to create mappings subdirectory: " + annotationMappingsSubDir.getAbsolutePath());
+            }
+            if (!annotationFilesSubDir.exists() && !annotationFilesSubDir.mkdirs()) {
+                throw new IOException("Failed to create __files subdirectory: " + annotationFilesSubDir.getAbsolutePath());
+            }
+
+            List<StubMapping> annotationMappings = new java.util.ArrayList<>();
+            for (StubMapping mapping : allMappings) {
+                boolean matches = false;
+                for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
+                    try {
+                        if (mapping.getRequest().match(serveEvent.getRequest()).isExactMatch()) {
+                            String requestUrl = serveEvent.getRequest().getUrl();
+                            for (String annotationUrl : annotationInfo.urls) {
+                                try {
+                                    java.net.URL parsedAnnotationUrl = new java.net.URL(annotationUrl);
+                                    String annotationPath = parsedAnnotationUrl.getPath();
+                                    if (requestUrl.startsWith(annotationPath) || annotationPath.isEmpty()) {
+                                        matches = true;
+                                        break;
+                                    }
+                                } catch (Exception e) {
+                                    matches = true;
+                                    break;
+                                }
+                            }
+                            if (matches) {
+                                break;
+                            }
+                        }
+                    } catch (Exception e) {
+                        String requestUrl = serveEvent.getRequest().getUrl();
+                        for (String annotationUrl : annotationInfo.urls) {
+                            try {
+                                java.net.URL parsedAnnotationUrl = new java.net.URL(annotationUrl);
+                                String annotationPath = parsedAnnotationUrl.getPath();
+                                if (requestUrl.startsWith(annotationPath) || annotationPath.isEmpty()) {
+                                    matches = true;
+                                    break;
+                                }
+                            } catch (Exception ex) {
+                                matches = true;
+                                break;
+                            }
+                        }
+                        if (matches) {
+                            break;
+                        }
+                    }
+                }
+                
+                if (matches) {
+                    annotationMappings.add(mapping);
+                }
+            }
+
+            if (annotationMappings.isEmpty()) {
+                System.out.println("StableMock: No mappings found for annotation " + annotationInfo.index + ", skipping save");
+                continue;
+            }
+
+            // Copy body files from url_X/__files (where they're stored during recording with multiple URLs)
+            // Also check base __files directory as fallback
+            File urlIndexFilesDir = new File(baseMappingsDir, "url_" + annotationInfo.index + "/__files");
+            File baseFilesDir = new File(baseMappingsDir, "__files");
+            
+            // annotationServer is already set above - use it to get the files directory
+            File serverFilesDir = null;
+            try {
+                // Get the files root from the server's configuration
+                java.lang.reflect.Field optionsField = annotationServer.getClass().getDeclaredField("options");
+                optionsField.setAccessible(true);
+                com.github.tomakehurst.wiremock.core.WireMockConfiguration options = 
+                    (com.github.tomakehurst.wiremock.core.WireMockConfiguration) optionsField.get(annotationServer);
+                if (options != null) {
+                    java.lang.reflect.Method filesRootMethod = options.getClass().getMethod("filesRoot");
+                    java.io.File filesRoot = (java.io.File) filesRootMethod.invoke(options);
+                    if (filesRoot != null) {
+                        serverFilesDir = new File(filesRoot, "__files");
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore reflection errors, fall back to url_X/__files
+            }
+            
+            for (StubMapping mapping : annotationMappings) {
+                String bodyFileName = mapping.getResponse().getBodyFileName();
+                if (bodyFileName != null) {
+                    File sourceFile = null;
+                    
+                    // First try url_X/__files (for multiple URLs - this is where they should be)
+                    if (urlIndexFilesDir.exists() && urlIndexFilesDir.isDirectory()) {
+                        File urlFile = new File(urlIndexFilesDir, bodyFileName);
+                        if (urlFile.exists()) {
+                            sourceFile = urlFile;
+                        }
+                    }
+                    
+                    // Try server's __files directory (from the server's configuration)
+                    if (sourceFile == null && serverFilesDir != null && serverFilesDir.exists() && serverFilesDir.isDirectory()) {
+                        File serverFile = new File(serverFilesDir, bodyFileName);
+                        if (serverFile.exists()) {
+                            sourceFile = serverFile;
+                        }
+                    }
+                    
+                    // Fallback to base __files directory
+                    if (sourceFile == null && baseFilesDir.exists() && baseFilesDir.isDirectory()) {
+                        File baseFile = new File(baseFilesDir, bodyFileName);
+                        if (baseFile.exists()) {
+                            sourceFile = baseFile;
+                        }
+                    }
+                    
+                    if (sourceFile != null) {
+                        File destFile = new File(annotationFilesSubDir, bodyFileName);
+                        try {
+                            java.nio.file.Files.copy(sourceFile.toPath(), destFile.toPath(), 
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        } catch (Exception e) {
+                            System.err.println("StableMock: Failed to copy body file " + bodyFileName + ": " + e.getMessage());
+                        }
+                    } else {
+                        System.err.println("StableMock: Warning - body file not found: " + bodyFileName + " (checked url_" + annotationInfo.index + "/__files, server __files, and base __files)");
+                    }
+                }
+            }
+            
+            WireMockConfiguration tempConfig = WireMockConfiguration.wireMockConfig()
+                    .dynamicPort()
+                    .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
+                    .usingFilesUnderDirectory(annotationMappingsDir.getAbsolutePath());
+            
+            WireMockServer tempServer = new WireMockServer(tempConfig);
+            tempServer.start();
+            
+            try {
+                for (StubMapping mapping : annotationMappings) {
+                    tempServer.addStubMapping(mapping);
+                }
+                tempServer.saveMappings();
+            } finally {
+                tempServer.stop();
+            }
+            
+            System.out.println("StableMock: Saved " + annotationMappings.size() + " mappings for annotation " + 
+                    annotationInfo.index + " to " + annotationMappingsSubDir.getAbsolutePath());
+        }
+    }
+    
+    public static void mergeAnnotationMappingsForMethod(File methodMappingsDir) {
+        File mergedMappingsDir = new File(methodMappingsDir, "mappings");
+        File mergedFilesDir = new File(methodMappingsDir, "__files");
+        
+        if (!mergedMappingsDir.exists() && !mergedMappingsDir.mkdirs()) {
+            System.out.println("StableMock: Warning - failed to create merged mappings directory");
+            return;
+        }
+        
+        if (!mergedFilesDir.exists() && !mergedFilesDir.mkdirs()) {
+            System.out.println("StableMock: Warning - failed to create merged __files directory");
+            return;
+        }
+        
+        File[] annotationDirs = methodMappingsDir.listFiles(file -> 
+            file.isDirectory() && file.getName().startsWith("annotation_"));
+        if (annotationDirs == null || annotationDirs.length == 0) {
+            return;
+        }
+        
+        int totalCopied = 0;
+        for (File annotationDir : annotationDirs) {
+            File annotationMappingsDir = new File(annotationDir, "mappings");
+            File annotationFilesDir = new File(annotationDir, "__files");
+            
+            if (annotationMappingsDir.exists() && annotationMappingsDir.isDirectory()) {
+                File[] mappingFiles = annotationMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                if (mappingFiles != null) {
+                    for (File mappingFile : mappingFiles) {
+                        try {
+                            String prefix = annotationDir.getName() + "_";
+                            String newName = prefix + mappingFile.getName();
+                            File destFile = new File(mergedMappingsDir, newName);
+                            java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            totalCopied++;
+                        } catch (Exception e) {
+                            System.err.println("StableMock: Failed to copy annotation mapping " + mappingFile.getName() + ": " + e.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            if (annotationFilesDir.exists() && annotationFilesDir.isDirectory()) {
+                File[] bodyFiles = annotationFilesDir.listFiles();
+                if (bodyFiles != null) {
+                    for (File bodyFile : bodyFiles) {
+                        try {
+                            File destFile = new File(mergedFilesDir, bodyFile.getName());
+                            java.nio.file.Files.copy(bodyFile.toPath(), destFile.toPath(), 
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        } catch (Exception e) {
+                            // Ignore individual file copy failures
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (totalCopied > 0) {
+            System.out.println("StableMock: Merged " + totalCopied + " mappings from annotation directories into " + mergedMappingsDir.getAbsolutePath());
+        }
+    }
+    
+    /**
+     * Merges all test methods' annotation_X mappings for a specific URL index into url_X directory.
+     * This is used in playback mode for multiple URLs.
+     */
+    public static void mergeAnnotationMappingsForUrlIndex(File baseMappingsDir, int urlIndex) {
+        File urlDir = new File(baseMappingsDir, "url_" + urlIndex);
+        File urlMappingsDir = new File(urlDir, "mappings");
+        File urlFilesDir = new File(urlDir, "__files");
+        
+        // Clean up existing url_X directory if it exists
+        if (urlDir.exists()) {
+            try {
+                java.nio.file.Files.walk(urlDir.toPath())
+                    .sorted(java.util.Comparator.reverseOrder())
+                    .map(java.nio.file.Path::toFile)
+                    .forEach(File::delete);
+            } catch (Exception e) {
+                System.err.println("StableMock: Failed to clean up url_" + urlIndex + " directory: " + e.getMessage());
+            }
+        }
+        
+        if (!urlMappingsDir.exists() && !urlMappingsDir.mkdirs()) {
+            System.err.println("StableMock: Failed to create url_" + urlIndex + " mappings directory");
+            return;
+        }
+        if (!urlFilesDir.exists() && !urlFilesDir.mkdirs()) {
+            System.err.println("StableMock: Failed to create url_" + urlIndex + " __files directory");
+            return;
+        }
+        
+        File[] testMethodDirs = baseMappingsDir.listFiles(file -> 
+            file.isDirectory() && !file.getName().equals("mappings") && !file.getName().equals("__files") && !file.getName().startsWith("url_"));
+        if (testMethodDirs == null) {
+            return;
+        }
+        
+        int totalCopied = 0;
+        for (File testMethodDir : testMethodDirs) {
+            File annotationDir = new File(testMethodDir, "annotation_" + urlIndex);
+            File annotationMappingsDir = new File(annotationDir, "mappings");
+            File annotationFilesDir = new File(annotationDir, "__files");
+            
+            if (annotationMappingsDir.exists() && annotationMappingsDir.isDirectory()) {
+                File[] mappingFiles = annotationMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                if (mappingFiles != null && mappingFiles.length > 0) {
+                    System.out.println("StableMock: Merging " + mappingFiles.length + " mappings from " + testMethodDir.getName() + "/annotation_" + urlIndex + " to url_" + urlIndex);
+                    for (File mappingFile : mappingFiles) {
+                        try {
+                            String prefix = testMethodDir.getName() + "_";
+                            String newName = prefix + mappingFile.getName();
+                            File destFile = new File(urlMappingsDir, newName);
+                            java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            totalCopied++;
+                        } catch (Exception e) {
+                            System.err.println("StableMock: Failed to copy mapping " + mappingFile.getName() + ": " + e.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            // Copy body files from annotation_X/__files
+            if (annotationFilesDir.exists() && annotationFilesDir.isDirectory()) {
+                File[] bodyFiles = annotationFilesDir.listFiles();
+                if (bodyFiles != null) {
+                    for (File bodyFile : bodyFiles) {
+                        try {
+                            File destFile = new File(urlFilesDir, bodyFile.getName());
+                            // Always copy/overwrite to ensure latest version is used
+                            java.nio.file.Files.copy(bodyFile.toPath(), destFile.toPath(), 
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        } catch (Exception e) {
+                            System.err.println("StableMock: Failed to copy body file " + bodyFile.getName() + ": " + e.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            // Also copy body files from base __files directory and url_X/__files (where they're stored during recording)
+            File baseFilesDir = new File(baseMappingsDir, "__files");
+            if (baseFilesDir.exists() && baseFilesDir.isDirectory()) {
+                File[] baseBodyFiles = baseFilesDir.listFiles();
+                if (baseBodyFiles != null) {
+                    for (File bodyFile : baseBodyFiles) {
+                        try {
+                            File destFile = new File(urlFilesDir, bodyFile.getName());
+                            // Copy if it doesn't exist or if source is newer
+                            if (!destFile.exists() || bodyFile.lastModified() > destFile.lastModified()) {
+                                java.nio.file.Files.copy(bodyFile.toPath(), destFile.toPath(), 
+                                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            }
+                        } catch (Exception e) {
+                            // Ignore individual file copy failures
+                        }
+                    }
+                }
+            }
+            
+            // Also check url_X/__files directory (created during recording in beforeAll)
+            File urlIndexFilesDir = new File(baseMappingsDir, "url_" + urlIndex + "/__files");
+            if (urlIndexFilesDir.exists() && urlIndexFilesDir.isDirectory()) {
+                File[] urlBodyFiles = urlIndexFilesDir.listFiles();
+                if (urlBodyFiles != null) {
+                    for (File bodyFile : urlBodyFiles) {
+                        try {
+                            File destFile = new File(urlFilesDir, bodyFile.getName());
+                            // Always copy from url_X/__files as it's the source of truth for this URL index
+                            java.nio.file.Files.copy(bodyFile.toPath(), destFile.toPath(), 
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        } catch (Exception e) {
+                            // Ignore individual file copy failures
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (totalCopied > 0) {
+            System.out.println("StableMock: Merged " + totalCopied + " mappings for url_" + urlIndex + " from all test methods");
+        } else {
+            System.out.println("StableMock: Warning - No mappings found for url_" + urlIndex);
+        }
+    }
+    
     public static void mergePerTestMethodMappings(File baseMappingsDir) {
+        // First, handle single URL case (merge to baseMappingsDir/mappings)
         File classMappingsDir = new File(baseMappingsDir, "mappings");
         File classFilesDir = new File(baseMappingsDir, "__files");
         
@@ -185,32 +574,47 @@ public final class MappingStorage {
         }
         
         File[] testMethodDirs = baseMappingsDir.listFiles(file -> 
-            file.isDirectory() && !file.getName().equals("mappings") && !file.getName().equals("__files"));
+            file.isDirectory() && !file.getName().equals("mappings") && !file.getName().equals("__files") && !file.getName().startsWith("url_"));
         if (testMethodDirs == null) {
             return;
         }
         
+        // Check if we have multiple URLs by looking for annotation_X directories in test methods
+        boolean hasMultipleUrls = false;
+        for (File testMethodDir : testMethodDirs) {
+            File[] annotationDirs = testMethodDir.listFiles(file -> 
+                file.isDirectory() && file.getName().startsWith("annotation_"));
+            if (annotationDirs != null && annotationDirs.length > 0) {
+                hasMultipleUrls = true;
+                break;
+            }
+        }
+        
+        // For multiple URLs, we don't merge to class-level directory - that's handled separately
+        if (hasMultipleUrls) {
+            return;
+        }
+        
+        // Single URL case - merge test method mappings to class-level directory
         int totalCopied = 0;
         for (File testMethodDir : testMethodDirs) {
             File methodMappingsDir = new File(testMethodDir, "mappings");
             File methodFilesDir = new File(testMethodDir, "__files");
             
-            if (!methodMappingsDir.exists() || !methodMappingsDir.isDirectory()) {
-                continue;
-            }
-            
-            File[] mappingFiles = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-            if (mappingFiles != null) {
-                for (File mappingFile : mappingFiles) {
-                    try {
-                        String prefix = testMethodDir.getName() + "_";
-                        String newName = prefix + mappingFile.getName();
-                        File destFile = new File(classMappingsDir, newName);
-                        java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
-                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                        totalCopied++;
-                    } catch (Exception e) {
-                        System.err.println("StableMock: Failed to copy mapping " + mappingFile.getName() + ": " + e.getMessage());
+            if (methodMappingsDir.exists() && methodMappingsDir.isDirectory()) {
+                File[] mappingFiles = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                if (mappingFiles != null) {
+                    for (File mappingFile : mappingFiles) {
+                        try {
+                            String prefix = testMethodDir.getName() + "_";
+                            String newName = prefix + mappingFile.getName();
+                            File destFile = new File(classMappingsDir, newName);
+                            java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            totalCopied++;
+                        } catch (Exception e) {
+                            System.err.println("StableMock: Failed to copy mapping " + mappingFile.getName() + ": " + e.getMessage());
+                        }
                     }
                 }
             }

@@ -20,17 +20,38 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
 
     @Override
     public void beforeAll(ExtensionContext context) {
-        U annotation = TestContextResolver.findUAnnotation(context);
-        if (annotation == null) {
+        System.out.println("StableMock: beforeAll called");
+        U[] annotations = TestContextResolver.findAllUAnnotations(context);
+        System.out.println("StableMock: Found " + annotations.length + " annotations");
+        if (annotations.length == 0) {
             return;
         }
 
-        String[] urls = annotation.urls();
-        if (urls.length == 0) {
+        // Collect ALL URLs from ALL annotations
+        java.util.List<String> allUrls = new java.util.ArrayList<>();
+        for (U annotation : annotations) {
+            String[] urls = annotation.urls();
+            System.out.println("StableMock: Annotation has " + (urls != null ? urls.length : 0) + " URLs");
+            if (urls != null) {
+                for (String url : urls) {
+                    if (url != null && !url.isEmpty()) {
+                        allUrls.add(url);
+                        System.out.println("StableMock: Added URL: " + url);
+                    }
+                }
+            }
+        }
+
+        System.out.println("StableMock: Total URLs collected: " + allUrls.size());
+        if (allUrls.isEmpty()) {
+            System.out.println("StableMock: No URLs found, returning early");
             return;
         }
 
-        if (!TestContextResolver.isSpringBootTest(context)) {
+        boolean isSpringBootTest = TestContextResolver.isSpringBootTest(context);
+        System.out.println("StableMock: isSpringBootTest=" + isSpringBootTest);
+        if (!isSpringBootTest) {
+            System.out.println("StableMock: Not a Spring Boot test, returning early");
             return;
         }
 
@@ -40,44 +61,111 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
         File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
         
         ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(context);
-        int port = WireMockServerManager.findFreePort();
-        WireMockServer server;
         
-        if (StableMockConfig.isRecordMode()) {
-            server = WireMockServerManager.startRecording(port, baseMappingsDir, Arrays.asList(urls));
-        } else {
-            MappingStorage.mergePerTestMethodMappings(baseMappingsDir);
-            WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
-                    .port(port)
-                    .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
-                    .usingFilesUnderDirectory(baseMappingsDir.getAbsolutePath());
-            server = new WireMockServer(config);
-            server.start();
+        boolean isRecordMode = StableMockConfig.isRecordMode();
+        boolean hasMultipleUrls = allUrls.size() > 1;
+        
+        System.out.println("StableMock: beforeAll - annotations=" + annotations.length + ", totalUrls=" + allUrls.size() + ", isRecordMode=" + isRecordMode + ", hasMultipleUrls=" + hasMultipleUrls);
+        for (int i = 0; i < allUrls.size(); i++) {
+            System.out.println("StableMock: URL " + i + " = " + allUrls.get(i));
         }
         
-        classStore.putServer(server);
-        classStore.putPort(port);
-        classStore.putMode(mode);
-        classStore.putTargetUrl(urls[0]);
-        
-        String baseUrl = "http://localhost:" + port;
-        WireMockContext.setBaseUrl(baseUrl);
-        WireMockContext.setPort(port);
-        System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
-        System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
-        
-        System.out.println("StableMock: Started shared WireMock server in beforeAll for " + testClassName + " on port " + port);
+        if (hasMultipleUrls) {
+            // Create separate WireMock server for each URL
+            java.util.List<WireMockServer> servers = new java.util.ArrayList<>();
+            java.util.List<Integer> ports = new java.util.ArrayList<>();
+            
+            for (int i = 0; i < allUrls.size(); i++) {
+                String targetUrl = allUrls.get(i);
+                int port = WireMockServerManager.findFreePort();
+                File urlMappingsDir = new File(baseMappingsDir, "url_" + i);
+                
+                WireMockServer server;
+                if (isRecordMode) {
+                    server = WireMockServerManager.startRecording(port, urlMappingsDir, Arrays.asList(targetUrl));
+                } else {
+                    // In playback mode, merge all test methods' annotation_X mappings for this URL index
+                    MappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, i);
+                    server = WireMockServerManager.startPlayback(port, urlMappingsDir);
+                }
+                
+                servers.add(server);
+                ports.add(port);
+                System.out.println("StableMock: Started WireMock server " + i + " on port " + port + " for " + targetUrl);
+            }
+            
+            classStore.putServers(servers);
+            classStore.putPorts(ports);
+            classStore.putServer(servers.get(0));
+            classStore.putPort(ports.get(0));
+            classStore.putMode(mode);
+            classStore.putTargetUrl(allUrls.get(0));
+            
+            String baseUrl = "http://localhost:" + ports.get(0);
+            WireMockContext.setBaseUrl(baseUrl);
+            WireMockContext.setPort(ports.get(0));
+            System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
+            System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(ports.get(0)));
+            
+            for (int i = 0; i < ports.size(); i++) {
+                System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, "http://localhost:" + ports.get(i));
+            }
+            
+            System.out.println("StableMock: Started " + servers.size() + " separate WireMock servers in beforeAll for " + testClassName);
+        } else {
+            // Single URL - use existing single server logic
+            int port = WireMockServerManager.findFreePort();
+            WireMockServer server;
+            
+            if (isRecordMode) {
+                server = WireMockServerManager.startRecording(port, baseMappingsDir, allUrls);
+            } else {
+                MappingStorage.mergePerTestMethodMappings(baseMappingsDir);
+                WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
+                        .port(port)
+                        .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
+                        .usingFilesUnderDirectory(baseMappingsDir.getAbsolutePath());
+                server = new WireMockServer(config);
+                server.start();
+            }
+            
+            classStore.putServer(server);
+            classStore.putPort(port);
+            classStore.putMode(mode);
+            classStore.putTargetUrl(allUrls.get(0));
+            
+            String baseUrl = "http://localhost:" + port;
+            WireMockContext.setBaseUrl(baseUrl);
+            WireMockContext.setPort(port);
+            System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
+            System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
+            
+            System.out.println("StableMock: Started WireMock server in beforeAll for " + testClassName + " on port " + port);
+        }
     }
 
     @Override
     public void beforeEach(ExtensionContext context) {
-        U annotation = TestContextResolver.findUAnnotation(context);
-        if (annotation == null) {
+        U[] annotations = TestContextResolver.findAllUAnnotations(context);
+        if (annotations.length == 0) {
             return;
         }
 
-        String[] urls = annotation.urls();
-        if (urls.length == 0) {
+        // Collect ALL URLs from ALL annotations
+        java.util.List<String> allUrls = new java.util.ArrayList<>();
+        for (U annotation : annotations) {
+            String[] urls = annotation.urls();
+            if (urls != null) {
+                for (String url : urls) {
+                    if (url != null && !url.isEmpty()) {
+                        allUrls.add(url);
+                    }
+                }
+            }
+        }
+
+        if (allUrls.isEmpty()) {
             return;
         }
 
@@ -107,7 +195,44 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
             methodStore.putUseClassLevelServer(true);
             methodStore.putExistingRequestCount(existingRequestCount);
             
-            System.out.println("StableMock: Using shared server on port " + port + " for test method " + testMethodName);
+            if (allUrls.size() > 1) {
+                // Create AnnotationInfo objects for saving mappings
+                java.util.List<WireMockServerManager.AnnotationInfo> annotationInfos = new java.util.ArrayList<>();
+                for (int i = 0; i < allUrls.size(); i++) {
+                    annotationInfos.add(new WireMockServerManager.AnnotationInfo(i, new String[]{allUrls.get(i)}));
+                }
+                methodStore.putAnnotationInfos(annotationInfos);
+                
+                java.util.List<Integer> ports = classStore.getPorts();
+                if (ports == null || ports.isEmpty()) {
+                    java.util.List<WireMockServer> servers = classStore.getServers();
+                    if (servers != null && !servers.isEmpty()) {
+                        ports = new java.util.ArrayList<>();
+                        for (WireMockServer server : servers) {
+                            if (server != null) {
+                                ports.add(server.port());
+                            }
+                        }
+                    }
+                }
+                
+                if (ports != null && !ports.isEmpty()) {
+                    for (int i = 0; i < ports.size(); i++) {
+                        String portProp = StableMockConfig.PORT_PROPERTY + "." + i;
+                        String urlProp = StableMockConfig.BASE_URL_PROPERTY + "." + i;
+                        String urlValue = "http://localhost:" + ports.get(i);
+                        System.setProperty(portProp, String.valueOf(ports.get(i)));
+                        System.setProperty(urlProp, urlValue);
+                        System.out.println("StableMock: Set " + urlProp + "=" + urlValue + " (port " + ports.get(i) + ")");
+                    }
+                    System.out.println("StableMock: Set system properties for " + ports.size() + " WireMock servers in beforeEach");
+                } else {
+                    System.out.println("StableMock: Warning - No ports found for multiple URLs in beforeEach");
+                }
+            }
+            
+            System.out.println("StableMock: Using shared server on port " + port + " for test method " + testMethodName +
+                    (allUrls.size() > 1 ? " (" + allUrls.size() + " URLs)" : ""));
             return;
         }
 
@@ -119,29 +244,73 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
         
         System.out.println("StableMock: Mappings directory: " + mappingsDir.getAbsolutePath());
 
-        int port = WireMockServerManager.findFreePort();
-        WireMockServer wireMockServer;
-
-        if (StableMockConfig.isRecordMode()) {
-            wireMockServer = WireMockServerManager.startRecording(port, mappingsDir, Arrays.asList(urls));
+        if (annotations.length > 1 && StableMockConfig.isRecordMode()) {
+            java.util.List<WireMockServerManager.AnnotationInfo> annotationInfos = new java.util.ArrayList<>();
+            for (int i = 0; i < annotations.length; i++) {
+                annotationInfos.add(new WireMockServerManager.AnnotationInfo(i, annotations[i].urls()));
+            }
+            
+            java.util.List<WireMockServer> servers = new java.util.ArrayList<>();
+            java.util.List<Integer> ports = new java.util.ArrayList<>();
+            
+            for (int i = 0; i < annotationInfos.size(); i++) {
+                WireMockServerManager.AnnotationInfo info = annotationInfos.get(i);
+                if (info.urls.length > 0) {
+                    int port = WireMockServerManager.findFreePort();
+                    File annotationMappingsDir = new File(mappingsDir, "annotation_" + i);
+                    WireMockServer server = WireMockServerManager.startRecording(port, annotationMappingsDir, Arrays.asList(info.urls));
+                    servers.add(server);
+                    ports.add(port);
+                    System.out.println("StableMock: Started WireMock server " + i + " on port " + port + " for " + info.urls[0]);
+                }
+            }
+            
+            methodStore.putAnnotationInfos(annotationInfos);
+            methodStore.putServer(servers.get(0));
+            methodStore.putPort(ports.get(0));
+            methodStore.putMode(mode);
+            methodStore.putMappingsDir(mappingsDir);
+            methodStore.putTargetUrl(annotationInfos.get(0).urls[0]);
+            methodStore.putUseClassLevelServer(false);
+            
+            String baseUrl = "http://localhost:" + ports.get(0);
+            WireMockContext.setBaseUrl(baseUrl);
+            WireMockContext.setPort(ports.get(0));
+            System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
+            System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(ports.get(0)));
+            
+            for (int i = 0; i < ports.size(); i++) {
+                System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, "http://localhost:" + ports.get(i));
+            }
+            
+            System.out.println("StableMock: Started " + servers.size() + " separate WireMock servers for test method " + testMethodName);
         } else {
-            wireMockServer = WireMockServerManager.startPlayback(port, mappingsDir);
+            int port = WireMockServerManager.findFreePort();
+            WireMockServer wireMockServer;
+
+            if (StableMockConfig.isRecordMode()) {
+                wireMockServer = WireMockServerManager.startRecording(port, mappingsDir, allUrls);
+            } else {
+                MappingStorage.mergePerTestMethodMappings(mappingsDir);
+                wireMockServer = WireMockServerManager.startPlayback(port, mappingsDir);
+            }
+
+            methodStore.putServer(wireMockServer);
+            methodStore.putPort(port);
+            methodStore.putMode(mode);
+            methodStore.putMappingsDir(mappingsDir);
+            methodStore.putTargetUrl(allUrls.get(0));
+            methodStore.putUseClassLevelServer(false);
+
+            String baseUrl = "http://localhost:" + port;
+            WireMockContext.setBaseUrl(baseUrl);
+            WireMockContext.setPort(port);
+            System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
+            System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
+            
+            System.out.println("StableMock: Started WireMock on port " + port + " for test method " + testMethodName);
         }
-
-        methodStore.putServer(wireMockServer);
-        methodStore.putPort(port);
-        methodStore.putMode(mode);
-        methodStore.putMappingsDir(mappingsDir);
-        methodStore.putTargetUrl(urls[0]);
-        methodStore.putUseClassLevelServer(false);
-
-        String baseUrl = "http://localhost:" + port;
-        WireMockContext.setBaseUrl(baseUrl);
-        WireMockContext.setPort(port);
-        System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
-        System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
-        
-        System.out.println("StableMock: Started WireMock on port " + port + " for test method " + testMethodName);
     }
 
     @Override
@@ -166,11 +335,22 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
                     File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
                     File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
                     
-                    java.util.List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server.getAllServeEvents();
-                    if (serveEvents.isEmpty() || serveEvents.size() <= existingRequestCount) {
-                        System.out.println("StableMock: No new requests recorded for this test method, skipping mapping save");
+                    java.util.List<WireMockServerManager.AnnotationInfo> annotationInfos = methodStore.getAnnotationInfos();
+                    if (annotationInfos != null && annotationInfos.size() > 1) {
+                        java.util.List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server.getAllServeEvents();
+                        if (serveEvents.isEmpty() || serveEvents.size() <= existingRequestCount) {
+                            System.out.println("StableMock: No new requests recorded for this test method, skipping mapping save");
+                        } else {
+                            java.util.List<WireMockServer> allServers = classStore.getServers();
+                            MappingStorage.saveMappingsForTestMethodMultipleAnnotations(server, mappingsDir, baseMappingsDir, annotationInfos, existingRequestCount, allServers);
+                        }
                     } else {
-                        MappingStorage.saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl, existingRequestCount);
+                        java.util.List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server.getAllServeEvents();
+                        if (serveEvents.isEmpty() || serveEvents.size() <= existingRequestCount) {
+                            System.out.println("StableMock: No new requests recorded for this test method, skipping mapping save");
+                        } else {
+                            MappingStorage.saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl, existingRequestCount);
+                        }
                     }
                 }
             }
@@ -181,7 +361,16 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
 
             if (wireMockServer != null) {
                 if (StableMockConfig.isRecordMode()) {
-                    MappingStorage.saveMappings(wireMockServer, mappingsDir, targetUrl);
+                    java.util.List<WireMockServerManager.AnnotationInfo> annotationInfos = methodStore.getAnnotationInfos();
+                    if (annotationInfos != null && annotationInfos.size() > 1) {
+                        String testClassName = TestContextResolver.getTestClassName(context);
+                        File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
+                        File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+                        // For method-level servers, we only have one server, so pass null
+                        MappingStorage.saveMappingsForTestMethodMultipleAnnotations(wireMockServer, mappingsDir, baseMappingsDir, annotationInfos, 0, null);
+                    } else {
+                        MappingStorage.saveMappings(wireMockServer, mappingsDir, targetUrl);
+                    }
                 }
                 wireMockServer.stop();
             }
@@ -193,20 +382,53 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
     @Override
     public void afterAll(ExtensionContext context) {
         ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(context);
+        java.util.List<WireMockServer> servers = classStore.getServers();
+        
+        if (servers != null && !servers.isEmpty()) {
+            for (int i = 0; i < servers.size(); i++) {
+                WireMockServer server = servers.get(i);
+                if (server != null) {
+                    server.stop();
+                    System.out.println("StableMock: Stopped WireMock server " + i + " in afterAll");
+                }
+                System.clearProperty(StableMockConfig.PORT_PROPERTY + "." + i);
+                System.clearProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i);
+            }
+            classStore.putServers(null);
+            classStore.putPorts(null);
+        }
+        
         WireMockServer server = classStore.getServer();
         if (server != null) {
             server.stop();
             classStore.removeServer();
             classStore.removePort();
             System.out.println("StableMock: Stopped class-level WireMock in afterAll");
-            
-            if (StableMockConfig.isRecordMode() || StableMockConfig.isPlaybackMode()) {
-                String testClassName = TestContextResolver.getTestClassName(context);
-                File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-                File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
-                MappingStorage.cleanupClassLevelDirectory(baseMappingsDir);
-            }
         }
+        
+               if (StableMockConfig.isRecordMode() || StableMockConfig.isPlaybackMode()) {
+                   String testClassName = TestContextResolver.getTestClassName(context);
+                   File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
+                   File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+                   MappingStorage.cleanupClassLevelDirectory(baseMappingsDir);
+                   
+                   // Clean up temporary url_X directories used for playback
+                   File[] urlDirs = baseMappingsDir.listFiles(file -> 
+                       file.isDirectory() && file.getName().startsWith("url_"));
+                   if (urlDirs != null) {
+                       for (File urlDir : urlDirs) {
+                           try {
+                               java.nio.file.Files.walk(urlDir.toPath())
+                                   .sorted(java.util.Comparator.reverseOrder())
+                                   .map(java.nio.file.Path::toFile)
+                                   .forEach(File::delete);
+                               System.out.println("StableMock: Cleaned up temporary " + urlDir.getName() + " directory");
+                           } catch (Exception e) {
+                               System.err.println("StableMock: Failed to clean up " + urlDir.getName() + ": " + e.getMessage());
+                           }
+                       }
+                   }
+               }
         
         System.clearProperty(StableMockConfig.PORT_PROPERTY);
         System.clearProperty(StableMockConfig.BASE_URL_PROPERTY);
