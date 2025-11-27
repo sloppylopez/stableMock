@@ -29,6 +29,39 @@ public final class TestContextResolver {
         return context.getRequiredTestClass().getAnnotation(U.class);
     }
     
+    public static U[] findAllUAnnotations(ExtensionContext context) {
+        java.util.List<U> annotations = new java.util.ArrayList<>();
+        
+        // Check method-level annotations first
+        context.getTestMethod().ifPresent(method -> {
+            U.List methodList = method.getAnnotation(U.List.class);
+            if (methodList != null) {
+                java.util.Collections.addAll(annotations, methodList.value());
+            } else {
+                U methodAnnotation = method.getAnnotation(U.class);
+                if (methodAnnotation != null) {
+                    annotations.add(methodAnnotation);
+                }
+            }
+        });
+        
+        // If no method-level annotations, check class-level
+        if (annotations.isEmpty()) {
+            Class<?> testClass = context.getRequiredTestClass();
+            U.List classList = testClass.getAnnotation(U.List.class);
+            if (classList != null) {
+                java.util.Collections.addAll(annotations, classList.value());
+            } else {
+                U classAnnotation = testClass.getAnnotation(U.class);
+                if (classAnnotation != null) {
+                    annotations.add(classAnnotation);
+                }
+            }
+        }
+        
+        return annotations.toArray(new U[0]);
+    }
+    
     public static boolean isSpringBootTest(ExtensionContext context) {
         Class<?> testClass = context.getRequiredTestClass();
         try {
