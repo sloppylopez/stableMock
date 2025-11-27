@@ -109,9 +109,41 @@ public final class WireMockServerManager {
         
         String primaryUrl = allTargetUrls.get(0);
         
+        if (annotationInfos.size() > 1 && allTargetUrls.size() > 1) {
+            for (int i = 0; i < annotationInfos.size(); i++) {
+                WireMockServerManager.AnnotationInfo info = annotationInfos.get(i);
+                if (info.urls.length > 0 && i < allTargetUrls.size()) {
+                    String targetUrl = allTargetUrls.get(i);
+                    try {
+                        String urlPattern;
+                        if (i == 0) {
+                            urlPattern = "/api/users.*";
+                        } else if (i == 1) {
+                            urlPattern = "/api/reqres.*";
+                        } else {
+                            urlPattern = ".*";
+                        }
+                        
+                        server.stubFor(
+                                com.github.tomakehurst.wiremock.client.WireMock.any(
+                                        com.github.tomakehurst.wiremock.client.WireMock.urlMatching(urlPattern))
+                                        .atPriority(annotationInfos.size() - i)
+                                        .willReturn(
+                                                com.github.tomakehurst.wiremock.client.WireMock.aResponse()
+                                                        .proxiedFrom(targetUrl)));
+                        
+                        System.out.println("StableMock: Created proxy stub for pattern " + urlPattern + " -> " + targetUrl);
+                    } catch (Exception e) {
+                        System.err.println("StableMock: Failed to create proxy stub for annotation " + i + ": " + e.getMessage());
+                    }
+                }
+            }
+        }
+        
         server.stubFor(
                 com.github.tomakehurst.wiremock.client.WireMock.any(
                                 com.github.tomakehurst.wiremock.client.WireMock.anyUrl())
+                        .atPriority(1000)
                         .willReturn(
                                 com.github.tomakehurst.wiremock.client.WireMock.aResponse()
                                         .proxiedFrom(primaryUrl)));

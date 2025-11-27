@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @U(urls = { "https://jsonplaceholder.typicode.com" })
-@U(urls = { "https://jsonplaceholder.typicode.com" })
+@U(urls = { "https://reqres.in" })
 class MultipleAnnotationTest {
 
     @Autowired
@@ -30,6 +30,7 @@ class MultipleAnnotationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
+        // First annotation: jsonplaceholder.typicode.com
         registry.add("app.thirdparty.url", () -> {
             String baseUrl = getThreadLocalBaseUrl();
             if (baseUrl == null || baseUrl.isEmpty()) {
@@ -41,6 +42,22 @@ class MultipleAnnotationTest {
 
             System.out.println(
                     "MultipleAnnotationTest: app.thirdparty.url=" + finalUrl +
+                            " (thread=" + Thread.currentThread().getName() + ")");
+            return finalUrl;
+        });
+        
+        // Second annotation: reqres.in
+        registry.add("app.reqres.url", () -> {
+            String baseUrl = getThreadLocalBaseUrl();
+            if (baseUrl == null || baseUrl.isEmpty()) {
+                baseUrl = System.getProperty("stablemock.baseUrl");
+            }
+            String finalUrl = baseUrl != null && !baseUrl.isEmpty()
+                    ? baseUrl
+                    : "https://reqres.in";
+
+            System.out.println(
+                    "MultipleAnnotationTest: app.reqres.url=" + finalUrl +
                             " (thread=" + Thread.currentThread().getName() + ")");
             return finalUrl;
         });
@@ -58,13 +75,26 @@ class MultipleAnnotationTest {
 
     @Test
     void testMultipleAnnotationsWork() {
-        // This test verifies that multiple @U annotations are handled correctly
-        // Both annotations point to the same URL, but they should be tracked separately
-        String response = restTemplate.getForObject("/api/users/1", String.class);
-
-        assertNotNull(response, "Response should not be null");
-        assertTrue(response.contains("\"id\": 1"), "Response should contain user id 1");
-        assertTrue(response.contains("username"), "Response should contain username field");
+        // This test verifies that multiple @U annotations work correctly
+        // First annotation: jsonplaceholder.typicode.com - called via /api/users/1
+        // Second annotation: reqres.in - called via /api/reqres/users/1
+        // Both should be tracked separately
+        
+        // Call first API (jsonplaceholder)
+        String response1 = restTemplate.getForObject("/api/users/1", String.class);
+        assertNotNull(response1, "Response from jsonplaceholder should not be null");
+        assertTrue(response1.contains("\"id\": 1") || response1.contains("\"id\":1"), 
+                "Response should contain user id 1");
+        assertTrue(response1.contains("username") || response1.contains("name"), 
+                "Response should contain user fields");
+        
+        // Call second API (reqres)
+        String response2 = restTemplate.getForObject("/api/reqres/users/1", String.class);
+        assertNotNull(response2, "Response from reqres should not be null");
+        assertTrue(response2.contains("\"id\": 1") || response2.contains("\"id\":1"), 
+                "Response should contain user id 1");
+        assertTrue(response2.contains("first_name") || response2.contains("email") || response2.contains("data"), 
+                "Response should contain user fields");
 
         System.out.println(
                 "MultipleAnnotationTest.testMultipleAnnotationsWork completed (thread=" +
@@ -73,11 +103,18 @@ class MultipleAnnotationTest {
 
     @Test
     void testMultipleAnnotationsRecordSeparately() {
-        // This test makes a different request to verify both annotations are tracked
-        String response = restTemplate.getForObject("/api/users/2", String.class);
-
-        assertNotNull(response, "Response should not be null");
-        assertTrue(response.contains("\"id\": 2"), "Response should contain user id 2");
+        // This test makes requests to both APIs to verify both annotations are tracked
+        // First annotation: jsonplaceholder.typicode.com
+        String response1 = restTemplate.getForObject("/api/users/2", String.class);
+        assertNotNull(response1, "Response from jsonplaceholder should not be null");
+        assertTrue(response1.contains("\"id\": 2") || response1.contains("\"id\":2"), 
+                "Response should contain user id 2");
+        
+        // Second annotation: reqres.in
+        String response2 = restTemplate.getForObject("/api/reqres/users/2", String.class);
+        assertNotNull(response2, "Response from reqres should not be null");
+        assertTrue(response2.contains("\"id\": 2") || response2.contains("\"id\":2"), 
+                "Response should contain user id 2");
 
         System.out.println(
                 "MultipleAnnotationTest.testMultipleAnnotationsRecordSeparately completed (thread=" +
