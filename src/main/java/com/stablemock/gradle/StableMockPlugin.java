@@ -40,10 +40,10 @@ public class StableMockPlugin implements Plugin<Project> {
             task.useJUnitPlatform();
 
             // Set RECORD mode system property
-               task.systemProperty("stablemock.mode", "RECORD");
-               task.systemProperty("stablemock.showMatches", System.getProperty("stablemock.showMatches", "false"));
-               task.systemProperty("stablemock.debug", System.getProperty("stablemock.debug", "false"));
-               task.systemProperty("stablemock.useSharedServer", "true"); // Enable shared server for Spring Boot parallel execution
+            task.systemProperty("stablemock.mode", "RECORD");
+            task.systemProperty("stablemock.showMatches", System.getProperty("stablemock.showMatches", "false"));
+            task.systemProperty("stablemock.debug", System.getProperty("stablemock.debug", "false"));
+            task.systemProperty("stablemock.useSharedServer", "true"); // Enable shared server for Spring Boot parallel execution
 
             // Configure test logging
             task.testLogging(tl -> {
@@ -65,10 +65,10 @@ public class StableMockPlugin implements Plugin<Project> {
             task.useJUnitPlatform();
 
             // Set PLAYBACK mode system property (or leave default)
-               task.systemProperty("stablemock.mode", "PLAYBACK");
-               task.systemProperty("stablemock.showMatches", System.getProperty("stablemock.showMatches", "false"));
-               task.systemProperty("stablemock.debug", System.getProperty("stablemock.debug", "false"));
-               task.systemProperty("stablemock.useSharedServer", "true"); // Enable shared server for Spring Boot parallel execution
+            task.systemProperty("stablemock.mode", "PLAYBACK");
+            task.systemProperty("stablemock.showMatches", System.getProperty("stablemock.showMatches", "false"));
+            task.systemProperty("stablemock.debug", System.getProperty("stablemock.debug", "false"));
+            task.systemProperty("stablemock.useSharedServer", "true"); // Enable shared server for Spring Boot parallel execution
 
             // Configure test logging
             task.testLogging(tl -> {
