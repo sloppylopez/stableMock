@@ -1,0 +1,81 @@
+# CI Workflow - Testing Only (No Publishing)
+# This workflow runs tests on every push/PR but does NOT publish anything
+# Safe for private repositories
+
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ '17', '21' ]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+          cache: 'gradle'
+      
+      - name: Verify Java version
+        run: |
+          java -version
+          echo "JAVA_HOME=$JAVA_HOME"
+      
+      - name: Grant execute permission for gradlew
+        run: |
+          chmod +x gradlew
+          chmod +x examples/spring-boot-example/gradlew
+      
+      - name: Build StableMock library
+        run: ./gradlew build -x test --no-daemon
+      
+      - name: Publish to Maven Local
+        run: ./gradlew publishToMavenLocal -x test --no-daemon
+      
+      - name: Ensure Spring Boot example wrapper JAR exists
+        run: |
+          if [ ! -f "examples/spring-boot-example/gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "Wrapper JAR missing, copying from parent..."
+            mkdir -p examples/spring-boot-example/gradle/wrapper
+            cp gradle/wrapper/gradle-wrapper.jar examples/spring-boot-example/gradle/wrapper/gradle-wrapper.jar
+          fi
+      
+      - name: Run Spring Boot example tests
+        working-directory: examples/spring-boot-example
+        run: |
+          echo "=== Record mode (first time) ==="
+          ./gradlew stableMockRecord --no-daemon
+          echo "=== Record mode (second time) ==="
+          ./gradlew stableMockRecord --no-daemon
+          echo "=== Playback mode ==="
+          ./gradlew stableMockPlayback --no-daemon
+          echo "=== Regular test task (playback mode) ==="
+          ./gradlew test --no-daemon
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-java-${{ matrix.java }}
+          path: examples/spring-boot-example/build/test-results/
+          retention-days: 30
+      
+      - name: Upload test report HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-html-java-${{ matrix.java }}
+          path: examples/spring-boot-example/build/reports/tests/
+          retention-days: 30
