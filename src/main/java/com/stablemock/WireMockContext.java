@@ -2,11 +2,17 @@ package com.stablemock;
 
 /**
  * Thread-local context for WireMock server information.
- * Used to support parallel test execution where each test has its own WireMock instance.
+ * Used to support parallel test execution where each test has its own WireMock
+ * instance.
  */
-public class WireMockContext {
+public final class WireMockContext {
+
     private static final ThreadLocal<String> threadLocalBaseUrl = new ThreadLocal<>();
     private static final ThreadLocal<Integer> threadLocalPort = new ThreadLocal<>();
+
+    private WireMockContext() {
+        // utility class
+    }
 
     public static void setBaseUrl(String baseUrl) {
         threadLocalBaseUrl.set(baseUrl);
@@ -29,4 +35,3 @@ public class WireMockContext {
         threadLocalPort.remove();
     }
 }
-

@@ -12,30 +12,19 @@ import org.springframework.test.context.DynamicPropertySource;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * E2E Spring Boot test with Feign client that:
- * 1. @U extension starts WireMock and sets stablemock.baseUrl in ThreadLocal in
- * beforeAll/beforeEach()
- * 2. @DynamicPropertySource supplier reads from ThreadLocal lazily (canonical
- * solution for parallel execution)
- * 3. ThirdPartyService reads app.thirdparty.url from Spring Environment
- * 4. JsonPlaceholderClient ends up calling WireMock instead of the real
- * jsonplaceholder host
- * 5. Tests hit controller -> service -> Feign client -> WireMock
+ * Parallel test class to verify that multiple test classes can run in parallel
+ * with StableMock, each getting their own WireMock instance.
+ *
+ * This test should run in parallel with SpringBootIntegrationTest without
+ * conflicts.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @U(urls = { "https://jsonplaceholder.typicode.com" })
-class SpringBootIntegrationTest {
+class ParallelSpringBootTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
 
-    /**
-     * Dynamic property source that reads from WireMockContext ThreadLocal.
-     * The supplier is evaluated lazily when Spring needs the value (after
-     * beforeAll/beforeEach runs),
-     * so it can read the ThreadLocal value set by StableMock.
-     * This is the canonical solution for parallel test execution in Spring Boot.
-     */
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         // Map stablemock.baseUrl to app.thirdparty.url so the service uses WireMock
@@ -53,7 +42,7 @@ class SpringBootIntegrationTest {
                     : "https://jsonplaceholder.typicode.com";
 
             System.out.println(
-                    "SpringBootIntegrationTest: app.thirdparty.url=" + finalUrl +
+                    "ParallelSpringBootTest: app.thirdparty.url=" + finalUrl +
                             " (thread=" + Thread.currentThread().getName() + ")");
             return finalUrl;
         });
@@ -70,39 +59,32 @@ class SpringBootIntegrationTest {
     }
 
     @Test
-    void testGetUserViaController() {
-        String response = restTemplate.getForObject("/api/users/1", String.class);
-
-        assertNotNull(response);
-        assertTrue(response.contains("\"id\": 1"), "Response should contain user id 1");
-    }
-
-    @Test
-    void testCreatePostViaController() {
-        String response = restTemplate.postForObject(
-                "/api/posts?title=Test Title&body=Test Body&userId=1",
-                null,
-                String.class);
+    void testGetUser10ViaController() {
+        // This test uses user ID 10 to ensure it's distinct from other tests
+        // When run in parallel, each test should get its own WireMock instance on a
+        // different port
+        String response = restTemplate.getForObject("/api/users/10", String.class);
 
         assertNotNull(response, "Response should not be null");
-        assertTrue(response.contains("\"id\": 101"), "Response should contain new post id 101");
+        // JsonPlaceholder returns pretty-printed JSON with spaces
+        assertTrue(response.contains("\"id\": 10"), "Response should contain user id 10");
+        assertTrue(response.contains("username"), "Response should contain username field");
+
+        System.out.println(
+                "ParallelSpringBootTest.testGetUser10ViaController completed (thread=" +
+                        Thread.currentThread().getName() + ")");
     }
 
     @Test
-    void testGetUser2ViaController() {
-        // This test uses a different user ID to ensure it's a distinct request
-        String response = restTemplate.getForObject("/api/users/2", String.class);
+    void testGetUser1ViaController() {
+        // Use user ID 1 instead of 11 (which doesn't exist)
+        String response = restTemplate.getForObject("/api/users/1", String.class);
 
-        assertNotNull(response);
-        assertTrue(response.contains("\"id\": 2"), "Response should contain user id 2");
-    }
+        assertNotNull(response, "Response should not be null");
+        assertTrue(response.contains("\"id\": 1"), "Response should contain user id 1");
 
-    @Test
-    void testGetUser3ViaController() {
-        // Another parallel test with different user ID
-        String response = restTemplate.getForObject("/api/users/3", String.class);
-
-        assertNotNull(response);
-        assertTrue(response.contains("\"id\": 3"), "Response should contain user id 3");
+        System.out.println(
+                "ParallelSpringBootTest.testGetUser1ViaController completed (thread=" +
+                        Thread.currentThread().getName() + ")");
     }
 }

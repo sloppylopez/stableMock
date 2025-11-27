@@ -1,11 +1,3 @@
-example.SpringBootIntegrationTest.testCreatePostViaController=[
-{
-  "id": 101
-}
-]
-
-
-example.SpringBootIntegrationTest.testGetUserViaController=[
 {
   "id": 1,
   "name": "Leanne Graham",
@@ -29,4 +21,3 @@ example.SpringBootIntegrationTest.testGetUserViaController=[
     "bs": "harness real-time e-markets"
   }
 }
-]
