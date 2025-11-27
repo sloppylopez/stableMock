@@ -62,7 +62,6 @@ public final class WireMockServerManager {
     public static List<WireMockServer> startRecordingMultipleAnnotationsSeparateServers(
             File mappingsDir, List<AnnotationInfo> annotationInfos) {
         List<WireMockServer> servers = new ArrayList<>();
-        List<Integer> ports = new ArrayList<>();
         
         for (int i = 0; i < annotationInfos.size(); i++) {
             AnnotationInfo info = annotationInfos.get(i);
@@ -71,7 +70,6 @@ public final class WireMockServerManager {
                 File annotationMappingsDir = new File(mappingsDir, "annotation_" + i);
                 WireMockServer server = startRecording(port, annotationMappingsDir, Arrays.asList(info.urls));
                 servers.add(server);
-                ports.add(port);
                 System.out.println("StableMock: Started WireMock server " + i + " on port " + port + " for " + info.urls[0]);
             }
         }
