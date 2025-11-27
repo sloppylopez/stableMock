@@ -23,7 +23,7 @@ What actually happened.
 
 ## Code Sample
 ```java
-@Mockero(urls = { "https://api.example.com" }, ignore = { "json:timestamp" })
+@U(urls = { "https://api.example.com" }, ignore = { "json:timestamp" })
 public class MyTest {
     @Test
     public void myTest(int port) {
