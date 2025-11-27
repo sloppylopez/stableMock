@@ -33,7 +33,7 @@ public class MyTest {
 ```
 
 ## Environment
-- **Mockero Version**: [e.g., 1.0.0]
+- **StableMock Version**: [e.g., 1.0.0]
 - **Java Version**: [e.g., Java 17]
 - **OS**: [e.g., Windows 11, macOS 14, Ubuntu 22.04]
 - **Build Tool**: [e.g., Gradle 8.5, Maven 3.9]
