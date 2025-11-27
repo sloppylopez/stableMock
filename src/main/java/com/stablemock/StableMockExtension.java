@@ -403,6 +403,16 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
             throw new RuntimeException("Failed to create mappings directory: " + mappingsDir.getAbsolutePath());
         }
 
+        // WireMock 3.x requires __files and mappings directories to exist before recording starts
+        File mappingsSubDir = new File(mappingsDir, "mappings");
+        File filesSubDir = new File(mappingsDir, "__files");
+        if (!mappingsSubDir.exists() && !mappingsSubDir.mkdirs()) {
+            throw new RuntimeException("Failed to create mappings subdirectory: " + mappingsSubDir.getAbsolutePath());
+        }
+        if (!filesSubDir.exists() && !filesSubDir.mkdirs()) {
+            throw new RuntimeException("Failed to create __files subdirectory: " + filesSubDir.getAbsolutePath());
+        }
+
         WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
                 .port(port)
                 .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
