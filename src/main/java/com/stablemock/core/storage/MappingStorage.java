@@ -162,6 +162,24 @@ public final class MappingStorage {
         System.out.println("StableMock: Saved " + testMethodMappings.size() + " mappings to " + testMethodMappingsSubDir.getAbsolutePath());
     }
     
+    /**
+     * Saves mappings for test methods with multiple @U annotations.
+     * Each annotation's mappings are saved separately in annotation_X directories
+     * within the test method's mappings directory, allowing proper isolation of
+     * requests made to different target URLs.
+     *
+     * <p>This method iterates through each annotation configuration, retrieves the
+     * corresponding WireMock server, filters serve events that occurred during this
+     * test method, and saves the resulting mappings to separate directories.</p>
+     *
+     * @param wireMockServer The primary WireMock server (used as fallback for annotation index 0)
+     * @param testMethodMappingsDir Directory for this test method's mappings (e.g., testClassName/testMethodName)
+     * @param baseMappingsDir Base directory for all test class mappings
+     * @param annotationInfos List of annotation configurations containing URL targets and indices
+     * @param existingRequestCount Number of requests from previous tests (for class-level server tracking)
+     * @param allServers List of all WireMock servers (one per annotation), may be null
+     * @throws IOException If directory creation or file operations fail
+     */
     public static void saveMappingsForTestMethodMultipleAnnotations(WireMockServer wireMockServer, 
             File testMethodMappingsDir, File baseMappingsDir, 
             java.util.List<WireMockServerManager.AnnotationInfo> annotationInfos, int existingRequestCount,
@@ -361,6 +379,20 @@ public final class MappingStorage {
         }
     }
     
+    /**
+     * Merges all annotation_X directory mappings within a single test method directory
+     * into the method's root mappings directory.
+     *
+     * <p>This method consolidates mappings from multiple annotation directories
+     * (e.g., annotation_0, annotation_1) into a single mappings directory for easier
+     * loading during playback mode. Mapping files are prefixed with their source
+     * annotation directory name to prevent naming conflicts.</p>
+     *
+     * <p>Body files from each annotation's __files directory are also copied to
+     * the merged __files directory.</p>
+     *
+     * @param methodMappingsDir The test method's mappings directory containing annotation_X subdirectories
+     */
     public static void mergeAnnotationMappingsForMethod(File methodMappingsDir) {
         File mergedMappingsDir = new File(methodMappingsDir, "mappings");
         File mergedFilesDir = new File(methodMappingsDir, "__files");
@@ -427,7 +459,23 @@ public final class MappingStorage {
     
     /**
      * Merges all test methods' annotation_X mappings for a specific URL index into url_X directory.
-     * This is used in playback mode for multiple URLs.
+     * This is used in playback mode for multiple URLs to consolidate mappings from all test methods.
+     *
+     * <p>For each test method directory, this method finds the annotation_X directory matching
+     * the specified URL index and copies its mappings to the url_X directory at the base level.
+     * This allows WireMock to serve stubs for a specific target URL during playback.</p>
+     *
+     * <p>The method performs the following operations:</p>
+     * <ul>
+     *   <li>Cleans up existing url_X directory if it exists</li>
+     *   <li>Creates new url_X/mappings and url_X/__files directories</li>
+     *   <li>Iterates through all test method directories</li>
+     *   <li>Copies mappings from annotation_X to url_X with method name prefix</li>
+     *   <li>Copies body files from multiple sources (annotation, base, and existing url_X __files)</li>
+     * </ul>
+     *
+     * @param baseMappingsDir Base directory for all test class mappings
+     * @param urlIndex The annotation/URL index to merge (0-based, corresponds to @U annotation order)
      */
     public static void mergeAnnotationMappingsForUrlIndex(File baseMappingsDir, int urlIndex) {
         File urlDir = new File(baseMappingsDir, "url_" + urlIndex);
