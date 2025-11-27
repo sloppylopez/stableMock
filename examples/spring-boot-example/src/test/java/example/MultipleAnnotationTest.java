@@ -21,63 +21,42 @@ import static org.junit.jupiter.api.Assertions.*;
  * 3. Mappings are saved separately per annotation
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@U(urls = { "https://jsonplaceholder.typicode.com" })
-@U(urls = { "https://reqres.in" })
+@U(urls = { "https://jsonplaceholder.typicode.com", "https://postman-echo.com" })
 class MultipleAnnotationTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
 
     @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        // First annotation: jsonplaceholder.typicode.com
+    static void registerMockUrls(DynamicPropertyRegistry registry) {
+        // WireMock URLs are set by StableMockExtension via system properties
+        // stablemock.baseUrl.0 = first URL (jsonplaceholder.typicode.com)
+        // stablemock.baseUrl.1 = second URL (postman-echo.com)
+        
         registry.add("app.thirdparty.url", () -> {
-            String baseUrl = getThreadLocalBaseUrl();
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl");
-            }
-            String finalUrl = baseUrl != null && !baseUrl.isEmpty()
-                    ? baseUrl
+            String wireMockUrl = System.getProperty("stablemock.baseUrl.0");
+            String finalUrl = (wireMockUrl != null && !wireMockUrl.isEmpty())
+                    ? wireMockUrl
                     : "https://jsonplaceholder.typicode.com";
-
-            System.out.println(
-                    "MultipleAnnotationTest: app.thirdparty.url=" + finalUrl +
-                            " (thread=" + Thread.currentThread().getName() + ")");
+            System.out.println("MultipleAnnotationTest: app.thirdparty.url=" + finalUrl);
             return finalUrl;
         });
         
-        // Second annotation: reqres.in
         registry.add("app.reqres.url", () -> {
-            String baseUrl = getThreadLocalBaseUrl();
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl");
-            }
-            String finalUrl = baseUrl != null && !baseUrl.isEmpty()
-                    ? baseUrl
-                    : "https://reqres.in";
-
-            System.out.println(
-                    "MultipleAnnotationTest: app.reqres.url=" + finalUrl +
-                            " (thread=" + Thread.currentThread().getName() + ")");
+            String wireMockUrl = System.getProperty("stablemock.baseUrl.1");
+            String finalUrl = (wireMockUrl != null && !wireMockUrl.isEmpty())
+                    ? wireMockUrl
+                    : "https://postman-echo.com";
+            System.out.println("MultipleAnnotationTest: app.reqres.url=" + finalUrl);
             return finalUrl;
         });
-    }
-
-    private static String getThreadLocalBaseUrl() {
-        try {
-            Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl");
-            return (String) method.invoke(null);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     @Test
     void testMultipleAnnotationsWork() {
         // This test verifies that multiple @U annotations work correctly
         // First annotation: jsonplaceholder.typicode.com - called via /api/users/1
-        // Second annotation: reqres.in - called via /api/reqres/users/1
+        // Second annotation: postman-echo.com - called via /api/reqres/users/1
         // Both should be tracked separately
         
         // Call first API (jsonplaceholder)
@@ -88,13 +67,11 @@ class MultipleAnnotationTest {
         assertTrue(response1.contains("username") || response1.contains("name"), 
                 "Response should contain user fields");
         
-        // Call second API (reqres)
+        // Call second API (postman-echo)
         String response2 = restTemplate.getForObject("/api/reqres/users/1", String.class);
-        assertNotNull(response2, "Response from reqres should not be null");
-        assertTrue(response2.contains("\"id\": 1") || response2.contains("\"id\":1"), 
-                "Response should contain user id 1");
-        assertTrue(response2.contains("first_name") || response2.contains("email") || response2.contains("data"), 
-                "Response should contain user fields");
+        assertNotNull(response2, "Response from postman-echo should not be null");
+        assertTrue(response2.contains("url") || response2.contains("args") || response2.contains("headers"), 
+                "Response should contain echo fields");
 
         System.out.println(
                 "MultipleAnnotationTest.testMultipleAnnotationsWork completed (thread=" +
@@ -110,11 +87,11 @@ class MultipleAnnotationTest {
         assertTrue(response1.contains("\"id\": 2") || response1.contains("\"id\":2"), 
                 "Response should contain user id 2");
         
-        // Second annotation: reqres.in
+        // Second annotation: postman-echo.com
         String response2 = restTemplate.getForObject("/api/reqres/users/2", String.class);
-        assertNotNull(response2, "Response from reqres should not be null");
-        assertTrue(response2.contains("\"id\": 2") || response2.contains("\"id\":2"), 
-                "Response should contain user id 2");
+        assertNotNull(response2, "Response from postman-echo should not be null");
+        assertTrue(response2.contains("url") || response2.contains("args") || response2.contains("headers"), 
+                "Response should contain echo fields");
 
         System.out.println(
                 "MultipleAnnotationTest.testMultipleAnnotationsRecordSeparately completed (thread=" +

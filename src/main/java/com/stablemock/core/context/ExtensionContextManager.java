@@ -70,6 +70,24 @@ public final class ExtensionContextManager {
         public java.util.List<WireMockServerManager.AnnotationInfo> getAnnotationInfos() {
             return store.get("annotationInfos", java.util.List.class);
         }
+        
+        public void putServers(java.util.List<WireMockServer> servers) {
+            store.put("wireMockServers", servers);
+        }
+        
+        @SuppressWarnings("unchecked")
+        public java.util.List<WireMockServer> getServers() {
+            return store.get("wireMockServers", java.util.List.class);
+        }
+        
+        public void putPorts(java.util.List<Integer> ports) {
+            store.put("ports", ports);
+        }
+        
+        @SuppressWarnings("unchecked")
+        public java.util.List<Integer> getPorts() {
+            return store.get("ports", java.util.List.class);
+        }
     }
     
     public static class MethodLevelStore {
