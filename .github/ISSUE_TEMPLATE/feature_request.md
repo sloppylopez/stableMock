@@ -20,7 +20,7 @@ Describe the use case where this feature would be helpful:
 
 ```java
 // Example of how you would use this feature
-@Mockero(urls = { "https://api.example.com" }, newFeature = "...")
+@U(urls = { "https://api.example.com" }, newFeature = "...")
 public class MyTest {
     // ...
 }
