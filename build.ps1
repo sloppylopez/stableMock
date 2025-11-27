@@ -41,9 +41,57 @@ function Invoke-SpringExample {
         Write-Step "Playback mode"
         & .\gradlew.bat stableMockPlayback
         if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
+        
+        Write-Step "Verifying cleanup - checking for class-level directories"
+        Test-StableMockCleanup
     }
     finally {
         Pop-Location
+    }
+}
+
+function Test-StableMockCleanup {
+    $testResourcesDir = "src\test\resources\stablemock"
+    if (-not (Test-Path $testResourcesDir)) {
+        Write-Host "No stablemock directory found - nothing to check" -ForegroundColor Yellow
+        return
+    }
+    
+    $errors = @()
+    $testClassDirs = Get-ChildItem -Path $testResourcesDir -Directory
+    
+    foreach ($testClassDir in $testClassDirs) {
+        $mappingsDir = Join-Path $testClassDir.FullName "mappings"
+        $filesDir = Join-Path $testClassDir.FullName "__files"
+        
+        if (Test-Path $mappingsDir) {
+            $files = Get-ChildItem -Path $mappingsDir -File -ErrorAction SilentlyContinue
+            if ($files -and $files.Count -gt 0) {
+                $errors += "Class-level mappings directory exists with files: $mappingsDir"
+            } elseif (Test-Path $mappingsDir) {
+                $errors += "Class-level mappings directory exists (empty): $mappingsDir"
+            }
+        }
+        
+        if (Test-Path $filesDir) {
+            $files = Get-ChildItem -Path $filesDir -File -ErrorAction SilentlyContinue
+            if ($files -and $files.Count -gt 0) {
+                $errors += "Class-level __files directory exists with files: $filesDir"
+            } elseif (Test-Path $filesDir) {
+                $errors += "Class-level __files directory exists (empty): $filesDir"
+            }
+        }
+    }
+    
+    if ($errors.Count -gt 0) {
+        Write-Host "`nERROR: Class-level directories found after tests!" -ForegroundColor Red
+        foreach ($error in $errors) {
+            Write-Host "  - $error" -ForegroundColor Red
+        }
+        Write-Host "`nThese directories should be cleaned up by StableMock afterAll." -ForegroundColor Red
+        throw "Cleanup verification failed - class-level directories still exist"
+    } else {
+        Write-Host "Cleanup verification passed - no class-level directories found" -ForegroundColor Green
     }
 }
 

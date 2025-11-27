@@ -84,33 +84,25 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
                 System.out.println("StableMock: Started shared WireMock server in beforeAll for " + testClassName + " on port " + port);
             } else {
                 // PLAYBACK mode: Also use a shared server per test class (one port)
-                // Load all mappings from per-test-method directories in beforeAll
+                // Merge mappings temporarily to class-level for WireMock to load them
+                // (WireMock needs files in a known location to resolve bodyFileName references)
+                // We'll clean up the class-level directory in afterAll
                 String testClassName = testClass.getSimpleName();
                 File testResourcesDir = findTestResourcesDirectory(context);
                 File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
                 
                 int port = findFreePort();
-                // Start server without auto-loading - we'll load mappings manually
-                WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
-                        .port(port)
-                        .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
-                        .disableRequestJournal();
                 
-                WireMockServer server = new WireMockServer(config);
-                server.start();
-                
-                // Merge all per-test-method mappings into class-level directory, then use WireMock's auto-loading
+                // Merge all per-test-method mappings into class-level directory for WireMock to load
                 mergePerTestMethodMappings(baseMappingsDir);
                 
                 // Configure server to load from the merged directory
-                // WireMock will automatically load mappings from baseMappingsDir/mappings/
-                WireMockConfiguration mergedConfig = WireMockConfiguration.wireMockConfig()
+                WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
                         .port(port)
                         .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
                         .usingFilesUnderDirectory(baseMappingsDir.getAbsolutePath());
                 
-                server.stop();
-                server = new WireMockServer(mergedConfig);
+                WireMockServer server = new WireMockServer(config);
                 server.start();
                 
                 // Store class-level server (shared by all test methods in this class)
@@ -307,57 +299,79 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
         ExtensionContext.Store classStore = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
         WireMockServer server = classStore.get("wireMockServer", WireMockServer.class);
         if (server != null) {
+            String mode = classStore.get("mode", String.class);
             server.stop();
             classStore.remove("wireMockServer");
             classStore.remove("port");
             System.out.println("StableMock: Stopped class-level WireMock in afterAll");
-        }
-        
-        // Always clean up class-level directory files after all tests complete
-        // Files have been copied to test-method directories during afterEach, so we can safely remove class-level duplicates
-        // This ensures no duplication and keeps the structure clean
-        // We do this even if there's no server to clean up any leftover files from previous runs
-        String testClassName = context.getRequiredTestClass().getSimpleName();
-        File testResourcesDir = findTestResourcesDirectory(context);
-        File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
-        File baseMappingsSubDir = new File(baseMappingsDir, "mappings");
-        File baseFilesDir = new File(baseMappingsDir, "__files");
-        
-        int deletedMappings = 0;
-        int deletedFiles = 0;
-        
-        // Remove class-level mappings (they're duplicated in test-method directories)
-        if (baseMappingsSubDir.exists() && baseMappingsSubDir.isDirectory()) {
-            File[] mappingFiles = baseMappingsSubDir.listFiles();
-            if (mappingFiles != null) {
-                for (File file : mappingFiles) {
-                    if (file.isFile() && file.delete()) {
-                        deletedMappings++;
-                    } else if (file.isFile()) {
-                        System.err.println("StableMock: Failed to delete mapping file: " + file.getAbsolutePath());
+            
+            // Clean up class-level directory files in both RECORD and PLAYBACK modes
+            // In RECORD: Files have been copied to test-method directories during afterEach
+            // In PLAYBACK: Files were merged temporarily for WireMock to load, but are duplicates
+            // This ensures no duplication and keeps the structure clean
+            if ("RECORD".equalsIgnoreCase(mode) || "PLAYBACK".equalsIgnoreCase(mode)) {
+                String testClassName = context.getRequiredTestClass().getSimpleName();
+                File testResourcesDir = findTestResourcesDirectory(context);
+                File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+                File baseMappingsSubDir = new File(baseMappingsDir, "mappings");
+                File baseFilesDir = new File(baseMappingsDir, "__files");
+                
+                int deletedMappings = 0;
+                int deletedFiles = 0;
+                
+                // Remove class-level mappings (they're duplicated in test-method directories)
+                if (baseMappingsSubDir.exists() && baseMappingsSubDir.isDirectory()) {
+                    File[] mappingFiles = baseMappingsSubDir.listFiles();
+                    if (mappingFiles != null) {
+                        for (File file : mappingFiles) {
+                            if (file.isFile() && file.delete()) {
+                                deletedMappings++;
+                            } else if (file.isFile()) {
+                                System.err.println("StableMock: Failed to delete mapping file: " + file.getAbsolutePath());
+                            }
+                        }
+                    }
+                }
+                
+                // Remove class-level __files (they've been copied to test-method directories)
+                if (baseFilesDir.exists() && baseFilesDir.isDirectory()) {
+                    File[] bodyFiles = baseFilesDir.listFiles();
+                    if (bodyFiles != null) {
+                        for (File file : bodyFiles) {
+                            if (file.isFile() && file.delete()) {
+                                deletedFiles++;
+                            } else if (file.isFile()) {
+                                System.err.println("StableMock: Failed to delete body file: " + file.getAbsolutePath());
+                            }
+                        }
+                    }
+                }
+                
+                if (deletedMappings > 0 || deletedFiles > 0) {
+                    System.out.println("StableMock: Cleaned up class-level directory - removed " + 
+                        deletedMappings + " mappings and " + deletedFiles + " body files " +
+                        "(files are in test-method directories)");
+                }
+                
+                // Delete the empty directories themselves
+                if (baseMappingsSubDir.exists() && baseMappingsSubDir.isDirectory()) {
+                    File[] remainingFiles = baseMappingsSubDir.listFiles();
+                    if (remainingFiles == null || remainingFiles.length == 0) {
+                        if (baseMappingsSubDir.delete()) {
+                            System.out.println("StableMock: Removed empty class-level mappings directory");
+                        }
+                    }
+                }
+                
+                if (baseFilesDir.exists() && baseFilesDir.isDirectory()) {
+                    File[] remainingFiles = baseFilesDir.listFiles();
+                    if (remainingFiles == null || remainingFiles.length == 0) {
+                        if (baseFilesDir.delete()) {
+                            System.out.println("StableMock: Removed empty class-level __files directory");
+                        }
                     }
                 }
             }
-        }
-        
-        // Remove class-level __files (they've been copied to test-method directories)
-        if (baseFilesDir.exists() && baseFilesDir.isDirectory()) {
-            File[] bodyFiles = baseFilesDir.listFiles();
-            if (bodyFiles != null) {
-                for (File file : bodyFiles) {
-                    if (file.isFile() && file.delete()) {
-                        deletedFiles++;
-                    } else if (file.isFile()) {
-                        System.err.println("StableMock: Failed to delete body file: " + file.getAbsolutePath());
-                    }
-                }
-            }
-        }
-        
-        if (deletedMappings > 0 || deletedFiles > 0) {
-            System.out.println("StableMock: Cleaned up class-level directory - removed " + 
-                deletedMappings + " mappings and " + deletedFiles + " body files " +
-                "(files are in test-method directories)");
         }
         
         // Clear system properties
@@ -721,6 +735,7 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
         int totalLoaded = 0;
         for (File testMethodDir : testMethodDirs) {
             File methodMappingsDir = new File(testMethodDir, "mappings");
+            
             if (!methodMappingsDir.exists() || !methodMappingsDir.isDirectory()) {
                 continue;
             }
@@ -742,6 +757,7 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
                         }
                     } catch (Exception e) {
                         // Ignore JSON parsing errors - continue loading other mappings
+                        System.err.println("StableMock: Failed to load mapping from " + mappingFile.getName() + ": " + e.getMessage());
                     }
                 }
             }
