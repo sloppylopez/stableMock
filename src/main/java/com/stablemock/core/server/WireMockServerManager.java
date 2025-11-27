@@ -156,6 +156,9 @@ public final class WireMockServerManager {
         public final String[] urls;
         
         public AnnotationInfo(int index, String[] urls) {
+            if (urls == null) {
+                throw new IllegalArgumentException("urls cannot be null");
+            }
             this.index = index;
             this.urls = urls;
         }
