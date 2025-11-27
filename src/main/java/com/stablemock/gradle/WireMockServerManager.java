@@ -6,6 +6,7 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.github.tomakehurst.wiremock.recording.RecordSpecBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.stablemock.core.config.Constants;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,7 +39,7 @@ public class WireMockServerManager {
      */
     public void startPlayback(String mappingsDirPath, Integer configuredPort) {
         this.mappingsDir = mappingsDirPath;
-        this.mode = "PLAYBACK";
+        this.mode = Constants.MODE_PLAYBACK;
         this.port = configuredPort != null ? configuredPort : findFreePort();
 
         File mappingDir = new File(mappingsDirPath);
@@ -65,7 +66,7 @@ public class WireMockServerManager {
     public void startRecording(String mappingsDirPath, List<String> targetUrls, Integer configuredPort) {
         this.mappingsDir = mappingsDirPath;
         this.targetUrl = String.join(", ", targetUrls);
-        this.mode = "RECORD";
+        this.mode = Constants.MODE_RECORD;
         this.port = configuredPort != null ? configuredPort : findFreePort();
 
         if (targetUrls.isEmpty()) {
@@ -127,7 +128,7 @@ public class WireMockServerManager {
             return;
         }
 
-        if ("RECORD".equals(mode)) {
+        if (Constants.MODE_RECORD.equals(mode)) {
             try {
                 saveMappings();
             } catch (Exception e) {
