@@ -42,12 +42,12 @@ class MultipleAnnotationTest {
             return finalUrl;
         });
         
-        registry.add("app.reqres.url", () -> {
+        registry.add("app.postmanecho.url", () -> {
             String wireMockUrl = System.getProperty("stablemock.baseUrl.1");
             String finalUrl = (wireMockUrl != null && !wireMockUrl.isEmpty())
                     ? wireMockUrl
                     : "https://postman-echo.com";
-            System.out.println("MultipleAnnotationTest: app.reqres.url=" + finalUrl);
+            System.out.println("MultipleAnnotationTest: app.postmanecho.url=" + finalUrl);
             return finalUrl;
         });
     }

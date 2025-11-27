@@ -31,7 +31,7 @@ public class ThirdPartyService {
     }
 
     public String getUserFromReqRes(int userId) {
-        // FeignClient uses the URL from app.reqres.url property
+        // FeignClient uses the URL from app.postmanecho.url property
         // This is set by @DynamicPropertySource in tests to point to WireMock
         return postmanEchoClient.getUser(userId);
     }

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.net.URI;
 
 
-@FeignClient(name = "postmanEchoClient", url = "${app.reqres.url}")
+@FeignClient(name = "postmanEchoClient", url = "${app.postmanecho.url}")
 public interface PostmanEchoClient {
     
     @GetMapping("/get?id={id}")
