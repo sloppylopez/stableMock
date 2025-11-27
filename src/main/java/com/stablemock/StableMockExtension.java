@@ -146,7 +146,6 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
         // Check if there's a shared server from beforeAll (Spring Boot tests in RECORD mode)
         ExtensionContext.Store classStore = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
         WireMockServer classServer = classStore.get("wireMockServer", WireMockServer.class);
-        String classMode = classStore.get("mode", String.class);
         
         // Use shared server for both RECORD and PLAYBACK modes
         // In RECORD mode: server records requests, we save mappings per test method
@@ -261,15 +260,24 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
                 ExtensionContext.Store classStore = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
                 WireMockServer server = classStore.get("wireMockServer", WireMockServer.class);
                 if (server != null) {
+                    // Get the request count at the start of this test method
+                    Integer existingRequestCount = store.get("existingRequestCount", Integer.class);
+                    if (existingRequestCount == null) {
+                        existingRequestCount = 0;
+                    }
+                    
+                    // Get the class-level directory to copy __files from
+                    String testClassName = context.getRequiredTestClass().getSimpleName();
+                    File testResourcesDir = findTestResourcesDirectory(context);
+                    File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+                    
                     // Check if there are any serve events (requests) before saving mappings
-                    // If there are no serve events, there's nothing to save
                     List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server.getAllServeEvents();
-                    if (serveEvents.isEmpty()) {
-                        System.out.println("StableMock: No requests recorded for this test method, skipping mapping save");
+                    if (serveEvents.isEmpty() || serveEvents.size() <= existingRequestCount) {
+                        System.out.println("StableMock: No new requests recorded for this test method, skipping mapping save");
                     } else {
-                        // Save all mappings (they'll include requests from all test methods in this class)
-                        // This is acceptable since each test method gets its own directory
-                        saveMappings(server, mappingsDir, targetUrl);
+                        // Save only mappings for requests made during this test method
+                        saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl, existingRequestCount);
                     }
                 }
             }
@@ -303,6 +311,53 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
             classStore.remove("wireMockServer");
             classStore.remove("port");
             System.out.println("StableMock: Stopped class-level WireMock in afterAll");
+        }
+        
+        // Always clean up class-level directory files after all tests complete
+        // Files have been copied to test-method directories during afterEach, so we can safely remove class-level duplicates
+        // This ensures no duplication and keeps the structure clean
+        // We do this even if there's no server to clean up any leftover files from previous runs
+        String testClassName = context.getRequiredTestClass().getSimpleName();
+        File testResourcesDir = findTestResourcesDirectory(context);
+        File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+        File baseMappingsSubDir = new File(baseMappingsDir, "mappings");
+        File baseFilesDir = new File(baseMappingsDir, "__files");
+        
+        int deletedMappings = 0;
+        int deletedFiles = 0;
+        
+        // Remove class-level mappings (they're duplicated in test-method directories)
+        if (baseMappingsSubDir.exists() && baseMappingsSubDir.isDirectory()) {
+            File[] mappingFiles = baseMappingsSubDir.listFiles();
+            if (mappingFiles != null) {
+                for (File file : mappingFiles) {
+                    if (file.isFile() && file.delete()) {
+                        deletedMappings++;
+                    } else if (file.isFile()) {
+                        System.err.println("StableMock: Failed to delete mapping file: " + file.getAbsolutePath());
+                    }
+                }
+            }
+        }
+        
+        // Remove class-level __files (they've been copied to test-method directories)
+        if (baseFilesDir.exists() && baseFilesDir.isDirectory()) {
+            File[] bodyFiles = baseFilesDir.listFiles();
+            if (bodyFiles != null) {
+                for (File file : bodyFiles) {
+                    if (file.isFile() && file.delete()) {
+                        deletedFiles++;
+                    } else if (file.isFile()) {
+                        System.err.println("StableMock: Failed to delete body file: " + file.getAbsolutePath());
+                    }
+                }
+            }
+        }
+        
+        if (deletedMappings > 0 || deletedFiles > 0) {
+            System.out.println("StableMock: Cleaned up class-level directory - removed " + 
+                deletedMappings + " mappings and " + deletedFiles + " body files " +
+                "(files are in test-method directories)");
         }
         
         // Clear system properties
@@ -500,6 +555,127 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
         int savedCount = mappings.size();
 
         System.out.println("StableMock: Saved " + savedCount + " mappings to " + mappingsSubDir.getAbsolutePath());
+    }
+    
+    private void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
+            File baseMappingsDir, String targetUrl, int existingRequestCount) throws IOException {
+        // Create test-method-specific directories
+        File testMethodMappingsSubDir = new File(testMethodMappingsDir, "mappings");
+        File testMethodFilesSubDir = new File(testMethodMappingsDir, "__files");
+
+        if (!testMethodMappingsSubDir.exists() && !testMethodMappingsSubDir.mkdirs()) {
+            throw new IOException("Failed to create mappings subdirectory: " + testMethodMappingsSubDir.getAbsolutePath());
+        }
+        if (!testMethodFilesSubDir.exists() && !testMethodFilesSubDir.mkdirs()) {
+            throw new IOException("Failed to create __files subdirectory: " + testMethodFilesSubDir.getAbsolutePath());
+        }
+
+        // Get all serve events and filter to only those that occurred during this test method
+        List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> allServeEvents = wireMockServer.getAllServeEvents();
+        List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> testMethodServeEvents = 
+            allServeEvents.subList(existingRequestCount, allServeEvents.size());
+        
+        if (testMethodServeEvents.isEmpty()) {
+            System.out.println("StableMock: No new requests recorded for this test method, skipping mapping save");
+            return;
+        }
+
+        // Use WireMock's snapshotRecord with makeStubsPersistent(true) to get mappings in the right format
+        RecordSpecBuilder builder = new RecordSpecBuilder()
+                .forTarget(targetUrl)
+                .makeStubsPersistent(true)  // Enable persistence format
+                .extractTextBodiesOver(255);
+
+        com.github.tomakehurst.wiremock.recording.SnapshotRecordResult result = wireMockServer.snapshotRecord(builder.build());
+        List<StubMapping> allMappings = result.getStubMappings();
+
+        // Filter mappings to only those that correspond to requests made during this test method
+        // Use WireMock's request matching to match mappings to serve events
+        List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
+        for (StubMapping mapping : allMappings) {
+            // Check if this mapping matches any request from this test method
+            // Use WireMock's request matching to check if mapping would match any serve event
+            boolean matches = false;
+            for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
+                try {
+                    // Use WireMock's request matching to check if this mapping matches the serve event's request
+                    if (mapping.getRequest().match(serveEvent.getRequest()).isExactMatch()) {
+                        matches = true;
+                        break;
+                    }
+                } catch (Exception e) {
+                    // If matching fails, try simple string comparison as fallback
+                    String requestUrl = serveEvent.getRequest().getUrl();
+                    String requestMethod = serveEvent.getRequest().getMethod().getName();
+                    String mappingMethod = mapping.getRequest().getMethod() != null 
+                        ? mapping.getRequest().getMethod().getName() 
+                        : "";
+                    String mappingUrl = mapping.getRequest().getUrl() != null 
+                        ? mapping.getRequest().getUrl() 
+                        : "";
+                    if (mappingMethod.equals(requestMethod) && 
+                        (mappingUrl.equals(requestUrl) || mappingUrl.contains(requestUrl) || requestUrl.contains(mappingUrl))) {
+                        matches = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (matches) {
+                testMethodMappings.add(mapping);
+            }
+        }
+
+        if (testMethodMappings.isEmpty()) {
+            System.out.println("StableMock: No mappings found for requests in this test method, skipping save");
+            return;
+        }
+
+        // Copy body files from class-level directory to test-method directory BEFORE creating temp server
+        // This ensures WireMock's saveMappings() will find them in the right place
+        File baseFilesDir = new File(baseMappingsDir, "__files");
+        if (baseFilesDir.exists() && baseFilesDir.isDirectory()) {
+            for (StubMapping mapping : testMethodMappings) {
+                String bodyFileName = mapping.getResponse().getBodyFileName();
+                if (bodyFileName != null) {
+                    File sourceFile = new File(baseFilesDir, bodyFileName);
+                    if (sourceFile.exists()) {
+                        File destFile = new File(testMethodFilesSubDir, bodyFileName);
+                        try {
+                            java.nio.file.Files.copy(sourceFile.toPath(), destFile.toPath(), 
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        } catch (Exception e) {
+                            System.err.println("StableMock: Failed to copy body file " + bodyFileName + ": " + e.getMessage());
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Create a temporary WireMock server with the per-test-method directory as file source
+        // WireMock will save mappings and use the __files that are already in the test-method directory
+        WireMockConfiguration tempConfig = WireMockConfiguration.wireMockConfig()
+                .dynamicPort()  // Use any available port
+                .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
+                .usingFilesUnderDirectory(testMethodMappingsDir.getAbsolutePath());
+        
+        WireMockServer tempServer = new WireMockServer(tempConfig);
+        tempServer.start();
+        
+        try {
+            // Add only the filtered mappings to temporary server
+            for (StubMapping mapping : testMethodMappings) {
+                tempServer.addStubMapping(mapping);
+            }
+            
+            // Save stub mappings using WireMock's file source (saves to testMethodMappingsDir)
+            // The body files are already in the test-method __files directory, so WireMock will reference them correctly
+            tempServer.saveMappings();
+        } finally {
+            tempServer.stop();
+        }
+        
+        System.out.println("StableMock: Saved " + testMethodMappings.size() + " mappings to " + testMethodMappingsSubDir.getAbsolutePath());
     }
     
     private void loadMappingsFromPerTestMethodDirectory(WireMockServer server, File mappingsDir) {
