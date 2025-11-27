@@ -19,6 +19,28 @@ public final class MappingStorage {
         // utility class
     }
     
+    /**
+     * Checks if a request URL matches any of the annotation URLs.
+     * 
+     * @param requestUrl the URL from the request
+     * @param annotationUrls the URLs from the annotation
+     * @return true if the request URL matches any annotation URL
+     */
+    private static boolean matchesAnnotationUrl(String requestUrl, String[] annotationUrls) {
+        for (String annotationUrl : annotationUrls) {
+            try {
+                java.net.URL parsedAnnotationUrl = new java.net.URL(annotationUrl);
+                String annotationPath = parsedAnnotationUrl.getPath();
+                if (requestUrl.startsWith(annotationPath) || annotationPath.isEmpty()) {
+                    return true;
+                }
+            } catch (Exception e) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     public static void saveMappings(WireMockServer wireMockServer, File mappingsDir, String targetUrl) throws IOException {
         File mappingsSubDir = new File(mappingsDir, "mappings");
         File filesSubDir = new File(mappingsDir, "__files");
@@ -224,39 +246,15 @@ public final class MappingStorage {
                     try {
                         if (mapping.getRequest().match(serveEvent.getRequest()).isExactMatch()) {
                             String requestUrl = serveEvent.getRequest().getUrl();
-                            for (String annotationUrl : annotationInfo.urls) {
-                                try {
-                                    java.net.URL parsedAnnotationUrl = new java.net.URL(annotationUrl);
-                                    String annotationPath = parsedAnnotationUrl.getPath();
-                                    if (requestUrl.startsWith(annotationPath) || annotationPath.isEmpty()) {
-                                        matches = true;
-                                        break;
-                                    }
-                                } catch (Exception e) {
-                                    matches = true;
-                                    break;
-                                }
-                            }
-                            if (matches) {
+                            if (matchesAnnotationUrl(requestUrl, annotationInfo.urls)) {
+                                matches = true;
                                 break;
                             }
                         }
                     } catch (Exception e) {
                         String requestUrl = serveEvent.getRequest().getUrl();
-                        for (String annotationUrl : annotationInfo.urls) {
-                            try {
-                                java.net.URL parsedAnnotationUrl = new java.net.URL(annotationUrl);
-                                String annotationPath = parsedAnnotationUrl.getPath();
-                                if (requestUrl.startsWith(annotationPath) || annotationPath.isEmpty()) {
-                                    matches = true;
-                                    break;
-                                }
-                            } catch (Exception ex) {
-                                matches = true;
-                                break;
-                            }
-                        }
-                        if (matches) {
+                        if (matchesAnnotationUrl(requestUrl, annotationInfo.urls)) {
+                            matches = true;
                             break;
                         }
                     }
