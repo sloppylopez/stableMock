@@ -250,9 +250,9 @@ public final class MappingStorage {
                                         matches = true;
                                         break;
                                     }
-                                } catch (Exception e) {
-                                    matches = true;
-                                    break;
+                                } catch (java.net.MalformedURLException e) {
+                                    System.err.println("StableMock: Failed to parse annotation URL: " + annotationUrl + " - " + e.getMessage());
+                                    // Continue to next URL instead of treating as match
                                 }
                             }
                             if (matches) {
@@ -269,9 +269,9 @@ public final class MappingStorage {
                                     matches = true;
                                     break;
                                 }
-                            } catch (Exception ex) {
-                                matches = true;
-                                break;
+                            } catch (java.net.MalformedURLException ex) {
+                                System.err.println("StableMock: Failed to parse annotation URL: " + annotationUrl + " - " + ex.getMessage());
+                                // Continue to next URL instead of treating as match
                             }
                         }
                         if (matches) {
