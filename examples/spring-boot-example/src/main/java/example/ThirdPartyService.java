@@ -11,16 +11,16 @@ import java.net.URI;
 public class ThirdPartyService {
 
     private final JsonPlaceholderClient jsonPlaceholderClient;
-    private final ReqResClient reqResClient;
+    private final PostmanEchoClient postmanEchoClient;
     private final Environment environment;
     
     @Value("${app.thirdparty.url}")
     private String defaultThirdPartyUrl;
 
     @Autowired
-    public ThirdPartyService(JsonPlaceholderClient jsonPlaceholderClient, ReqResClient reqResClient, Environment environment) {
+    public ThirdPartyService(JsonPlaceholderClient jsonPlaceholderClient, PostmanEchoClient postmanEchoClient, Environment environment) {
         this.jsonPlaceholderClient = jsonPlaceholderClient;
-        this.reqResClient = reqResClient;
+        this.postmanEchoClient = postmanEchoClient;
         this.environment = environment;
     }
 
@@ -33,7 +33,7 @@ public class ThirdPartyService {
     public String getUserFromReqRes(int userId) {
         // FeignClient uses the URL from app.reqres.url property
         // This is set by @DynamicPropertySource in tests to point to WireMock
-        return reqResClient.getUser(userId);
+        return postmanEchoClient.getUser(userId);
     }
 
     public String createPost(String title, String body, int userId) {

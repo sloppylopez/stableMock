@@ -57,6 +57,9 @@ class SpringBootIntegrationTest {
                             " (thread=" + Thread.currentThread().getName() + ")");
             return finalUrl;
         });
+        
+        // app.reqres.url is required for PostmanEchoClient (no default value)
+        registry.add("app.reqres.url", () -> "https://postman-echo.com");
     }
 
     private static String getThreadLocalBaseUrl() {

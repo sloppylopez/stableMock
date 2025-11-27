@@ -6,8 +6,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.net.URI;
 
-@FeignClient(name = "reqResClient", url = "${app.reqres.url:https://postman-echo.com}")
-public interface ReqResClient {
+
+@FeignClient(name = "postmanEchoClient", url = "${app.reqres.url}")
+public interface PostmanEchoClient {
     
     @GetMapping("/get?id={id}")
     String getUser(@PathVariable("id") int id);
