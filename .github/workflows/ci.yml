@@ -44,6 +44,14 @@ jobs:
       - name: Publish to Maven Local
         run: ./gradlew publishToMavenLocal -x test --no-daemon
       
+      - name: Ensure Spring Boot example wrapper JAR exists
+        run: |
+          if [ ! -f "examples/spring-boot-example/gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "Wrapper JAR missing, copying from parent..."
+            mkdir -p examples/spring-boot-example/gradle/wrapper
+            cp gradle/wrapper/gradle-wrapper.jar examples/spring-boot-example/gradle/wrapper/gradle-wrapper.jar
+          fi
+      
       - name: Run Spring Boot example tests
         working-directory: examples/spring-boot-example
         run: |
@@ -53,6 +61,8 @@ jobs:
           ./gradlew stableMockRecord --no-daemon
           echo "=== Playback mode ==="
           ./gradlew stableMockPlayback --no-daemon
+          echo "=== Regular test task (playback mode) ==="
+          ./gradlew test --no-daemon
       
       - name: Upload test results
         if: always()
