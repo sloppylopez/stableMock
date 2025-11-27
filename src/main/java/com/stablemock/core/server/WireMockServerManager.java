@@ -147,10 +147,23 @@ public final class WireMockServerManager {
         return server;
     }
     
+    /**
+     * Holds configuration information for a single @U annotation.
+     * Used to track and manage multiple annotations in a test.
+     */
     public static class AnnotationInfo {
+        /** The index of this annotation in the list of annotations (0-based) */
         public final int index;
+        
+        /** The URLs configured for this annotation */
         public final String[] urls;
         
+        /**
+         * Creates a new AnnotationInfo.
+         * 
+         * @param index The annotation's index position
+         * @param urls The URLs to mock for this annotation
+         */
         public AnnotationInfo(int index, String[] urls) {
             if (urls == null) {
                 throw new IllegalArgumentException("urls cannot be null");
