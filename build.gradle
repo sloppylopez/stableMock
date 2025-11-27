@@ -63,17 +63,6 @@ test {
     // Disable JaCoCo instrumentation to avoid assertion failures (coverage reports disabled)
     // To enable coverage: remove this line and run 'gradlew test jacocoTestReport' separately
     // finalizedBy jacocoTestReport
-
-    doLast {
-        // Print completion decoration after all tests finish
-        // Wait a moment for all parallel test output to flush
-        Thread.sleep(100)
-        String green = "\u001B[32m"
-        String reset = "\u001B[0m"
-        println()
-        println(green + ">>>===> StableMock Tests Complete! <===<<<" + reset)
-        println()
-    }
 }
 
 // JaCoCo Code Coverage
