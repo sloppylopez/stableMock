@@ -19,7 +19,7 @@ import java.util.Arrays;
 public class StableMockExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, AfterAllCallback, ParameterResolver {
 
     @Override
-    public void beforeAll(ExtensionContext context) throws Exception {
+    public void beforeAll(ExtensionContext context) {
         U annotation = TestContextResolver.findUAnnotation(context);
         if (annotation == null) {
             return;
@@ -58,7 +58,7 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
         classStore.putServer(server);
         classStore.putPort(port);
         classStore.putMode(mode);
-        classStore.putTargetUrl(urls.length > 0 ? urls[0] : null);
+        classStore.putTargetUrl(urls[0]);
         
         String baseUrl = "http://localhost:" + port;
         WireMockContext.setBaseUrl(baseUrl);
@@ -70,7 +70,7 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
     }
 
     @Override
-    public void beforeEach(ExtensionContext context) throws Exception {
+    public void beforeEach(ExtensionContext context) {
         U annotation = TestContextResolver.findUAnnotation(context);
         if (annotation == null) {
             return;
@@ -132,7 +132,7 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
         methodStore.putPort(port);
         methodStore.putMode(mode);
         methodStore.putMappingsDir(mappingsDir);
-        methodStore.putTargetUrl(urls.length > 0 ? urls[0] : null);
+        methodStore.putTargetUrl(urls[0]);
         methodStore.putUseClassLevelServer(false);
 
         String baseUrl = "http://localhost:" + port;
@@ -191,7 +191,7 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
     }
     
     @Override
-    public void afterAll(ExtensionContext context) throws Exception {
+    public void afterAll(ExtensionContext context) {
         ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(context);
         WireMockServer server = classStore.getServer();
         if (server != null) {

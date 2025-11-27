@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.util.Objects;
 
 /**
  * Resolves test context information including annotations, directories, and Spring Boot detection.
@@ -42,7 +43,7 @@ public final class TestContextResolver {
     
     public static File findTestResourcesDirectory(ExtensionContext context) {
         Class<?> testClass = context.getRequiredTestClass();
-        String classPath = testClass.getResource(testClass.getSimpleName() + ".class").toString();
+        String classPath = Objects.requireNonNull(testClass.getResource(testClass.getSimpleName() + ".class")).toString();
 
         if (classPath.startsWith("file:/")) {
             String path = classPath.substring(6);

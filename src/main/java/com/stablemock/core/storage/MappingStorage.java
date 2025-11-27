@@ -169,7 +169,9 @@ public final class MappingStorage {
             File[] existingFiles = classMappingsDir.listFiles();
             if (existingFiles != null) {
                 for (File file : existingFiles) {
-                    file.delete();
+                    if (!file.delete()) {
+                        System.err.println("StableMock: Failed to delete existing file: " + file.getAbsolutePath());
+                    }
                 }
             }
         } else if (!classMappingsDir.mkdirs()) {
