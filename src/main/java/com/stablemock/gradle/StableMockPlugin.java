@@ -1,5 +1,6 @@
 package com.stablemock.gradle;
 
+import com.stablemock.core.config.Constants;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.testing.Test;
@@ -40,7 +41,7 @@ public class StableMockPlugin implements Plugin<Project> {
             task.useJUnitPlatform();
 
             // Set RECORD mode system property
-            task.systemProperty("stablemock.mode", "RECORD");
+            task.systemProperty("stablemock.mode", Constants.MODE_RECORD);
             task.systemProperty("stablemock.showMatches", System.getProperty("stablemock.showMatches", "false"));
             task.systemProperty("stablemock.debug", System.getProperty("stablemock.debug", "false"));
             task.systemProperty("stablemock.useSharedServer", "true"); // Enable shared server for Spring Boot parallel execution
@@ -65,7 +66,7 @@ public class StableMockPlugin implements Plugin<Project> {
             task.useJUnitPlatform();
 
             // Set PLAYBACK mode system property (or leave default)
-            task.systemProperty("stablemock.mode", "PLAYBACK");
+            task.systemProperty("stablemock.mode", Constants.MODE_PLAYBACK);
             task.systemProperty("stablemock.showMatches", System.getProperty("stablemock.showMatches", "false"));
             task.systemProperty("stablemock.debug", System.getProperty("stablemock.debug", "false"));
             task.systemProperty("stablemock.useSharedServer", "true"); // Enable shared server for Spring Boot parallel execution
