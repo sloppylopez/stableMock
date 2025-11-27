@@ -30,9 +30,9 @@ public class UserController {
         return ResponseEntity.ok(post);
     }
     
-    @GetMapping("/reqres/users/{id}")
-    public ResponseEntity<String> getUserFromReqRes(@PathVariable int id) {
-        String user = thirdPartyService.getUserFromReqRes(id);
+    @GetMapping("/postmanecho/users/{id}")
+    public ResponseEntity<String> getUserFromPostmanEcho(@PathVariable int id) {
+        String user = thirdPartyService.getUserFromPostmanEcho(id);
         return ResponseEntity.ok(user);
     }
 }
