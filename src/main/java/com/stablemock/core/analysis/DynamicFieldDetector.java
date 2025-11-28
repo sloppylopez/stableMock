@@ -26,14 +26,12 @@ public final class DynamicFieldDetector {
      * @param requests       List of request snapshots from the same endpoint
      * @param testClassName  Name of the test class
      * @param testMethodName Name of the test method
-     * @param newRequestsCount Number of new requests analyzed in this run (for reporting)
      * @return DetectionResult containing identified dynamic fields and ignore
      *         patterns
      */
     public static DetectionResult analyzeRequests(List<RequestSnapshot> requests,
             String testClassName,
-            String testMethodName,
-            int newRequestsCount) {
+            String testMethodName) {
         // Use total history size for analyzed_requests_count - this represents the total
         // number of requests that were analyzed to detect patterns. This is more meaningful
         // because:

@@ -1,7 +1,6 @@
 package com.stablemock;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import com.stablemock.core.analysis.*;
 import com.stablemock.core.config.StableMockConfig;
 import com.stablemock.core.context.ExtensionContextManager;
@@ -332,7 +331,7 @@ public class StableMockExtension
 
                             // Track requests and run detection for multiple annotations/URLs
                             // Pass allServers so requests can be tracked per server/URL
-                            performDynamicFieldDetectionWithServers(context, server, serveEvents, existingRequestCount,
+                            performDynamicFieldDetectionWithServers(context, server, existingRequestCount,
                                     testResourcesDir, testClassName, annotationInfos, allServers);
                         }
                     } else {
@@ -341,7 +340,7 @@ public class StableMockExtension
                                     existingRequestCount);
 
                             // Track requests and run detection for single annotation
-                            performDynamicFieldDetection(context, server, serveEvents, existingRequestCount,
+                            performDynamicFieldDetection(context, server, existingRequestCount,
                                     testResourcesDir, testClassName, null);
                         }
                     }
@@ -366,9 +365,7 @@ public class StableMockExtension
 
                         // Track requests and run detection for multiple annotations
                         // For method-level, we only have one server, so pass null for allServers
-                        List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = wireMockServer
-                                .getAllServeEvents();
-                        performDynamicFieldDetectionWithServers(context, wireMockServer, serveEvents, 0,
+                        performDynamicFieldDetectionWithServers(context, wireMockServer, 0,
                                 testResourcesDir, testClassName, annotationInfos, null);
                     } else {
                         MappingStorage.saveMappings(wireMockServer, mappingsDir, targetUrl);
@@ -376,9 +373,7 @@ public class StableMockExtension
                         // Track requests and run detection for single annotation
                         String testClassName = TestContextResolver.getTestClassName(context);
                         File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-                        List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = wireMockServer
-                                .getAllServeEvents();
-                        performDynamicFieldDetection(context, wireMockServer, serveEvents, 0,
+                        performDynamicFieldDetection(context, wireMockServer, 0,
                                 testResourcesDir, testClassName, null);
                     }
                 }
@@ -450,8 +445,6 @@ public class StableMockExtension
      * 
      * @param context              JUnit extension context
      * @param server               WireMock server with serve events
-     * @param serveEvents          List of serve events (unused, orchestrator uses
-     *                             server.getAllServeEvents())
      * @param existingRequestCount Number of requests that existed before this test
      * @param testResourcesDir     Test resources directory
      * @param testClassName        Test class name
@@ -459,7 +452,6 @@ public class StableMockExtension
      */
     private void performDynamicFieldDetection(ExtensionContext context,
             WireMockServer server,
-            List<ServeEvent> serveEvents,
             Integer existingRequestCount,
             File testResourcesDir,
             String testClassName,
@@ -469,7 +461,7 @@ public class StableMockExtension
         String testMethodName = TestContextResolver.getTestMethodName(context);
 
         // Delegate to orchestrator - all logic moved there for better separation of
-        // concerns
+        // concerns. The orchestrator gets serve events directly from the server.
         DynamicFieldAnalysisOrchestrator.analyzeAndPersist(
                 server, existingRequestCount, testResourcesDir, testClassName, testMethodName, annotationInfos, null);
     }
@@ -479,7 +471,6 @@ public class StableMockExtension
      */
     private void performDynamicFieldDetectionWithServers(ExtensionContext context,
             WireMockServer server,
-            List<ServeEvent> serveEvents,
             Integer existingRequestCount,
             File testResourcesDir,
             String testClassName,
@@ -489,7 +480,7 @@ public class StableMockExtension
         // Get test method name from context
         String testMethodName = TestContextResolver.getTestMethodName(context);
 
-        // Delegate to orchestrator with all servers
+        // Delegate to orchestrator with all servers. The orchestrator gets serve events directly from the servers.
         DynamicFieldAnalysisOrchestrator.analyzeAndPersist(
                 server, existingRequestCount, testResourcesDir, testClassName, testMethodName, annotationInfos, allServers);
     }

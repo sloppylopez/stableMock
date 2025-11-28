@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * Test for dynamic field detection feature.
  * This test sends multiple requests with dynamic fields (timestamp, requestId)
  * and expects StableMock to automatically detect and save these patterns.
- * 
  * Expected behavior:
  * - RECORD mode: Detects changing fields and saves to detected-fields.json
  * - PLAYBACK mode: Auto-applies detected patterns (without manual annotation)
@@ -100,12 +99,10 @@ class DynamicFieldDetectionTest {
 
     /**
      * Generates a JSON request body with both static and dynamic fields.
-     * 
      * Static fields (should NOT be detected as dynamic):
      * - title: "Test Post"
      * - body: "This is a test post body"
      * - userId: 1
-     * 
      * Dynamic fields (SHOULD be detected as dynamic):
      * - timestamp: Current timestamp (changes every call)
      * - requestId: Random UUID (changes every call)
@@ -115,6 +112,6 @@ class DynamicFieldDetectionTest {
                 "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1," +
                         "\"timestamp\":\"%s\",\"requestId\":\"%s\"}",
                 Instant.now().toString(),
-                UUID.randomUUID().toString());
+                UUID.randomUUID());
     }
 }

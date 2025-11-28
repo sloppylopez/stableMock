@@ -126,17 +126,14 @@ public final class WireMockServerManager {
     
     /**
      * Applies ignore patterns to WireMock stub files before loading.
-     * 
      * This approach uses WireMock 3's canonical placeholder mechanism:
      * 1. For JSON: Replaces ignored field values with `${json-unit.ignore}` placeholders
      * 2. For XML: Replaces ignored element/attribute values with `${xmlunit.ignore}` placeholders
      * 3. Converts `equalTo` to `equalToJson` or `equalToXml` when appropriate
      * 4. Sets `ignoreExtraElements: true` for JSON to allow extra fields in requests
-     * 
      * This is the canonical WireMock 3 approach as documented:
-     * - JSON: https://docs.wiremock.io/request-matching/json
-     * - XML: https://docs.wiremock.io/soap-stubbing
-     * 
+     * - JSON: <a href="https://docs.wiremock.io/request-matching/json">...</a>
+     * - XML: <a href="https://docs.wiremock.io/soap-stubbing">...</a>
      * Using placeholders (instead of removing fields) preserves the structure and works
      * for both JSON and XML formats consistently.
      */
@@ -368,28 +365,7 @@ public final class WireMockServerManager {
         
         return xml;
     }
-    
-    private static void removeJsonPath(com.fasterxml.jackson.databind.JsonNode node, String path) {
-        if (node == null || !node.isObject()) {
-            return;
-        }
-        
-        if (path.contains(".")) {
-            String[] parts = path.split("\\.", 2);
-            String field = parts[0];
-            String remaining = parts[1];
-            
-            if (node.has(field)) {
-                removeJsonPath(node.get(field), remaining);
-            }
-        } else {
-            if (node.isObject()) {
-                ((com.fasterxml.jackson.databind.node.ObjectNode) node).remove(path);
-            }
-        }
-    }
-    
-    
+
     public static int findFreePort() {
         return PortFinder.findFreePort();
     }
