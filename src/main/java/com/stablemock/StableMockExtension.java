@@ -132,7 +132,16 @@ public class StableMockExtension
                 String mergeMsg = "=== PLAYBACK MODE: Merging test method mappings for " + testClassName + " ===";
                 System.out.println(mergeMsg);
                 logger.info(mergeMsg);
-                MappingStorage.mergePerTestMethodMappings(baseMappingsDir);
+                try {
+                    MappingStorage.mergePerTestMethodMappings(baseMappingsDir);
+                    System.out.println("=== Merge completed successfully for " + testClassName + " ===");
+                    logger.info("=== Merge completed successfully for {} ===", testClassName);
+                } catch (Exception e) {
+                    String errorMsg = "=== ERROR: Merge failed for " + testClassName + ": " + e.getMessage() + " ===";
+                    System.err.println(errorMsg);
+                    logger.error(errorMsg, e);
+                    throw new RuntimeException("Failed to merge test method mappings for " + testClassName, e);
+                }
                 // Collect ignore patterns from all annotations (for class-level, we use all annotations)
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
                 for (U annotation : annotations) {

@@ -88,29 +88,61 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
 
         com.github.tomakehurst.wiremock.recording.SnapshotRecordResult result = wireMockServer.snapshotRecord(builder.build());
         List<StubMapping> allMappings = result.getStubMappings();
+        
+        logger.info("Found {} total mappings from snapshotRecord, {} serve events for this test method", 
+            allMappings.size(), testMethodServeEvents.size());
+        for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
+            String method = serveEvent.getRequest().getMethod().getName();
+            String url = serveEvent.getRequest().getUrl();
+            logger.info("  ServeEvent: {} {}", method, url);
+        }
 
         List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
         for (StubMapping mapping : allMappings) {
             boolean matches = false;
+            String mappingMethod = mapping.getRequest().getMethod() != null 
+                ? mapping.getRequest().getMethod().getName() 
+                : "";
+            String mappingUrl = mapping.getRequest().getUrl() != null 
+                ? mapping.getRequest().getUrl() 
+                : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
+            
             for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
-                try {
-                    if (mapping.getRequest().match(serveEvent.getRequest()).isExactMatch()) {
+                String requestUrl = serveEvent.getRequest().getUrl();
+                String requestMethod = serveEvent.getRequest().getMethod().getName();
+                
+                // For POST requests, be very lenient - match by method and URL path only
+                // POST requests often have different bodies/query params between recording and playback
+                if ("POST".equalsIgnoreCase(mappingMethod) && "POST".equalsIgnoreCase(requestMethod)) {
+                    // Extract URL path without query params for comparison
+                    String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
+                    String requestPath = requestUrl.contains("?") ? requestUrl.substring(0, requestUrl.indexOf("?")) : requestUrl;
+                    // Normalize paths (remove leading/trailing slashes for comparison)
+                    mappingPath = mappingPath.replaceAll("^/+|/+$", "");
+                    requestPath = requestPath.replaceAll("^/+|/+$", "");
+                    // Match if paths are the same (ignoring query params and exact format)
+                    if (mappingPath.equals(requestPath) || mappingPath.endsWith(requestPath) || requestPath.endsWith(mappingPath)) {
                         matches = true;
+                        logger.debug("Matched POST mapping: {} to request: {}", mappingUrl, requestUrl);
                         break;
                     }
-                } catch (Exception e) {
-                    String requestUrl = serveEvent.getRequest().getUrl();
-                    String requestMethod = serveEvent.getRequest().getMethod().getName();
-                    String mappingMethod = mapping.getRequest().getMethod() != null 
-                        ? mapping.getRequest().getMethod().getName() 
-                        : "";
-                    String mappingUrl = mapping.getRequest().getUrl() != null 
-                        ? mapping.getRequest().getUrl() 
-                        : "";
-                    if (mappingMethod.equals(requestMethod) && 
-                        (mappingUrl.equals(requestUrl) || mappingUrl.contains(requestUrl) || requestUrl.contains(mappingUrl))) {
-                        matches = true;
-                        break;
+                } else {
+                    // For GET and other methods, try exact match first, then fallback
+                    try {
+                        if (mapping.getRequest().match(serveEvent.getRequest()).isExactMatch()) {
+                            matches = true;
+                            break;
+                        }
+                    } catch (Exception e) {
+                        // Fallback: match by method and URL path (ignore query params for GET too)
+                        String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
+                        String requestPath = requestUrl.contains("?") ? requestUrl.substring(0, requestUrl.indexOf("?")) : requestUrl;
+                        if (mappingMethod.equals(requestMethod) && 
+                            (mappingPath.equals(requestPath) || mappingPath.contains(requestPath) || requestPath.contains(mappingPath))) {
+                            matches = true;
+                            logger.debug("Matched {} mapping: {} to request: {} (fallback)", mappingMethod, mappingUrl, requestUrl);
+                            break;
+                        }
                     }
                 }
             }
@@ -120,7 +152,17 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             }
         }
 
+        logger.info("Matched {} mapping(s) for test method out of {} total mappings", 
+            testMethodMappings.size(), allMappings.size());
+        for (StubMapping mapping : testMethodMappings) {
+            String method = mapping.getRequest().getMethod() != null ? mapping.getRequest().getMethod().getName() : "UNKNOWN";
+            String url = mapping.getRequest().getUrl() != null ? mapping.getRequest().getUrl() : 
+                (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "UNKNOWN");
+            logger.info("  Matched mapping: {} {}", method, url);
+        }
+        
         if (testMethodMappings.isEmpty()) {
+            logger.warn("No mappings matched for test method - this test may not have made any HTTP requests or matching failed");
             return;
         }
 
@@ -246,7 +288,9 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         // For multiple URLs, we don't merge to class-level directory - that's handled separately
         if (hasMultipleUrls) {
-            logger.info("Multiple URLs detected, skipping single URL merge");
+            String skipMsg = "Multiple URLs detected, skipping single URL merge for " + baseMappingsDir.getAbsolutePath();
+            System.out.println(skipMsg);
+            logger.info(skipMsg);
             return;
         }
         
