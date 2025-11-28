@@ -76,8 +76,46 @@ public final class WireMockServerManager {
     public static WireMockServer startPlayback(int port, File mappingsDir, 
             File testResourcesDir, String testClassName, String testMethodName, 
             List<String> annotationIgnorePatterns) {
+        logger.info("=== Starting WireMock playback on port {} ===", port);
+        logger.info("Loading mappings from: {}", mappingsDir.getAbsolutePath());
+        
         if (!mappingsDir.exists() && !mappingsDir.mkdirs()) {
-            logger.warn("Mappings directory does not exist: {}", mappingsDir.getAbsolutePath());
+            logger.error("Mappings directory does not exist: {}", mappingsDir.getAbsolutePath());
+        } else {
+            File mappingsSubDir = new File(mappingsDir, "mappings");
+            if (mappingsSubDir.exists()) {
+                File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                if (mappingFiles != null) {
+                    logger.info("Found {} mapping file(s) in {}", mappingFiles.length, mappingsSubDir.getAbsolutePath());
+                    int postCount = 0;
+                    int getCount = 0;
+                    for (File mappingFile : mappingFiles) {
+                        try {
+                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                            com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(mappingFile);
+                            com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
+                            if (requestNode != null) {
+                                String method = requestNode.has("method") ? requestNode.get("method").asText() : "UNKNOWN";
+                                if ("POST".equalsIgnoreCase(method)) {
+                                    postCount++;
+                                } else if ("GET".equalsIgnoreCase(method)) {
+                                    getCount++;
+                                }
+                            }
+                        } catch (Exception e) {
+                            // Ignore parse errors for counting
+                        }
+                    }
+                    logger.info("Mappings breakdown: {} GET, {} POST, {} other", getCount, postCount, mappingFiles.length - getCount - postCount);
+                    if (postCount == 0) {
+                        logger.warn("WARNING: No POST mappings found! POST requests will fail.");
+                    }
+                } else {
+                    logger.warn("No mapping files found in {}", mappingsSubDir.getAbsolutePath());
+                }
+            } else {
+                logger.warn("Mappings subdirectory does not exist: {}", mappingsSubDir.getAbsolutePath());
+            }
         }
 
 

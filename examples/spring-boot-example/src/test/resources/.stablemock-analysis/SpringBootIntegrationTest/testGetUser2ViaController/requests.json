@@ -1,39 +1,4 @@
 [ {
-  "timestamp" : "2025-11-28T12:54:44.426076014Z",
-  "url" : "/posts",
-  "method" : "POST",
-  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}"
-}, {
-  "timestamp" : "2025-11-28T12:54:44.433090796Z",
-  "url" : "/users/2",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-11-28T13:11:41.543822200Z",
-  "url" : "/posts",
-  "method" : "POST",
-  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}"
-}, {
-  "timestamp" : "2025-11-28T13:11:41.554335200Z",
-  "url" : "/users/2",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-11-28T13:11:41.561840500Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-11-28T13:11:41.567846700Z",
-  "url" : "/users/3",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-11-28T13:11:47.465739900Z",
-  "url" : "/posts",
-  "method" : "POST",
-  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}"
-}, {
   "timestamp" : "2025-11-28T13:11:47.476765400Z",
   "url" : "/users/1",
   "method" : "GET",
@@ -45,6 +10,41 @@
   "body" : ""
 }, {
   "timestamp" : "2025-11-28T13:11:47.484801300Z",
+  "url" : "/users/3",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-11-28T15:44:42.555731400Z",
+  "url" : "/users/3",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-11-28T15:44:42.563835300Z",
+  "url" : "/users/2",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-11-28T15:44:42.564837600Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-11-28T15:44:48.625973900Z",
+  "url" : "/posts",
+  "method" : "POST",
+  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}"
+}, {
+  "timestamp" : "2025-11-28T15:44:48.636487600Z",
+  "url" : "/users/2",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-11-28T15:44:48.636487600Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-11-28T15:44:48.637485200Z",
   "url" : "/users/3",
   "method" : "GET",
   "body" : ""

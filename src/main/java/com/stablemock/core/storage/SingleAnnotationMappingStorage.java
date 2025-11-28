@@ -197,7 +197,10 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         // This ensures the same merge order on Windows and Linux
         java.util.Arrays.sort(testMethodDirs, java.util.Comparator.comparing(File::getName));
         
-        logger.info("Merging mappings for single URL from {} test method(s)", testMethodDirs.length);
+        logger.info("=== Starting merge: {} test method(s) in {} ===", testMethodDirs.length, baseMappingsDir.getAbsolutePath());
+        for (File testMethodDir : testMethodDirs) {
+            logger.info("  Test method directory: {}", testMethodDir.getName());
+        }
         
         // Check if we have multiple URLs by looking for annotation_X directories in test methods
         boolean hasMultipleUrls = false;
@@ -212,40 +215,46 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         // For multiple URLs, we don't merge to class-level directory - that's handled separately
         if (hasMultipleUrls) {
-            logger.debug("Multiple URLs detected, skipping single URL merge");
+            logger.info("Multiple URLs detected, skipping single URL merge");
             return;
         }
         
         // Single URL case - merge test method mappings to class-level directory
+        int totalMappingsCopied = 0;
         for (File testMethodDir : testMethodDirs) {
             File methodMappingsDir = new File(testMethodDir, "mappings");
             File methodFilesDir = new File(testMethodDir, "__files");
             
+            logger.info("Processing test method: {}", testMethodDir.getName());
+            
             if (!methodMappingsDir.exists() || !methodMappingsDir.isDirectory()) {
-                logger.debug("No mappings directory found for test method {}", testMethodDir.getName());
+                logger.warn("  No mappings directory found for test method {}", testMethodDir.getName());
                 continue;
             }
             
             if (methodMappingsDir.exists() && methodMappingsDir.isDirectory()) {
                 File[] mappingFiles = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
                 if (mappingFiles != null && mappingFiles.length > 0) {
+                    logger.info("  Found {} mapping file(s) in {}", mappingFiles.length, testMethodDir.getName());
                     for (File mappingFile : mappingFiles) {
                         try {
-                            // Read mapping to log method and URL for debugging
-                            if (logger.isDebugEnabled()) {
-                                try {
-                                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                                    com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(mappingFile);
-                                    com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
-                                    if (requestNode != null) {
-                                        String method = requestNode.has("method") ? requestNode.get("method").asText() : "UNKNOWN";
-                                        String url = requestNode.has("url") ? requestNode.get("url").asText() : 
-                                                   (requestNode.has("urlPath") ? requestNode.get("urlPath").asText() : "UNKNOWN");
-                                        logger.debug("Merging mapping: {} {} from {}", method, url, testMethodDir.getName());
+                            // Read mapping to log method and URL
+                            String method = "UNKNOWN";
+                            String url = "UNKNOWN";
+                            try {
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(mappingFile);
+                                com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
+                                if (requestNode != null) {
+                                    method = requestNode.has("method") ? requestNode.get("method").asText() : "UNKNOWN";
+                                    if (requestNode.has("url")) {
+                                        url = requestNode.get("url").asText();
+                                    } else if (requestNode.has("urlPath")) {
+                                        url = requestNode.get("urlPath").asText();
                                     }
-                                } catch (Exception e) {
-                                    logger.debug("Could not parse mapping file for logging: {}", e.getMessage());
                                 }
+                            } catch (Exception e) {
+                                logger.warn("  Could not parse mapping file {}: {}", mappingFile.getName(), e.getMessage());
                             }
                             
                             String prefix = testMethodDir.getName() + "_";
@@ -254,21 +263,20 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                             
                             // Ensure destination directory exists
                             if (!classMappingsDir.exists() && !classMappingsDir.mkdirs()) {
-                                logger.error("Failed to create class-level mappings directory");
+                                logger.error("  Failed to create class-level mappings directory");
                                 continue;
                             }
                             
                             java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                            logger.debug("Copied mapping {} from {} to {}", mappingFile.getName(), testMethodDir.getName(), destFile.getName());
+                            totalMappingsCopied++;
+                            logger.info("  ✓ Copied: {} {} -> {}", method, url, destFile.getName());
                         } catch (Exception e) {
-                            logger.error("Failed to copy mapping {}: {}", mappingFile.getName(), e.getMessage(), e);
+                            logger.error("  ✗ Failed to copy mapping {}: {}", mappingFile.getName(), e.getMessage(), e);
                         }
                     }
-                    logger.info("Copied {} mapping(s) from test method {} to class-level", 
-                        mappingFiles.length, testMethodDir.getName());
                 } else {
-                    logger.warn("No mapping files found in {} - test method may not have made any HTTP requests", methodMappingsDir.getAbsolutePath());
+                    logger.warn("  No mapping files found in {} - test method may not have made any HTTP requests", methodMappingsDir.getAbsolutePath());
                 }
             }
             
@@ -290,9 +298,12 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         }
         
         // Log summary of merged mappings
+        logger.info("=== Merge complete: {} mapping(s) copied ===", totalMappingsCopied);
         File[] finalMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
         if (finalMappings != null && finalMappings.length > 0) {
-            logger.info("Successfully merged {} total mapping(s) to class-level directory. Mappings:", finalMappings.length);
+            logger.info("Final merged mappings in class-level directory ({} file(s)):", finalMappings.length);
+            int postCount = 0;
+            int getCount = 0;
             for (File mappingFile : finalMappings) {
                 try {
                     com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -306,14 +317,29 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                         } else if (requestNode.has("urlPath")) {
                             url = requestNode.get("urlPath").asText();
                         }
-                        logger.info("  - {} {} ({})", method, url, mappingFile.getName());
+                        if ("POST".equalsIgnoreCase(method)) {
+                            postCount++;
+                        } else if ("GET".equalsIgnoreCase(method)) {
+                            getCount++;
+                        }
+                        logger.info("  [{}] {} {} ({})", method, url, mappingFile.getName(), 
+                            mappingFile.length() > 0 ? mappingFile.length() + " bytes" : "EMPTY FILE!");
                     }
                 } catch (Exception e) {
-                    logger.debug("Could not parse mapping file {} for summary: {}", mappingFile.getName(), e.getMessage());
+                    logger.error("  Could not parse mapping file {} for summary: {}", mappingFile.getName(), e.getMessage());
                 }
             }
+            logger.info("Summary: {} GET, {} POST, {} other", getCount, postCount, finalMappings.length - getCount - postCount);
+            if (postCount == 0) {
+                logger.error("WARNING: No POST mappings found in merged mappings! This will cause POST requests to fail.");
+            }
         } else {
-            logger.warn("No mappings found in class-level directory after merge!");
+            logger.error("ERROR: No mappings found in class-level directory after merge! Directory: {}", classMappingsDir.getAbsolutePath());
+            // List what test method directories exist for debugging
+            if (testMethodDirs != null && testMethodDirs.length > 0) {
+                logger.error("Test method directories that were checked: {}", java.util.Arrays.toString(
+                    java.util.Arrays.stream(testMethodDirs).map(File::getName).toArray(String[]::new)));
+            }
         }
         
         // Force file system sync to ensure all files are written before WireMock loads them
