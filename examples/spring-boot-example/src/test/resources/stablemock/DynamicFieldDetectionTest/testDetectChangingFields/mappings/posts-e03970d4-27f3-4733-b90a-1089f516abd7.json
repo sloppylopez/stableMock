@@ -1,0 +1,44 @@
+{
+  "id" : "e03970d4-27f3-4733-b90a-1089f516abd7",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2025-11-28T12:04:06.004420900Z\",\"requestId\":\"a56a0b3c-bb05-4d78-a73e-2cc76ffa15eb\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9a59b9c9a96e4305-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1764331455",
+      "x-ratelimit-remaining" : "990",
+      "pragma" : "no-cache",
+      "Date" : "Fri, 28 Nov 2025 12:04:04 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=OB9RYwFqXFxHMbYNBiKJnaCbQDTETlRqfzlNNyCKOR8%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1764331444\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=OB9RYwFqXFxHMbYNBiKJnaCbQDTETlRqfzlNNyCKOR8%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1764331444\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "e03970d4-27f3-4733-b90a-1089f516abd7",
+  "persistent" : true,
+  "insertionIndex" : 1
+}
