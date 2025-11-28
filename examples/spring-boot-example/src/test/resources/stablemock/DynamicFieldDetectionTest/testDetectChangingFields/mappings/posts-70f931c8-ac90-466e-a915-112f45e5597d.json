@@ -1,0 +1,44 @@
+{
+  "id" : "70f931c8-ac90-466e-a915-112f45e5597d",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2025-11-28T15:44:48.058424900Z\",\"requestId\":\"18c3d31b-3eb2-43b9-abf0-c15dfcbdc6c2\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9a5afd130ae7ec95-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1764344715",
+      "x-ratelimit-remaining" : "996",
+      "pragma" : "no-cache",
+      "Date" : "Fri, 28 Nov 2025 15:44:46 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=2iG2s395yEUt%2F1sCDiS%2Fvp776EYpUvQY8RJTo7rVSWs%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1764344686\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=2iG2s395yEUt%2F1sCDiS%2Fvp776EYpUvQY8RJTo7rVSWs%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1764344686\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "70f931c8-ac90-466e-a915-112f45e5597d",
+  "persistent" : true,
+  "insertionIndex" : 1
+}
