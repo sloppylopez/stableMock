@@ -1,0 +1,44 @@
+{
+  "id" : "b7a3f63f-26cc-4e00-9fe1-53dc7184255d",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2025-11-28T12:54:41.611665562Z\",\"requestId\":\"b1fcb300-80d3-4776-adba-81dd336fc817\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9a5a03e5fb3f31c1-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1764334515",
+      "x-ratelimit-remaining" : "998",
+      "pragma" : "no-cache",
+      "Date" : "Fri, 28 Nov 2025 12:54:40 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=UlM7Rja%2Fr6So787ZnuhUpZv5jLWhJwtSbooDZKL6iDo%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1764334480\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=UlM7Rja%2Fr6So787ZnuhUpZv5jLWhJwtSbooDZKL6iDo%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1764334480\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "b7a3f63f-26cc-4e00-9fe1-53dc7184255d",
+  "persistent" : true,
+  "insertionIndex" : 0
+}
