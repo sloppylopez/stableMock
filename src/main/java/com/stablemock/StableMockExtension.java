@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * JUnit 5 extension for StableMock that handles WireMock lifecycle per test.
@@ -73,7 +74,7 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
                 
                 WireMockServer server;
                 if (isRecordMode) {
-                    server = WireMockServerManager.startRecording(port, urlMappingsDir, Arrays.asList(targetUrl));
+                    server = WireMockServerManager.startRecording(port, urlMappingsDir, Collections.singletonList(targetUrl));
                 } else {
                     // In playback mode, merge all test methods' annotation_X mappings for this URL index
                     MappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, i);

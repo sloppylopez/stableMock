@@ -13,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test class to verify that multiple @U annotations work correctly.
- * 
  * This test uses @U @U (double annotation) to record mocks for URLs
  * in both annotations. The test verifies that:
  * 1. WireMock server starts correctly with multiple annotations
