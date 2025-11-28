@@ -252,6 +252,8 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         // Single URL case - merge test method mappings to class-level directory
         int totalMappingsCopied = 0;
+        int postMappingsCopied = 0;
+        int getMappingsCopied = 0;
         for (File testMethodDir : testMethodDirs) {
             File methodMappingsDir = new File(testMethodDir, "mappings");
             File methodFilesDir = new File(testMethodDir, "__files");
@@ -267,7 +269,18 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 File[] mappingFiles = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
                 if (mappingFiles != null && mappingFiles.length > 0) {
                     logger.info("  Found {} mapping file(s) in {}", mappingFiles.length, testMethodDir.getName());
+                    // Log all files found for debugging
+                    for (File f : mappingFiles) {
+                        logger.debug("    File: {} (exists: {}, size: {} bytes)", f.getName(), f.exists(), f.length());
+                    }
                     for (File mappingFile : mappingFiles) {
+                        // Verify source file exists and is readable
+                        if (!mappingFile.exists() || mappingFile.length() == 0) {
+                            String errorMsg = "  ERROR: Source mapping file is missing or empty: " + mappingFile.getName();
+                            System.err.println(errorMsg);
+                            logger.error(errorMsg);
+                            continue;
+                        }
                         try {
                             // Read mapping to log method and URL
                             String method = "UNKNOWN";
@@ -298,10 +311,40 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                                 continue;
                             }
                             
+                            // Check if destination file already exists (would be overwritten)
+                            if (destFile.exists()) {
+                                String warnMsg = "  WARNING: Destination file already exists and will be overwritten: " + destFile.getName();
+                                System.err.println(warnMsg);
+                                logger.warn(warnMsg);
+                            }
+                            
                             java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            
+                            // Force file system sync
+                            try {
+                                java.nio.file.Files.getFileStore(destFile.toPath()).getUsableSpace();
+                                destFile.getParentFile().getAbsolutePath();
+                            } catch (Exception e) {
+                                // Ignore
+                            }
+                            
+                            // Verify file was actually written
+                            if (!destFile.exists() || destFile.length() == 0) {
+                                String errorMsg = "  ERROR: File copy failed - dest does not exist or is empty: " + destFile.getName();
+                                System.err.println(errorMsg);
+                                logger.error(errorMsg);
+                                continue;
+                            }
+                            
                             totalMappingsCopied++;
-                            String copyMsg = "  ✓ Copied: " + method + " " + url + " -> " + destFile.getName();
+                            if ("POST".equalsIgnoreCase(method)) {
+                                postMappingsCopied++;
+                            } else if ("GET".equalsIgnoreCase(method)) {
+                                getMappingsCopied++;
+                            }
+                            String copyMsg = "  ✓ Copied: " + method + " " + url + " -> " + destFile.getName() + 
+                                " (exists: " + destFile.exists() + ", size: " + destFile.length() + " bytes)";
                             System.out.println(copyMsg);
                             logger.info(copyMsg);
                         } catch (Exception e) {
@@ -331,7 +374,8 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         }
         
         // Log summary of merged mappings
-        String completeMsg = "=== Merge complete: " + totalMappingsCopied + " mapping(s) copied ===";
+        String completeMsg = "=== Merge complete: " + totalMappingsCopied + " mapping(s) copied (during copy: " + 
+            getMappingsCopied + " GET, " + postMappingsCopied + " POST) ===";
         System.out.println(completeMsg);
         logger.info(completeMsg);
         
@@ -374,7 +418,34 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             String summaryMsg = "Summary: " + getCount + " GET, " + postCount + " POST, " + (finalMappings.length - getCount - postCount) + " other";
             System.out.println(summaryMsg);
             logger.info(summaryMsg);
-            if (postCount == 0) {
+            if (postMappingsCopied > 0 && postCount == 0) {
+                String errorMsg = "ERROR: " + postMappingsCopied + " POST mapping(s) were copied but 0 found in final directory! Files may not have been written correctly.";
+                System.err.println(errorMsg);
+                logger.error(errorMsg);
+                // List all files in the directory to debug
+                File[] allFiles = classMappingsDir.listFiles();
+                if (allFiles != null) {
+                    System.err.println("All files in class-level mappings directory:");
+                    for (File f : allFiles) {
+                        // Try to parse each file to see what method it is
+                        String fileMethod = "UNKNOWN";
+                        try {
+                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                            com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(f);
+                            com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
+                            if (requestNode != null && requestNode.has("method")) {
+                                fileMethod = requestNode.get("method").asText();
+                            }
+                        } catch (Exception e) {
+                            fileMethod = "PARSE_ERROR";
+                        }
+                        System.err.println("  - " + f.getName() + " [" + fileMethod + "] (" + f.length() + " bytes, exists: " + f.exists() + ")");
+                    }
+                }
+                // This is a critical error - POST mappings are required
+                throw new IllegalStateException("POST mappings were copied but not found in final directory. This will cause POST requests to fail.");
+            }
+            if (postCount == 0 && postMappingsCopied == 0) {
                 String warnMsg = "WARNING: No POST mappings found in merged mappings! This will cause POST requests to fail.";
                 System.err.println(warnMsg);
                 logger.error(warnMsg);
