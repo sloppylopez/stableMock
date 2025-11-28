@@ -8,16 +8,48 @@ all: build publish spring-example
 # Build StableMock library (skip tests)
 build:
 	@echo "=== Building StableMock library ==="
+	@if [ -z "$$JAVA_HOME" ]; then \
+		if command -v java >/dev/null 2>&1; then \
+			java_path=$$(which java); \
+			if [ -L "$$java_path" ]; then \
+				java_path=$$(readlink -f "$$java_path"); \
+			fi; \
+			export JAVA_HOME=$$(dirname $$(dirname "$$java_path")); \
+			echo "Auto-detected JAVA_HOME: $$JAVA_HOME"; \
+		else \
+			echo "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH."; \
+			echo "Please set the JAVA_HOME variable or install Java."; \
+			exit 1; \
+		fi; \
+	fi
 	./gradlew build -x test
 
 # Publish to Maven Local (skip tests)
 publish:
 	@echo "=== Publishing to Maven Local ==="
+	@if [ -z "$$JAVA_HOME" ]; then \
+		if command -v java >/dev/null 2>&1; then \
+			java_path=$$(which java); \
+			if [ -L "$$java_path" ]; then \
+				java_path=$$(readlink -f "$$java_path"); \
+			fi; \
+			export JAVA_HOME=$$(dirname $$(dirname "$$java_path")); \
+		fi; \
+	fi
 	./gradlew publishToMavenLocal -x test
 
 # Run Spring Boot example tests
 spring-example:
 	@echo "=== Running Spring Boot example tests ==="
+	@if [ -z "$$JAVA_HOME" ]; then \
+		if command -v java >/dev/null 2>&1; then \
+			java_path=$$(which java); \
+			if [ -L "$$java_path" ]; then \
+				java_path=$$(readlink -f "$$java_path"); \
+			fi; \
+			export JAVA_HOME=$$(dirname $$(dirname "$$java_path")); \
+		fi; \
+	fi
 	@cd examples/spring-boot-example && \
 	echo "=== Record mode (first time) ===" && \
 	./gradlew stableMockRecord && \
