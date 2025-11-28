@@ -42,6 +42,7 @@ public final class DynamicFieldAnalysisOrchestrator {
      * @param testMethodName       Test method name
      * @param annotationInfos      List of annotation info for the test (nullable
      *                             for single annotation)
+     * @param allServers           List of all WireMock servers (for multiple URLs/annotations)
      */
     public static void analyzeAndPersist(
             WireMockServer server,
@@ -49,7 +50,8 @@ public final class DynamicFieldAnalysisOrchestrator {
             File testResourcesDir,
             String testClassName,
             String testMethodName,
-            List<WireMockServerManager.AnnotationInfo> annotationInfos) {
+            List<WireMockServerManager.AnnotationInfo> annotationInfos,
+            List<WireMockServer> allServers) {
 
         if (server == null) {
             logger.debug("Skipping dynamic field detection: server not available");
@@ -67,7 +69,7 @@ public final class DynamicFieldAnalysisOrchestrator {
             return;
         }
 
-        // Process each annotation separately if multiple annotations exist
+        // Process each annotation separately if multiple annotations/URLs exist
         if (annotationInfos != null && !annotationInfos.isEmpty()) {
             for (WireMockServerManager.AnnotationInfo annotationInfo : annotationInfos) {
                 Integer annotationIndex = annotationInfo.index;
@@ -76,7 +78,21 @@ public final class DynamicFieldAnalysisOrchestrator {
                         annotationIndex, testMethodName);
 
                 try {
-                    analyzeForAnnotation(allServeEvents, existingRequestCount, testResourcesDir,
+                    // Get serve events from the specific server for this annotation index
+                    List<ServeEvent> annotationServeEvents = allServeEvents;
+                    Integer annotationExistingRequestCount = existingRequestCount;
+                    
+                    if (allServers != null && !allServers.isEmpty() && annotationIndex < allServers.size()) {
+                        // Multiple servers - get events from the specific server for this annotation
+                        WireMockServer annotationServer = allServers.get(annotationIndex);
+                        if (annotationServer != null) {
+                            annotationServeEvents = annotationServer.getAllServeEvents();
+                            // For multiple servers, only track existingRequestCount for the first server
+                            annotationExistingRequestCount = (annotationIndex == 0) ? existingRequestCount : 0;
+                        }
+                    }
+                    
+                    analyzeForAnnotation(annotationServeEvents, annotationExistingRequestCount, testResourcesDir,
                             testClassName, testMethodName, annotationIndex);
                 } catch (Exception e) {
                     logger.error("Failed to analyze dynamic fields for {}.{} annotation {}: {}",
@@ -156,11 +172,10 @@ public final class DynamicFieldAnalysisOrchestrator {
             String method = event.getRequest().getMethod().getName();
             String body = event.getRequest().getBodyAsString();
 
-            // Only track requests with non-empty bodies
-            if (body != null && !body.trim().isEmpty()) {
-                RequestBodyTracker.trackRequest(testResourcesDir, testClassName,
-                        testMethodName, url, method, body, annotationIndex);
-            }
+            // Track all requests (including GET requests without bodies)
+            // Empty body is fine - it will be stored as null or empty string
+            RequestBodyTracker.trackRequest(testResourcesDir, testClassName,
+                    testMethodName, url, method, body != null ? body : "", annotationIndex);
         }
     }
 }
