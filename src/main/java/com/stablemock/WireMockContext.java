@@ -22,6 +22,14 @@ public final class WireMockContext {
         threadLocalPort.set(port);
     }
 
+    public static String getThreadLocalBaseUrl() {
+        return threadLocalBaseUrl.get();
+    }
+
+    public static Integer getThreadLocalPort() {
+        return threadLocalPort.get();
+    }
+
     public static void clear() {
         threadLocalBaseUrl.remove();
         threadLocalPort.remove();

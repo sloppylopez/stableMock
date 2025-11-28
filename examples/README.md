@@ -59,3 +59,9 @@ Or build from source using `./gradlew publishToMavenLocal` from the root directo
 ## Why These Examples?
 
 Most StableMock features (JSON ignoring, XML patterns, GraphQL variables, request verification, etc.) are comprehensively covered in the unit tests within the main StableMock project. These examples focus on framework-specific integration scenarios.
+
+
+
+
+
+@core @StableMockExtension.java @WireMockContext.java @U.java ok so we managed to create an annotation that is able to mock req and response from the test we decorate it with, however, I would like to implement a mecanism to detect chnging fields in the requests, like for example in a etst we run it twice and we compare the requests and if there are chagin fields the code must be able t recognize it, and then create a file in the test fodler name we create in @stablemock , can make thiws mecanism the most canonoical wy you can taking in aacount wiremock 3 capabilities, and lastly, i think it would be a good idea to write a ffailing etst first, the fialing test will tets the use case where we always throw a request in here @JsonPlaceholderClient.java or here @PostmanEchoClient.java , and then we can just implement eh mecnaim to ensure the etst passes

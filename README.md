@@ -324,7 +324,3 @@ This will show detailed matching information for each request, helpful when trou
 ## License
 
 MIT License - See LICENSE file for details.
-
-
-
-ok now we need to strat adding the cool features, now that this works, the point tis that , and we will start doign this for json requets response only, the pint is that when we are recording tests we hould have the hability record the request comapre wiht the last requets we had and if ti changes save a file with the fiels that chnage and the paths we need to do to gnore them,@src/main/java/com/stablemock/U.java , so everythign that changess always in the reuqets can be aautoignored, after recording, you can read this docu for examples K:\dev2\mockero\README.md, and check only the offical wiremock 3.0 way to ignore fiedls in request canonically, in the end, just annotatoion a test and giving the url, we should be able to ignore it
