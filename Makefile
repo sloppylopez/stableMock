@@ -67,6 +67,12 @@ spring-example:
 	./gradlew cleanStableMock $$gradle_args && \
 	echo "=== Record mode (first time) ===" && \
 	./gradlew stableMockRecord $$gradle_args && \
+	echo "=== Verifying recordings from first run ===" && \
+	if [ ! -d "src/test/resources/stablemock/SpringBootIntegrationTest/testCreatePostViaController/mappings" ]; then \
+		echo "ERROR: testCreatePostViaController mappings not found after recording!"; \
+		exit 1; \
+	fi && \
+	echo "All expected test method mappings found" && \
 	echo "=== Record mode (second time) ===" && \
 	./gradlew stableMockRecord $$gradle_args && \
 	echo "=== Playback mode ===" && \
