@@ -5,6 +5,8 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.recording.RecordSpecBuilder;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.stablemock.core.server.WireMockServerManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +16,8 @@ import java.util.List;
  * Handles saving and loading WireMock mappings to/from disk.
  */
 public final class MappingStorage {
+    
+    private static final Logger logger = LoggerFactory.getLogger(MappingStorage.class);
     
     private MappingStorage() {
         // utility class
@@ -55,7 +59,7 @@ public final class MappingStorage {
             tempServer.stop();
         }
         
-        System.out.println("StableMock: Saved " + mappings.size() + " mappings to " + mappingsSubDir.getAbsolutePath());
+        logger.info("Saved {} mappings to {}", mappings.size(), mappingsSubDir.getAbsolutePath());
     }
     
     public static void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
@@ -75,7 +79,6 @@ public final class MappingStorage {
             allServeEvents.subList(existingRequestCount, allServeEvents.size());
         
         if (testMethodServeEvents.isEmpty()) {
-            System.out.println("StableMock: No new requests recorded for this test method, skipping mapping save");
             return;
         }
 
@@ -119,7 +122,6 @@ public final class MappingStorage {
         }
 
         if (testMethodMappings.isEmpty()) {
-            System.out.println("StableMock: No mappings found for requests in this test method, skipping save");
             return;
         }
 
@@ -135,7 +137,7 @@ public final class MappingStorage {
                             java.nio.file.Files.copy(sourceFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                         } catch (Exception e) {
-                            System.err.println("StableMock: Failed to copy body file " + bodyFileName + ": " + e.getMessage());
+                            logger.error("Failed to copy body file {}: {}", bodyFileName, e.getMessage());
                         }
                     }
                 }
@@ -159,7 +161,7 @@ public final class MappingStorage {
             tempServer.stop();
         }
         
-        System.out.println("StableMock: Saved " + testMethodMappings.size() + " mappings to " + testMethodMappingsSubDir.getAbsolutePath());
+        logger.info("Saved {} mappings to {}", testMethodMappings.size(), testMethodMappingsSubDir.getAbsolutePath());
     }
     
     public static void saveMappingsForTestMethodMultipleAnnotations(WireMockServer wireMockServer, 
@@ -176,7 +178,7 @@ public final class MappingStorage {
             }
             
             if (annotationServer == null) {
-                System.err.println("StableMock: No server found for annotation " + annotationInfo.index + ", skipping");
+                logger.warn("No server found for annotation {}, skipping", annotationInfo.index);
                 continue;
             }
             
@@ -191,7 +193,6 @@ public final class MappingStorage {
                     : new java.util.ArrayList<>();
             
             if (testMethodServeEvents.isEmpty()) {
-                System.out.println("StableMock: No new requests recorded for annotation " + annotationInfo.index + " in this test method, skipping");
                 continue;
             }
             
@@ -244,7 +245,6 @@ public final class MappingStorage {
             }
 
             if (annotationMappings.isEmpty()) {
-                System.out.println("StableMock: No mappings found for annotation " + annotationInfo.index + ", skipping save");
                 continue;
             }
 
@@ -307,10 +307,10 @@ public final class MappingStorage {
                             java.nio.file.Files.copy(sourceFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                         } catch (Exception e) {
-                            System.err.println("StableMock: Failed to copy body file " + bodyFileName + ": " + e.getMessage());
+                            logger.error("Failed to copy body file {}: {}", bodyFileName, e.getMessage());
                         }
                     } else {
-                        System.err.println("StableMock: Warning - body file not found: " + bodyFileName + " (checked url_" + annotationInfo.index + "/__files, server __files, and base __files)");
+                        logger.warn("Body file not found: {} (checked url_{}/__files, server __files, and base __files)", bodyFileName, annotationInfo.index);
                     }
                 }
             }
@@ -332,8 +332,7 @@ public final class MappingStorage {
                 tempServer.stop();
             }
             
-            System.out.println("StableMock: Saved " + annotationMappings.size() + " mappings for annotation " + 
-                    annotationInfo.index + " to " + annotationMappingsSubDir.getAbsolutePath());
+            logger.info("Saved {} mappings for annotation {} to {}", annotationMappings.size(), annotationInfo.index, annotationMappingsSubDir.getAbsolutePath());
         }
     }
     
@@ -342,12 +341,12 @@ public final class MappingStorage {
         File mergedFilesDir = new File(methodMappingsDir, "__files");
         
         if (!mergedMappingsDir.exists() && !mergedMappingsDir.mkdirs()) {
-            System.out.println("StableMock: Warning - failed to create merged mappings directory");
+            logger.warn("Failed to create merged mappings directory");
             return;
         }
         
         if (!mergedFilesDir.exists() && !mergedFilesDir.mkdirs()) {
-            System.out.println("StableMock: Warning - failed to create merged __files directory");
+            logger.warn("Failed to create merged __files directory");
             return;
         }
         
@@ -357,7 +356,6 @@ public final class MappingStorage {
             return;
         }
         
-        int totalCopied = 0;
         for (File annotationDir : annotationDirs) {
             File annotationMappingsDir = new File(annotationDir, "mappings");
             File annotationFilesDir = new File(annotationDir, "__files");
@@ -372,9 +370,8 @@ public final class MappingStorage {
                             File destFile = new File(mergedMappingsDir, newName);
                             java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                            totalCopied++;
                         } catch (Exception e) {
-                            System.err.println("StableMock: Failed to copy annotation mapping " + mappingFile.getName() + ": " + e.getMessage());
+                            logger.error("Failed to copy annotation mapping {}: {}", mappingFile.getName(), e.getMessage());
                         }
                     }
                 }
@@ -395,10 +392,6 @@ public final class MappingStorage {
                 }
             }
         }
-        
-        if (totalCopied > 0) {
-            System.out.println("StableMock: Merged " + totalCopied + " mappings from annotation directories into " + mergedMappingsDir.getAbsolutePath());
-        }
     }
     
     /**
@@ -418,16 +411,16 @@ public final class MappingStorage {
                     .map(java.nio.file.Path::toFile)
                     .forEach(File::delete);
             } catch (Exception e) {
-                System.err.println("StableMock: Failed to clean up url_" + urlIndex + " directory: " + e.getMessage());
+                logger.error("Failed to clean up url_{} directory: {}", urlIndex, e.getMessage());
             }
         }
         
         if (!urlMappingsDir.exists() && !urlMappingsDir.mkdirs()) {
-            System.err.println("StableMock: Failed to create url_" + urlIndex + " mappings directory");
+            logger.error("Failed to create url_{} mappings directory", urlIndex);
             return;
         }
         if (!urlFilesDir.exists() && !urlFilesDir.mkdirs()) {
-            System.err.println("StableMock: Failed to create url_" + urlIndex + " __files directory");
+            logger.error("Failed to create url_{} __files directory", urlIndex);
             return;
         }
         
@@ -437,7 +430,6 @@ public final class MappingStorage {
             return;
         }
         
-        int totalCopied = 0;
         for (File testMethodDir : testMethodDirs) {
             File annotationDir = new File(testMethodDir, "annotation_" + urlIndex);
             File annotationMappingsDir = new File(annotationDir, "mappings");
@@ -446,7 +438,6 @@ public final class MappingStorage {
             if (annotationMappingsDir.exists() && annotationMappingsDir.isDirectory()) {
                 File[] mappingFiles = annotationMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
                 if (mappingFiles != null && mappingFiles.length > 0) {
-                    System.out.println("StableMock: Merging " + mappingFiles.length + " mappings from " + testMethodDir.getName() + "/annotation_" + urlIndex + " to url_" + urlIndex);
                     for (File mappingFile : mappingFiles) {
                         try {
                             String prefix = testMethodDir.getName() + "_";
@@ -454,9 +445,8 @@ public final class MappingStorage {
                             File destFile = new File(urlMappingsDir, newName);
                             java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                            totalCopied++;
                         } catch (Exception e) {
-                            System.err.println("StableMock: Failed to copy mapping " + mappingFile.getName() + ": " + e.getMessage());
+                            logger.error("Failed to copy mapping {}: {}", mappingFile.getName(), e.getMessage());
                         }
                     }
                 }
@@ -473,7 +463,7 @@ public final class MappingStorage {
                             java.nio.file.Files.copy(bodyFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                         } catch (Exception e) {
-                            System.err.println("StableMock: Failed to copy body file " + bodyFile.getName() + ": " + e.getMessage());
+                            logger.error("Failed to copy body file {}: {}", bodyFile.getName(), e.getMessage());
                         }
                     }
                 }
@@ -517,12 +507,6 @@ public final class MappingStorage {
                 }
             }
         }
-        
-        if (totalCopied > 0) {
-            System.out.println("StableMock: Merged " + totalCopied + " mappings for url_" + urlIndex + " from all test methods");
-        } else {
-            System.out.println("StableMock: Warning - No mappings found for url_" + urlIndex);
-        }
     }
     
     public static void mergePerTestMethodMappings(File baseMappingsDir) {
@@ -535,17 +519,17 @@ public final class MappingStorage {
             if (existingFiles != null) {
                 for (File file : existingFiles) {
                     if (!file.delete()) {
-                        System.err.println("StableMock: Failed to delete existing file: " + file.getAbsolutePath());
+                        logger.error("Failed to delete existing file: {}", file.getAbsolutePath());
                     }
                 }
             }
         } else if (!classMappingsDir.mkdirs()) {
-            System.out.println("StableMock: Warning - failed to create class-level mappings directory");
+            logger.warn("Failed to create class-level mappings directory");
             return;
         }
         
         if (!classFilesDir.exists() && !classFilesDir.mkdirs()) {
-            System.out.println("StableMock: Warning - failed to create class-level __files directory");
+            logger.warn("Failed to create class-level __files directory");
             return;
         }
         
@@ -572,7 +556,6 @@ public final class MappingStorage {
         }
         
         // Single URL case - merge test method mappings to class-level directory
-        int totalCopied = 0;
         for (File testMethodDir : testMethodDirs) {
             File methodMappingsDir = new File(testMethodDir, "mappings");
             File methodFilesDir = new File(testMethodDir, "__files");
@@ -587,9 +570,8 @@ public final class MappingStorage {
                             File destFile = new File(classMappingsDir, newName);
                             java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                            totalCopied++;
                         } catch (Exception e) {
-                            System.err.println("StableMock: Failed to copy mapping " + mappingFile.getName() + ": " + e.getMessage());
+                            logger.error("Failed to copy mapping {}: {}", mappingFile.getName(), e.getMessage());
                         }
                     }
                 }
@@ -610,27 +592,18 @@ public final class MappingStorage {
                 }
             }
         }
-        
-        if (totalCopied > 0) {
-            System.out.println("StableMock: Merged " + totalCopied + " mappings from per-test-method directories into " + classMappingsDir.getAbsolutePath());
-        }
     }
     
     public static void cleanupClassLevelDirectory(File baseMappingsDir) {
         File baseMappingsSubDir = new File(baseMappingsDir, "mappings");
         File baseFilesDir = new File(baseMappingsDir, "__files");
         
-        int deletedMappings = 0;
-        int deletedFiles = 0;
-        
         if (baseMappingsSubDir.exists() && baseMappingsSubDir.isDirectory()) {
             File[] mappingFiles = baseMappingsSubDir.listFiles();
             if (mappingFiles != null) {
                 for (File file : mappingFiles) {
-                    if (file.isFile() && file.delete()) {
-                        deletedMappings++;
-                    } else if (file.isFile()) {
-                        System.err.println("StableMock: Failed to delete mapping file: " + file.getAbsolutePath());
+                    if (file.isFile() && !file.delete()) {
+                        logger.error("Failed to delete mapping file: {}", file.getAbsolutePath());
                     }
                 }
             }
@@ -640,36 +613,24 @@ public final class MappingStorage {
             File[] bodyFiles = baseFilesDir.listFiles();
             if (bodyFiles != null) {
                 for (File file : bodyFiles) {
-                    if (file.isFile() && file.delete()) {
-                        deletedFiles++;
-                    } else if (file.isFile()) {
-                        System.err.println("StableMock: Failed to delete body file: " + file.getAbsolutePath());
+                    if (file.isFile() && !file.delete()) {
+                        logger.error("Failed to delete body file: {}", file.getAbsolutePath());
                     }
                 }
             }
         }
         
-        if (deletedMappings > 0 || deletedFiles > 0) {
-            System.out.println("StableMock: Cleaned up class-level directory - removed " + 
-                deletedMappings + " mappings and " + deletedFiles + " body files " +
-                "(files are in test-method directories)");
-        }
-        
         if (baseMappingsSubDir.exists() && baseMappingsSubDir.isDirectory()) {
             File[] remainingFiles = baseMappingsSubDir.listFiles();
             if (remainingFiles == null || remainingFiles.length == 0) {
-                if (baseMappingsSubDir.delete()) {
-                    System.out.println("StableMock: Removed empty class-level mappings directory");
-                }
+                baseMappingsSubDir.delete();
             }
         }
         
         if (baseFilesDir.exists() && baseFilesDir.isDirectory()) {
             File[] remainingFiles = baseFilesDir.listFiles();
             if (remainingFiles == null || remainingFiles.length == 0) {
-                if (baseFilesDir.delete()) {
-                    System.out.println("StableMock: Removed empty class-level __files directory");
-                }
+                baseFilesDir.delete();
             }
         }
     }

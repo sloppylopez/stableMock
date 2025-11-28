@@ -35,20 +35,16 @@ class MultipleAnnotationTest {
         
         registry.add("app.thirdparty.url", () -> {
             String wireMockUrl = System.getProperty("stablemock.baseUrl.0");
-            String finalUrl = (wireMockUrl != null && !wireMockUrl.isEmpty())
+            return (wireMockUrl != null && !wireMockUrl.isEmpty())
                     ? wireMockUrl
                     : "https://jsonplaceholder.typicode.com";
-            System.out.println("MultipleAnnotationTest: app.thirdparty.url=" + finalUrl);
-            return finalUrl;
         });
         
         registry.add("app.postmanecho.url", () -> {
             String wireMockUrl = System.getProperty("stablemock.baseUrl.1");
-            String finalUrl = (wireMockUrl != null && !wireMockUrl.isEmpty())
+            return (wireMockUrl != null && !wireMockUrl.isEmpty())
                     ? wireMockUrl
                     : "https://postman-echo.com";
-            System.out.println("MultipleAnnotationTest: app.postmanecho.url=" + finalUrl);
-            return finalUrl;
         });
     }
 
@@ -72,10 +68,6 @@ class MultipleAnnotationTest {
         assertNotNull(response2, "Response from postman-echo should not be null");
         assertTrue(response2.contains("url") || response2.contains("args") || response2.contains("headers"), 
                 "Response should contain echo fields");
-
-        System.out.println(
-                "MultipleAnnotationTest.testMultipleAnnotationsWork completed (thread=" +
-                        Thread.currentThread().getName() + ")");
     }
 
     @Test
@@ -92,10 +84,6 @@ class MultipleAnnotationTest {
         assertNotNull(response2, "Response from postman-echo should not be null");
         assertTrue(response2.contains("url") || response2.contains("args") || response2.contains("headers"), 
                 "Response should contain echo fields");
-
-        System.out.println(
-                "MultipleAnnotationTest.testMultipleAnnotationsRecordSeparately completed (thread=" +
-                        Thread.currentThread().getName() + ")");
     }
 }
 

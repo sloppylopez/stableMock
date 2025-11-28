@@ -116,7 +116,6 @@ public final class TestContextResolver {
         if (!fallback.exists()) {
             fallback = new File("src/test/resources");
         }
-        System.out.println("StableMock: Using test resources directory: " + fallback.getAbsolutePath());
         return fallback;
     }
     

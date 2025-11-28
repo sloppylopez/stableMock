@@ -3,6 +3,8 @@ package com.stablemock.core.server;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.stablemock.core.config.PortFinder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.URL;
@@ -16,6 +18,8 @@ import java.util.Map;
  * Manages WireMock server lifecycle and configuration.
  */
 public final class WireMockServerManager {
+    
+    private static final Logger logger = LoggerFactory.getLogger(WireMockServerManager.class);
     
     private WireMockServerManager() {
         // utility class
@@ -55,7 +59,7 @@ public final class WireMockServerManager {
                                 com.github.tomakehurst.wiremock.client.WireMock.aResponse()
                                         .proxiedFrom(primaryUrl)));
 
-        System.out.println("StableMock: Recording mode on port " + port + ", proxying to " + primaryUrl);
+        logger.info("Recording mode on port {}, proxying to {}", port, primaryUrl);
         return server;
     }
     
@@ -72,7 +76,6 @@ public final class WireMockServerManager {
                 WireMockServer server = startRecording(port, annotationMappingsDir, Arrays.asList(info.urls));
                 servers.add(server);
                 ports.add(port);
-                System.out.println("StableMock: Started WireMock server " + i + " on port " + port + " for " + info.urls[0]);
             }
         }
         
@@ -122,7 +125,7 @@ public final class WireMockServerManager {
                         allTargetUrls.add(url);
                     }
                 } catch (Exception e) {
-                    System.err.println("StableMock: Failed to parse URL " + url + ": " + e.getMessage());
+                    logger.error("Failed to parse URL {}: {}", url, e.getMessage());
                 }
             }
         }
@@ -140,14 +143,7 @@ public final class WireMockServerManager {
                                 com.github.tomakehurst.wiremock.client.WireMock.aResponse()
                                         .proxiedFrom(primaryUrl)));
         
-        System.out.println("StableMock: Created catch-all proxy stub -> " + primaryUrl);
-        if (allTargetUrls.size() > 1) {
-            System.out.println("StableMock: Note - All requests will proxy to primary URL (" + primaryUrl + "). " +
-                    "Mappings will be matched to annotations when saving based on request patterns.");
-        }
-
-        System.out.println("StableMock: Recording mode on port " + port + ", proxying to " + 
-                allTargetUrls.size() + " target(s), primary: " + primaryUrl);
+        logger.info("Recording mode on port {}, proxying to {} target(s), primary: {}", port, allTargetUrls.size(), primaryUrl);
         return server;
     }
     
@@ -163,7 +159,7 @@ public final class WireMockServerManager {
     
     public static WireMockServer startPlayback(int port, File mappingsDir) {
         if (!mappingsDir.exists() && !mappingsDir.mkdirs()) {
-            System.out.println("StableMock: Warning - mappings directory does not exist: " + mappingsDir.getAbsolutePath());
+            logger.warn("Mappings directory does not exist: {}", mappingsDir.getAbsolutePath());
         }
 
         WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
@@ -174,7 +170,7 @@ public final class WireMockServerManager {
         WireMockServer server = new WireMockServer(config);
         server.start();
 
-        System.out.println("StableMock: Playback mode on port " + port + ", loading mappings from " + mappingsDir.getAbsolutePath());
+        logger.info("Playback mode on port {}, loading mappings from {}", port, mappingsDir.getAbsolutePath());
         return server;
     }
     

@@ -48,14 +48,9 @@ class SpringBootIntegrationTest {
                 // Fallback to system property only if ThreadLocal not set
                 baseUrl = System.getProperty("stablemock.baseUrl");
             }
-            String finalUrl = baseUrl != null && !baseUrl.isEmpty()
+            return baseUrl != null && !baseUrl.isEmpty()
                     ? baseUrl
                     : "https://jsonplaceholder.typicode.com";
-
-            System.out.println(
-                    "SpringBootIntegrationTest: app.thirdparty.url=" + finalUrl +
-                            " (thread=" + Thread.currentThread().getName() + ")");
-            return finalUrl;
         });
         
         // app.postmanecho.url is required for PostmanEchoClient (no default value)

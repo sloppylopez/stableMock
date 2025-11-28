@@ -7,6 +7,8 @@ import com.github.tomakehurst.wiremock.recording.RecordSpecBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.stablemock.core.config.Constants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +19,8 @@ import java.util.List;
  * Manages WireMock server lifecycle for Gradle tasks.
  */
 public class WireMockServerManager {
+    private static final Logger logger = LoggerFactory.getLogger(WireMockServerManager.class);
+    
     private WireMockServer wireMockServer;
     private int port;
     private String mode;
@@ -55,8 +59,7 @@ public class WireMockServerManager {
         wireMockServer = new WireMockServer(config);
         wireMockServer.start();
 
-        System.out.println("StableMock WireMock started in PLAYBACK mode on port: " + port);
-        System.out.println("Mappings directory: " + mappingDir.getAbsolutePath());
+        logger.info("WireMock started in PLAYBACK mode on port: {}, mappings directory: {}", port, mappingDir.getAbsolutePath());
     }
 
     /**
@@ -101,22 +104,14 @@ public class WireMockServerManager {
         wireMockServer.stubFor(
                 com.github.tomakehurst.wiremock.client.WireMock.any(
                         com.github.tomakehurst.wiremock.client.WireMock.anyUrl()).willReturn(
-                                com.github.tomakehurst.wiremock.client.WireMock.aResponse().proxiedFrom(primaryUrl)));
+                                com.github.tomakehurst.wiremock.client.WireMock.aResponse()                                        .proxiedFrom(primaryUrl)));
 
-        System.out.println("StableMock WireMock started in RECORD mode on port: " + port);
         String baseUrl = System.getProperty("stablemock.baseUrl");
         if (baseUrl == null || baseUrl.isEmpty()) {
             baseUrl = "http://localhost:" + port;
         }
-        if (targetUrls.size() == 1) {
-            System.out.println("Recording mode. Proxying from " + baseUrl + " -> " + primaryUrl);
-        } else {
-            System.out.println("Recording mode. Proxying from " + baseUrl + " -> " + primaryUrl + " (first of " + targetUrls.size() + " configured URLs)");
-            List<String> otherUrls = targetUrls.subList(1, targetUrls.size());
-            System.out.println(
-                    "Note: All requests will be proxied to the first URL. Other URLs: " + String.join(", ", otherUrls));
-        }
-        System.out.println("Mappings will be saved to: " + mappingDir.getAbsolutePath());
+        logger.info("WireMock started in RECORD mode on port: {}, proxying from {} -> {}, mappings will be saved to: {}", 
+                port, baseUrl, primaryUrl, mappingDir.getAbsolutePath());
     }
 
     /**
@@ -124,7 +119,6 @@ public class WireMockServerManager {
      */
     public void stop() {
         if (wireMockServer == null) {
-            System.out.println("StableMock: No WireMock server running");
             return;
         }
 
@@ -132,17 +126,15 @@ public class WireMockServerManager {
             try {
                 saveMappings();
             } catch (Exception e) {
-                System.err.println("StableMock: Error saving mappings: " + e.getMessage());
-                e.printStackTrace();
+                logger.error("Error saving mappings: {}", e.getMessage(), e);
             }
         }
 
         try {
             wireMockServer.stop();
-            System.out.println("StableMock WireMock stopped on port: " + port);
+            logger.info("WireMock stopped on port: {}", port);
         } catch (Exception e) {
-            System.err.println("StableMock: Error stopping WireMock server: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error stopping WireMock server: {}", e.getMessage(), e);
         } finally {
             wireMockServer = null;
         }
@@ -187,7 +179,7 @@ public class WireMockServerManager {
             mapper.writeValue(file, mapping);
         }
 
-        System.out.println("StableMock: Saved " + mappings.size() + " mappings to " + mappingsSubDir.getAbsolutePath());
+        logger.info("Saved {} mappings to {}", mappings.size(), mappingsSubDir.getAbsolutePath());
     }
 
     /**
