@@ -188,9 +188,16 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         File[] testMethodDirs = baseMappingsDir.listFiles(file -> 
             file.isDirectory() && !file.getName().equals("mappings") && !file.getName().equals("__files") && !file.getName().startsWith("url_"));
-        if (testMethodDirs == null) {
+        if (testMethodDirs == null || testMethodDirs.length == 0) {
+            logger.warn("No test method directories found in {}", baseMappingsDir.getAbsolutePath());
             return;
         }
+        
+        // Sort test method directories for consistent ordering across platforms
+        // This ensures the same merge order on Windows and Linux
+        java.util.Arrays.sort(testMethodDirs, java.util.Comparator.comparing(File::getName));
+        
+        logger.info("Merging mappings for single URL from {} test method(s)", testMethodDirs.length);
         
         // Check if we have multiple URLs by looking for annotation_X directories in test methods
         boolean hasMultipleUrls = false;
@@ -205,6 +212,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         // For multiple URLs, we don't merge to class-level directory - that's handled separately
         if (hasMultipleUrls) {
+            logger.debug("Multiple URLs detected, skipping single URL merge");
             return;
         }
         
@@ -213,23 +221,41 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             File methodMappingsDir = new File(testMethodDir, "mappings");
             File methodFilesDir = new File(testMethodDir, "__files");
             
+            if (!methodMappingsDir.exists() || !methodMappingsDir.isDirectory()) {
+                logger.debug("No mappings directory found for test method {}", testMethodDir.getName());
+                continue;
+            }
+            
             if (methodMappingsDir.exists() && methodMappingsDir.isDirectory()) {
                 File[] mappingFiles = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-                if (mappingFiles != null) {
+                if (mappingFiles != null && mappingFiles.length > 0) {
                     for (File mappingFile : mappingFiles) {
                         try {
                             String prefix = testMethodDir.getName() + "_";
                             String newName = prefix + mappingFile.getName();
                             File destFile = new File(classMappingsDir, newName);
+                            
+                            // Ensure destination directory exists
+                            if (!classMappingsDir.exists() && !classMappingsDir.mkdirs()) {
+                                logger.error("Failed to create class-level mappings directory");
+                                continue;
+                            }
+                            
                             java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            logger.debug("Copied mapping {} from {} to {}", mappingFile.getName(), testMethodDir.getName(), destFile.getName());
                         } catch (Exception e) {
-                            logger.error("Failed to copy mapping {}: {}", mappingFile.getName(), e.getMessage());
+                            logger.error("Failed to copy mapping {}: {}", mappingFile.getName(), e.getMessage(), e);
                         }
                     }
+                    logger.info("Copied {} mapping(s) from test method {} to class-level", 
+                        mappingFiles.length, testMethodDir.getName());
+                } else {
+                    logger.debug("No mapping files found in {}", methodMappingsDir.getAbsolutePath());
                 }
             }
             
+            // Copy body files from test method __files to class-level __files
             if (methodFilesDir.exists() && methodFilesDir.isDirectory()) {
                 File[] bodyFiles = methodFilesDir.listFiles();
                 if (bodyFiles != null) {
@@ -245,6 +271,18 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 }
             }
         }
+        
+        // Force file system sync to ensure all files are written before WireMock loads them
+        // This is important on Linux where file system caching might delay visibility
+        try {
+            java.nio.file.Files.createFile(new File(classMappingsDir, ".merge-complete").toPath());
+            java.nio.file.Files.deleteIfExists(new File(classMappingsDir, ".merge-complete").toPath());
+        } catch (Exception e) {
+            // Ignore - this is just to force a sync
+            logger.debug("File sync check failed (non-critical): {}", e.getMessage());
+        }
+        
+        logger.info("Completed merging mappings to class-level directory");
     }
 }
 

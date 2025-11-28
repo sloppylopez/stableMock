@@ -235,6 +235,10 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
             return;
         }
         
+        // Sort test method directories for consistent ordering across platforms
+        // This ensures the same merge order on Windows and Linux
+        java.util.Arrays.sort(testMethodDirs, java.util.Comparator.comparing(File::getName));
+        
         logger.info("Merging mappings for url_{} from {} test method(s)", urlIndex, testMethodDirs.length);
         
         for (File testMethodDir : testMethodDirs) {
@@ -331,6 +335,18 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
                 }
             }
         }
+        
+        // Force file system sync to ensure all files are written before WireMock loads them
+        // This is important on Linux where file system caching might delay visibility
+        try {
+            java.nio.file.Files.createFile(new File(urlMappingsDir, ".merge-complete").toPath());
+            java.nio.file.Files.deleteIfExists(new File(urlMappingsDir, ".merge-complete").toPath());
+        } catch (Exception e) {
+            // Ignore - this is just to force a sync
+            logger.debug("File sync check failed (non-critical): {}", e.getMessage());
+        }
+        
+        logger.info("Completed merging mappings for url_{}", urlIndex);
     }
 }
 
