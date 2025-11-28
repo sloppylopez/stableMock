@@ -56,7 +56,7 @@ class MultipleAnnotationTest {
     void testMultipleAnnotationsWork() {
         // This test verifies that multiple @U annotations work correctly
         // First annotation: jsonplaceholder.typicode.com - called via /api/users/1
-        // Second annotation: postman-echo.com - called via /api/reqres/users/1
+        // Second annotation: postman-echo.com - called via /api/postmanecho/users/1
         // Both should be tracked separately
         
         // Call first API (jsonplaceholder)
@@ -68,7 +68,7 @@ class MultipleAnnotationTest {
                 "Response should contain user fields");
         
         // Call second API (postman-echo)
-        String response2 = restTemplate.getForObject("/api/reqres/users/1", String.class);
+        String response2 = restTemplate.getForObject("/api/postmanecho/users/1", String.class);
         assertNotNull(response2, "Response from postman-echo should not be null");
         assertTrue(response2.contains("url") || response2.contains("args") || response2.contains("headers"), 
                 "Response should contain echo fields");
@@ -88,7 +88,7 @@ class MultipleAnnotationTest {
                 "Response should contain user id 2");
         
         // Second annotation: postman-echo.com
-        String response2 = restTemplate.getForObject("/api/reqres/users/2", String.class);
+        String response2 = restTemplate.getForObject("/api/postmanecho/users/2", String.class);
         assertNotNull(response2, "Response from postman-echo should not be null");
         assertTrue(response2.contains("url") || response2.contains("args") || response2.contains("headers"), 
                 "Response should contain echo fields");
