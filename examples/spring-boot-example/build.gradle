@@ -59,9 +59,14 @@ tasks.named('stableMockRecord') {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
 
-    // Run recording sequentially to ensure all tests execute and all mappings are recorded
+    // Run recording sequentially in CI to ensure all tests execute and all mappings are recorded
+    // For local development, allow parallel execution for speed
     // Parallel execution can cause race conditions or missed recordings in CI environments
-    maxParallelForks = 1
+    if (System.getenv('CI') != null) {
+        maxParallelForks = 1
+    } else {
+        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    }
 }
 
 tasks.named('stableMockPlayback') {

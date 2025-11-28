@@ -63,6 +63,8 @@ spring-example:
 		gradle_args="--no-daemon"; \
 	fi; \
 	cd examples/spring-boot-example && \
+	echo "=== Cleaning old recordings ===" && \
+	./gradlew cleanStableMock $$gradle_args && \
 	echo "=== Record mode (first time) ===" && \
 	./gradlew stableMockRecord $$gradle_args && \
 	echo "=== Record mode (second time) ===" && \
