@@ -164,32 +164,55 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
     }
     
     public static void mergePerTestMethodMappings(File baseMappingsDir) {
+        logger.info("=== mergePerTestMethodMappings called for: {} ===", baseMappingsDir.getAbsolutePath());
+        
+        if (!baseMappingsDir.exists()) {
+            logger.error("Base mappings directory does not exist: {}", baseMappingsDir.getAbsolutePath());
+            return;
+        }
+        
         File classMappingsDir = new File(baseMappingsDir, "mappings");
         File classFilesDir = new File(baseMappingsDir, "__files");
         
+        logger.info("Class mappings dir: {}", classMappingsDir.getAbsolutePath());
+        logger.info("Class files dir: {}", classFilesDir.getAbsolutePath());
+        
         if (classMappingsDir.exists()) {
             File[] existingFiles = classMappingsDir.listFiles();
+            int deletedCount = 0;
             if (existingFiles != null) {
                 for (File file : existingFiles) {
-                    if (!file.delete()) {
+                    if (file.delete()) {
+                        deletedCount++;
+                    } else {
                         logger.error("Failed to delete existing file: {}", file.getAbsolutePath());
                     }
                 }
             }
+            logger.info("Cleaned {} existing mapping file(s) from class-level directory", deletedCount);
         } else if (!classMappingsDir.mkdirs()) {
-            logger.warn("Failed to create class-level mappings directory");
+            logger.error("Failed to create class-level mappings directory: {}", classMappingsDir.getAbsolutePath());
             return;
+        } else {
+            logger.info("Created class-level mappings directory");
         }
         
         if (!classFilesDir.exists() && !classFilesDir.mkdirs()) {
-            logger.warn("Failed to create class-level __files directory");
+            logger.error("Failed to create class-level __files directory: {}", classFilesDir.getAbsolutePath());
             return;
+        }
+        
+        // List all directories in baseMappingsDir for debugging
+        File[] allDirs = baseMappingsDir.listFiles(File::isDirectory);
+        if (allDirs != null && allDirs.length > 0) {
+            logger.info("All directories in baseMappingsDir: {}", java.util.Arrays.toString(
+                java.util.Arrays.stream(allDirs).map(File::getName).toArray(String[]::new)));
         }
         
         File[] testMethodDirs = baseMappingsDir.listFiles(file -> 
             file.isDirectory() && !file.getName().equals("mappings") && !file.getName().equals("__files") && !file.getName().startsWith("url_"));
         if (testMethodDirs == null || testMethodDirs.length == 0) {
-            logger.warn("No test method directories found in {}", baseMappingsDir.getAbsolutePath());
+            logger.error("No test method directories found in {} - merge cannot proceed!", baseMappingsDir.getAbsolutePath());
             return;
         }
         
