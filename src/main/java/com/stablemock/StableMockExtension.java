@@ -82,8 +82,20 @@ public class StableMockExtension
                     // In playback mode, merge all test methods' annotation_X mappings for this URL
                     // index
                     MappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, i);
+                    // Collect ignore patterns from all annotations (for class-level, we use all annotations)
+                    List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                    for (U annotation : annotations) {
+                        String[] ignore = annotation.ignore();
+                        if (ignore != null) {
+                            for (String pattern : ignore) {
+                                if (pattern != null && !pattern.isEmpty()) {
+                                    annotationIgnorePatterns.add(pattern);
+                                }
+                            }
+                        }
+                    }
                     server = WireMockServerManager.startPlayback(port, urlMappingsDir, 
-                            testResourcesDir, testClassName, null);
+                            testResourcesDir, testClassName, null, annotationIgnorePatterns);
                 }
 
                 servers.add(server);
@@ -118,8 +130,20 @@ public class StableMockExtension
                 server = WireMockServerManager.startRecording(port, baseMappingsDir, allUrls);
             } else {
                 MappingStorage.mergePerTestMethodMappings(baseMappingsDir);
+                // Collect ignore patterns from all annotations (for class-level, we use all annotations)
+                List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                for (U annotation : annotations) {
+                    String[] ignore = annotation.ignore();
+                    if (ignore != null) {
+                        for (String pattern : ignore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
+                }
                 server = WireMockServerManager.startPlayback(port, baseMappingsDir, 
-                        testResourcesDir, testClassName, null);
+                        testResourcesDir, testClassName, null, annotationIgnorePatterns);
             }
 
             classStore.putServer(server);
@@ -277,8 +301,20 @@ public class StableMockExtension
                 wireMockServer = WireMockServerManager.startRecording(port, mappingsDir, allUrls);
             } else {
                 MappingStorage.mergePerTestMethodMappings(mappingsDir);
+                // Collect ignore patterns from all annotations (for method-level)
+                List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                for (U annotation : annotations) {
+                    String[] ignore = annotation.ignore();
+                    if (ignore != null) {
+                        for (String pattern : ignore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
+                }
                 wireMockServer = WireMockServerManager.startPlayback(port, mappingsDir, 
-                        testResourcesDir, testClassName, testMethodName);
+                        testResourcesDir, testClassName, testMethodName, annotationIgnorePatterns);
             }
 
             methodStore.putServer(wireMockServer);

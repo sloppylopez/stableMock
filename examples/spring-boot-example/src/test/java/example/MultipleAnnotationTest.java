@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class MultipleAnnotationTest {
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private TestRestTemplate  restTemplate;
 
     @DynamicPropertySource
     static void registerMockUrls(DynamicPropertyRegistry registry) {

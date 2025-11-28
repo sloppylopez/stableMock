@@ -70,6 +70,12 @@ public final class WireMockServerManager {
     
     public static WireMockServer startPlayback(int port, File mappingsDir, 
             File testResourcesDir, String testClassName, String testMethodName) {
+        return startPlayback(port, mappingsDir, testResourcesDir, testClassName, testMethodName, null);
+    }
+    
+    public static WireMockServer startPlayback(int port, File mappingsDir, 
+            File testResourcesDir, String testClassName, String testMethodName, 
+            List<String> annotationIgnorePatterns) {
         if (!mappingsDir.exists() && !mappingsDir.mkdirs()) {
             logger.warn("Mappings directory does not exist: {}", mappingsDir.getAbsolutePath());
         }
@@ -104,8 +110,23 @@ public final class WireMockServerManager {
                 }
             }
             
+            // Merge patterns: annotation patterns override auto-detected ones
+            // Start with auto-detected patterns, then add annotation patterns (removing duplicates)
+            if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
+                int autoDetectedCount = ignorePatterns.size();
+                // Remove any auto-detected patterns that conflict with annotation patterns
+                // (annotation patterns take priority - remove duplicates from auto-detected)
+                ignorePatterns.removeAll(annotationIgnorePatterns);
+                // Add annotation patterns (they override any conflicting auto-detected patterns)
+                ignorePatterns.addAll(annotationIgnorePatterns);
+                logger.info("Merging ignore patterns: {} auto-detected ({} kept after override) + {} from annotation (annotation patterns have priority)", 
+                        autoDetectedCount,
+                        ignorePatterns.size() - annotationIgnorePatterns.size(), 
+                        annotationIgnorePatterns.size());
+            }
+            
             if (!ignorePatterns.isEmpty()) {
-                logger.info("Applying {} auto-detected ignore patterns to stub files for {}", 
+                logger.info("Applying {} ignore patterns to stub files for {}", 
                         ignorePatterns.size(), 
                         testMethodName != null ? testClassName + "." + testMethodName : testClassName);
                 applyIgnorePatternsToStubFiles(mappingsDir, ignorePatterns);
