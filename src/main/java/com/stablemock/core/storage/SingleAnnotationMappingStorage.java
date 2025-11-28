@@ -164,10 +164,14 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
     }
     
     public static void mergePerTestMethodMappings(File baseMappingsDir) {
-        logger.info("=== mergePerTestMethodMappings called for: {} ===", baseMappingsDir.getAbsolutePath());
+        String msg = "=== mergePerTestMethodMappings called for: " + baseMappingsDir.getAbsolutePath() + " ===";
+        System.out.println(msg);
+        logger.info(msg);
         
         if (!baseMappingsDir.exists()) {
-            logger.error("Base mappings directory does not exist: {}", baseMappingsDir.getAbsolutePath());
+            String errorMsg = "Base mappings directory does not exist: " + baseMappingsDir.getAbsolutePath();
+            System.err.println("ERROR: " + errorMsg);
+            logger.error(errorMsg);
             return;
         }
         
@@ -220,9 +224,13 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         // This ensures the same merge order on Windows and Linux
         java.util.Arrays.sort(testMethodDirs, java.util.Comparator.comparing(File::getName));
         
-        logger.info("=== Starting merge: {} test method(s) in {} ===", testMethodDirs.length, baseMappingsDir.getAbsolutePath());
+        String startMsg = "=== Starting merge: " + testMethodDirs.length + " test method(s) in " + baseMappingsDir.getAbsolutePath() + " ===";
+        System.out.println(startMsg);
+        logger.info(startMsg);
         for (File testMethodDir : testMethodDirs) {
-            logger.info("  Test method directory: {}", testMethodDir.getName());
+            String dirMsg = "  Test method directory: " + testMethodDir.getName();
+            System.out.println(dirMsg);
+            logger.info(dirMsg);
         }
         
         // Check if we have multiple URLs by looking for annotation_X directories in test methods
@@ -293,7 +301,9 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                             java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                             totalMappingsCopied++;
-                            logger.info("  ✓ Copied: {} {} -> {}", method, url, destFile.getName());
+                            String copyMsg = "  ✓ Copied: " + method + " " + url + " -> " + destFile.getName();
+                            System.out.println(copyMsg);
+                            logger.info(copyMsg);
                         } catch (Exception e) {
                             logger.error("  ✗ Failed to copy mapping {}: {}", mappingFile.getName(), e.getMessage(), e);
                         }
@@ -321,10 +331,15 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         }
         
         // Log summary of merged mappings
-        logger.info("=== Merge complete: {} mapping(s) copied ===", totalMappingsCopied);
+        String completeMsg = "=== Merge complete: " + totalMappingsCopied + " mapping(s) copied ===";
+        System.out.println(completeMsg);
+        logger.info(completeMsg);
+        
         File[] finalMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
         if (finalMappings != null && finalMappings.length > 0) {
-            logger.info("Final merged mappings in class-level directory ({} file(s)):", finalMappings.length);
+            String finalMsg = "Final merged mappings in class-level directory (" + finalMappings.length + " file(s)):";
+            System.out.println(finalMsg);
+            logger.info(finalMsg);
             int postCount = 0;
             int getCount = 0;
             for (File mappingFile : finalMappings) {
@@ -345,23 +360,40 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                         } else if ("GET".equalsIgnoreCase(method)) {
                             getCount++;
                         }
-                        logger.info("  [{}] {} {} ({})", method, url, mappingFile.getName(), 
-                            mappingFile.length() > 0 ? mappingFile.length() + " bytes" : "EMPTY FILE!");
+                        String mappingMsg = "  [" + method + "] " + url + " " + mappingFile.getName() + 
+                            (mappingFile.length() > 0 ? " (" + mappingFile.length() + " bytes)" : " (EMPTY FILE!)");
+                        System.out.println(mappingMsg);
+                        logger.info(mappingMsg);
                     }
                 } catch (Exception e) {
-                    logger.error("  Could not parse mapping file {} for summary: {}", mappingFile.getName(), e.getMessage());
+                    String errorMsg = "  Could not parse mapping file " + mappingFile.getName() + " for summary: " + e.getMessage();
+                    System.err.println("ERROR: " + errorMsg);
+                    logger.error(errorMsg);
                 }
             }
-            logger.info("Summary: {} GET, {} POST, {} other", getCount, postCount, finalMappings.length - getCount - postCount);
+            String summaryMsg = "Summary: " + getCount + " GET, " + postCount + " POST, " + (finalMappings.length - getCount - postCount) + " other";
+            System.out.println(summaryMsg);
+            logger.info(summaryMsg);
             if (postCount == 0) {
-                logger.error("WARNING: No POST mappings found in merged mappings! This will cause POST requests to fail.");
+                String warnMsg = "WARNING: No POST mappings found in merged mappings! This will cause POST requests to fail.";
+                System.err.println(warnMsg);
+                logger.error(warnMsg);
+            }
+            if (getCount < 3) {
+                String warnMsg = "WARNING: Expected at least 3 GET mappings (/users/1, /users/2, /users/3) but found only " + getCount;
+                System.err.println(warnMsg);
+                logger.warn(warnMsg);
             }
         } else {
-            logger.error("ERROR: No mappings found in class-level directory after merge! Directory: {}", classMappingsDir.getAbsolutePath());
+            String errorMsg = "ERROR: No mappings found in class-level directory after merge! Directory: " + classMappingsDir.getAbsolutePath();
+            System.err.println(errorMsg);
+            logger.error(errorMsg);
             // List what test method directories exist for debugging
             if (testMethodDirs != null && testMethodDirs.length > 0) {
-                logger.error("Test method directories that were checked: {}", java.util.Arrays.toString(
-                    java.util.Arrays.stream(testMethodDirs).map(File::getName).toArray(String[]::new)));
+                String dirsMsg = "Test method directories that were checked: " + java.util.Arrays.toString(
+                    java.util.Arrays.stream(testMethodDirs).map(File::getName).toArray(String[]::new));
+                System.err.println(dirsMsg);
+                logger.error(dirsMsg);
             }
         }
         

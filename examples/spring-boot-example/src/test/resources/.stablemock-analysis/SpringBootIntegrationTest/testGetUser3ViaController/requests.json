@@ -1,51 +1,51 @@
 [ {
-  "timestamp" : "2025-11-28T13:11:47.476765400Z",
+  "timestamp" : "2025-11-28T15:58:44.663900300Z",
   "url" : "/users/1",
   "method" : "GET",
   "body" : ""
 }, {
-  "timestamp" : "2025-11-28T13:11:47.477764100Z",
+  "timestamp" : "2025-11-28T15:58:44.672412900Z",
   "url" : "/users/2",
   "method" : "GET",
   "body" : ""
 }, {
-  "timestamp" : "2025-11-28T13:11:47.484801300Z",
-  "url" : "/users/3",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-11-28T15:44:42.555731400Z",
-  "url" : "/users/3",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-11-28T15:44:42.564837600Z",
-  "url" : "/users/2",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-11-28T15:44:42.572341500Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-11-28T15:44:48.625973900Z",
+  "timestamp" : "2025-11-28T16:00:47.433648800Z",
   "url" : "/posts",
   "method" : "POST",
   "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}"
 }, {
-  "timestamp" : "2025-11-28T15:44:48.636487600Z",
+  "timestamp" : "2025-11-28T16:00:47.446163600Z",
+  "url" : "/users/3",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-11-28T16:00:47.447163800Z",
   "url" : "/users/2",
   "method" : "GET",
   "body" : ""
 }, {
-  "timestamp" : "2025-11-28T15:44:48.643996Z",
+  "timestamp" : "2025-11-28T16:00:47.459680600Z",
   "url" : "/users/1",
   "method" : "GET",
   "body" : ""
 }, {
-  "timestamp" : "2025-11-28T15:44:48.650510Z",
+  "timestamp" : "2025-11-28T16:00:53.629563400Z",
+  "url" : "/posts",
+  "method" : "POST",
+  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}"
+}, {
+  "timestamp" : "2025-11-28T16:00:53.642622800Z",
+  "url" : "/users/2",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-11-28T16:00:53.659141900Z",
   "url" : "/users/3",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-11-28T16:00:53.660140800Z",
+  "url" : "/users/1",
   "method" : "GET",
   "body" : ""
 } ]

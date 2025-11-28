@@ -129,7 +129,9 @@ public class StableMockExtension
             if (isRecordMode) {
                 server = WireMockServerManager.startRecording(port, baseMappingsDir, allUrls);
             } else {
-                logger.info("=== PLAYBACK MODE: Merging test method mappings for {} ===", testClassName);
+                String mergeMsg = "=== PLAYBACK MODE: Merging test method mappings for " + testClassName + " ===";
+                System.out.println(mergeMsg);
+                logger.info(mergeMsg);
                 MappingStorage.mergePerTestMethodMappings(baseMappingsDir);
                 // Collect ignore patterns from all annotations (for class-level, we use all annotations)
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();

@@ -76,8 +76,12 @@ public final class WireMockServerManager {
     public static WireMockServer startPlayback(int port, File mappingsDir, 
             File testResourcesDir, String testClassName, String testMethodName, 
             List<String> annotationIgnorePatterns) {
-        logger.info("=== Starting WireMock playback on port {} ===", port);
-        logger.info("Loading mappings from: {}", mappingsDir.getAbsolutePath());
+        String startMsg = "=== Starting WireMock playback on port " + port + " ===";
+        System.out.println(startMsg);
+        logger.info(startMsg);
+        String loadMsg = "Loading mappings from: " + mappingsDir.getAbsolutePath();
+        System.out.println(loadMsg);
+        logger.info(loadMsg);
         
         if (!mappingsDir.exists() && !mappingsDir.mkdirs()) {
             logger.error("Mappings directory does not exist: {}", mappingsDir.getAbsolutePath());
@@ -86,7 +90,9 @@ public final class WireMockServerManager {
             if (mappingsSubDir.exists()) {
                 File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
                 if (mappingFiles != null) {
-                    logger.info("Found {} mapping file(s) in {}", mappingFiles.length, mappingsSubDir.getAbsolutePath());
+                    String foundMsg = "Found " + mappingFiles.length + " mapping file(s) in " + mappingsSubDir.getAbsolutePath();
+                    System.out.println(foundMsg);
+                    logger.info(foundMsg);
                     int postCount = 0;
                     int getCount = 0;
                     for (File mappingFile : mappingFiles) {
@@ -96,6 +102,15 @@ public final class WireMockServerManager {
                             com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
                             if (requestNode != null) {
                                 String method = requestNode.has("method") ? requestNode.get("method").asText() : "UNKNOWN";
+                                String url = "UNKNOWN";
+                                if (requestNode.has("url")) {
+                                    url = requestNode.get("url").asText();
+                                } else if (requestNode.has("urlPath")) {
+                                    url = requestNode.get("urlPath").asText();
+                                }
+                                String mappingInfo = "  Loaded: " + method + " " + url + " (" + mappingFile.getName() + ")";
+                                System.out.println(mappingInfo);
+                                logger.info(mappingInfo);
                                 if ("POST".equalsIgnoreCase(method)) {
                                     postCount++;
                                 } else if ("GET".equalsIgnoreCase(method)) {
@@ -106,12 +121,23 @@ public final class WireMockServerManager {
                             // Ignore parse errors for counting
                         }
                     }
-                    logger.info("Mappings breakdown: {} GET, {} POST, {} other", getCount, postCount, mappingFiles.length - getCount - postCount);
+                    String breakdownMsg = "Mappings breakdown: " + getCount + " GET, " + postCount + " POST, " + (mappingFiles.length - getCount - postCount) + " other";
+                    System.out.println(breakdownMsg);
+                    logger.info(breakdownMsg);
                     if (postCount == 0) {
-                        logger.warn("WARNING: No POST mappings found! POST requests will fail.");
+                        String warnMsg = "WARNING: No POST mappings found! POST requests will fail.";
+                        System.err.println(warnMsg);
+                        logger.warn(warnMsg);
+                    }
+                    if (getCount < 3) {
+                        String warnMsg = "WARNING: Expected at least 3 GET mappings but found only " + getCount;
+                        System.err.println(warnMsg);
+                        logger.warn(warnMsg);
                     }
                 } else {
-                    logger.warn("No mapping files found in {}", mappingsSubDir.getAbsolutePath());
+                    String warnMsg = "No mapping files found in " + mappingsSubDir.getAbsolutePath();
+                    System.err.println("WARNING: " + warnMsg);
+                    logger.warn(warnMsg);
                 }
             } else {
                 logger.warn("Mappings subdirectory does not exist: {}", mappingsSubDir.getAbsolutePath());
