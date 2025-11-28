@@ -16,19 +16,6 @@ public final class TestContextResolver {
         // utility class
     }
     
-    public static U findUAnnotation(ExtensionContext context) {
-        // Check method-level annotation first
-        U methodAnnotation = context.getTestMethod()
-                .map(method -> method.getAnnotation(U.class))
-                .orElse(null);
-        if (methodAnnotation != null) {
-            return methodAnnotation;
-        }
-
-        // Check class-level annotation
-        return context.getRequiredTestClass().getAnnotation(U.class);
-    }
-    
     public static U[] findAllUAnnotations(ExtensionContext context) {
         java.util.List<U> annotations = new java.util.ArrayList<>();
         
@@ -116,7 +103,6 @@ public final class TestContextResolver {
         if (!fallback.exists()) {
             fallback = new File("src/test/resources");
         }
-        System.out.println("StableMock: Using test resources directory: " + fallback.getAbsolutePath());
         return fallback;
     }
     

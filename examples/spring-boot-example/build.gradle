@@ -31,7 +31,7 @@ dependencies {
     
     // Use local StableMock build (run './gradlew publishToMavenLocal' from parent)
     testImplementation('com.stablemock:stablemock:1.0-SNAPSHOT') {
-        exclude group: 'org.slf4j', module: 'slf4j-nop'
+        exclude group: 'org.slf4j', module: 'slf4j-simple'
     }
     
     // Spring Boot Test

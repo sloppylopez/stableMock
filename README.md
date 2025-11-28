@@ -35,28 +35,7 @@ dependencies {
 }
 ```
 
-### 2. Annotate Your Test
-
-```java
-@U(urls = { "https://api.example.com" })
-public class MyTest {
-    
-    @Test
-    public void myTest(int port) {
-        // Use localhost:port instead of the real URL
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:" + port + "/api/users"))
-                .GET()
-                .build();
-        
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        assertEquals(200, response.statusCode());
-    }
-}
-```
-
-### 3. Record Mode (First Time)
+### 2. Record Mode (First Time)
 
 Record HTTP interactions by proxying to the real service:
 
@@ -66,7 +45,7 @@ Record HTTP interactions by proxying to the real service:
 
 This saves responses as stub mappings in `src/test/resources/stablemock/<TestClass>/<testMethod>/`.
 
-### 4. Playback Mode (Default)
+### 3. Playback Mode (Default)
 
 Run tests using recorded mocks:
 
@@ -136,6 +115,79 @@ public class MyService {
 ```
 
 In tests, `@DynamicPropertySource` overrides this to point to StableMock's proxy.
+
+### Multiple URLs in Single Annotation
+
+You can specify multiple URLs in a single `@U` annotation:
+
+```java
+@U(urls = { 
+    "https://api.example.com",
+    "https://api.another-service.com"
+})
+public class MyTest {
+    // ...
+}
+```
+
+When using multiple URLs, StableMock creates separate WireMock servers for each URL. System properties are set for each URL:
+- `stablemock.baseUrl.0` - First URL's WireMock base URL
+- `stablemock.baseUrl.1` - Second URL's WireMock base URL
+- `stablemock.port.0` - First URL's WireMock port
+- `stablemock.port.1` - Second URL's WireMock port
+
+### Multiple @U Annotations
+
+The `@U` annotation is `@Repeatable`, allowing you to use multiple annotations on the same test class or method:
+
+```java
+@SpringBootTest
+@U(urls = { "https://api.service1.com" })
+@U(urls = { "https://api.service2.com" })
+public class MyMultiServiceTest {
+    
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        // First annotation (index 0)
+        registry.add("app.service1.url", () -> 
+            System.getProperty("stablemock.baseUrl.0", "https://api.service1.com"));
+        
+        // Second annotation (index 1)
+        registry.add("app.service2.url", () -> 
+            System.getProperty("stablemock.baseUrl.1", "https://api.service2.com"));
+    }
+    
+    @Test
+    void testMultipleServices(int port) {
+        // port parameter returns the first server's port
+        // Use system properties for other servers
+        String port1 = System.getProperty("stablemock.port.0");
+        String port2 = System.getProperty("stablemock.port.1");
+        // ...
+    }
+}
+```
+
+Each annotation gets its own WireMock server instance, allowing you to mock multiple services independently.
+
+### Scenario Mode
+
+Enable scenario mode for sequential responses when the same request should return different responses over time (useful for pagination, polling, or retry logic):
+
+```java
+@U(urls = { "https://api.example.com" }, scenario = true)
+public class PaginationTest {
+    
+    @Test
+    void testPagination(int port) {
+        // First call returns page 1
+        // Second call returns page 2
+        // Third call returns empty result
+    }
+}
+```
+
+When `scenario = true`, StableMock uses WireMock scenarios to return responses sequentially for the same endpoint.
 
 ### Handling Dynamic Data
 
@@ -216,6 +268,63 @@ This structure supports future extensions for:
 ./gradlew cleanStableMock
 ```
 
+## System Properties Reference
+
+StableMock sets the following system properties that you can use in your tests:
+
+### Single URL / Single Annotation
+- `stablemock.port` - WireMock proxy port
+- `stablemock.baseUrl` - `http://localhost:${stablemock.port}`
+
+### Multiple URLs / Multiple Annotations
+- `stablemock.port.0` - First URL's WireMock port
+- `stablemock.port.1` - Second URL's WireMock port
+- `stablemock.baseUrl.0` - First URL's WireMock base URL
+- `stablemock.baseUrl.1` - Second URL's WireMock base URL
+- (continues for additional URLs/annotations)
+
+### Configuration Properties
+- `stablemock.mode` - Set to `RECORD` or `PLAYBACK` (automatically set by Gradle tasks)
+- `stablemock.showMatches` - Set to `true` to enable detailed request matching logs for debugging
+
+## Debugging and Troubleshooting
+
+### Enable Request Matching Logs
+
+When requests don't match expected mocks, enable detailed matching information:
+
+```bash
+# PowerShell
+./gradlew stableMockRecord "-Dstablemock.showMatches=true"
+
+# Bash/Linux/Mac
+./gradlew stableMockRecord -Dstablemock.showMatches=true
+```
+
+This will show detailed matching information for each request, helpful when troubleshooting why mocks aren't matching.
+
+### Common Issues
+
+**Issue: Tests fail with "No matching stub mapping found"**
+- Ensure you've run in RECORD mode first: `./gradlew stableMockRecord`
+- Check that the request URL and method match what was recorded
+- Enable `stablemock.showMatches=true` to see matching details
+
+**Issue: Dynamic fields causing test failures**
+- Add fields to the `ignore` parameter in your `@U` annotation
+- Use JSON path syntax: `"json:fieldName"` or `"json:nested.field"`
+- For GraphQL: `"gql:variables.fieldName"`
+- For XML: `"xml://XPathExpression"`
+
+**Issue: Multiple annotations not working**
+- Ensure you're using `@U` multiple times (not `@U.List`)
+- Check system properties: `stablemock.baseUrl.0`, `stablemock.baseUrl.1`, etc.
+- Verify `@DynamicPropertySource` uses the correct index for each service
+
 ## License
 
 MIT License - See LICENSE file for details.
+
+
+
+ok now we need to strat adding the cool features, now that this works, the point tis that , and we will start doign this for json requets response only, the pint is that when we are recording tests we hould have the hability record the request comapre wiht the last requets we had and if ti changes save a file with the fiels that chnage and the paths we need to do to gnore them,@src/main/java/com/stablemock/U.java , so everythign that changess always in the reuqets can be aautoignored, after recording, you can read this docu for examples K:\dev2\mockero\README.md, and check only the offical wiremock 3.0 way to ignore fiedls in request canonically, in the end, just annotatoion a test and giving the url, we should be able to ignore it
