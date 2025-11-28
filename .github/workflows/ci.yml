@@ -52,17 +52,11 @@ jobs:
             cp gradle/wrapper/gradle-wrapper.jar examples/spring-boot-example/gradle/wrapper/gradle-wrapper.jar
           fi
       
-      - name: Run Spring Boot example tests
-        working-directory: examples/spring-boot-example
+      - name: Run Spring Boot example tests using Makefile
         run: |
-          echo "=== Record mode (first time) ==="
-          ./gradlew stableMockRecord --no-daemon
-          echo "=== Record mode (second time) ==="
-          ./gradlew stableMockRecord --no-daemon
-          echo "=== Playback mode ==="
-          ./gradlew stableMockPlayback --no-daemon
+          make spring-example
           echo "=== Regular test task (playback mode) ==="
-          ./gradlew test --no-daemon
+          cd examples/spring-boot-example && ./gradlew test --no-daemon
       
       - name: Upload test results
         if: always()

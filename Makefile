@@ -22,7 +22,11 @@ build:
 			exit 1; \
 		fi; \
 	fi
-	./gradlew build -x test
+	@gradle_args=""; \
+	if [ -n "$$CI" ]; then \
+		gradle_args="--no-daemon"; \
+	fi; \
+	./gradlew build -x test $$gradle_args
 
 # Publish to Maven Local (skip tests)
 publish:
@@ -36,7 +40,11 @@ publish:
 			export JAVA_HOME=$$(dirname $$(dirname "$$java_path")); \
 		fi; \
 	fi
-	./gradlew publishToMavenLocal -x test
+	@gradle_args=""; \
+	if [ -n "$$CI" ]; then \
+		gradle_args="--no-daemon"; \
+	fi; \
+	./gradlew publishToMavenLocal -x test $$gradle_args
 
 # Run Spring Boot example tests
 spring-example:
@@ -50,13 +58,17 @@ spring-example:
 			export JAVA_HOME=$$(dirname $$(dirname "$$java_path")); \
 		fi; \
 	fi
-	@cd examples/spring-boot-example && \
+	@gradle_args=""; \
+	if [ -n "$$CI" ]; then \
+		gradle_args="--no-daemon"; \
+	fi; \
+	cd examples/spring-boot-example && \
 	echo "=== Record mode (first time) ===" && \
-	./gradlew stableMockRecord && \
+	./gradlew stableMockRecord $$gradle_args && \
 	echo "=== Record mode (second time) ===" && \
-	./gradlew stableMockRecord && \
+	./gradlew stableMockRecord $$gradle_args && \
 	echo "=== Playback mode ===" && \
-	./gradlew stableMockPlayback
+	./gradlew stableMockPlayback $$gradle_args
 	@echo "=== Verifying cleanup - checking for class-level directories ==="
 	@$(MAKE) verify-cleanup
 
