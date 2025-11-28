@@ -68,6 +68,10 @@ public final class AnalysisResultStorage {
             json.put("testClass", result.getTestClassName());
             json.put("testMethod", result.getTestMethodName());
             json.put("detectedAt", result.getDetectedAt());
+            // analyzed_requests_count: Total number of requests in history that were analyzed.
+            // This accumulates over multiple test runs (capped at MAX_HISTORY_SIZE=10) and
+            // represents the total data used for pattern detection. Higher counts indicate
+            // more reliable detection based on more historical data.
             json.put("analyzed_requests_count", result.getAnalyzedRequestsCount());
 
             // Add dynamic fields

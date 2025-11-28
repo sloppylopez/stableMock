@@ -122,8 +122,8 @@ public final class DynamicFieldAnalysisOrchestrator {
             String testMethodName,
             Integer annotationIndex) {
 
-        // Step 1: Track new requests
-        trackNewRequests(allServeEvents, existingRequestCount, testResourcesDir,
+        // Step 1: Track new requests and count how many were added
+        int newRequestsCount = trackNewRequests(allServeEvents, existingRequestCount, testResourcesDir,
                 testClassName, testMethodName, annotationIndex);
 
         // Step 2: Load full request history
@@ -137,8 +137,10 @@ public final class DynamicFieldAnalysisOrchestrator {
             return;
         }
 
+        // Step 4: Analyze with the total history size (for accurate field detection)
+        // but record how many new requests were analyzed in this run
         DetectionResult result = DynamicFieldDetector.analyzeRequests(
-                history, testClassName, testMethodName);
+                history, testClassName, testMethodName, newRequestsCount);
 
         // Step 4: Save results
         if (!result.getDynamicFields().isEmpty()) {
@@ -155,8 +157,9 @@ public final class DynamicFieldAnalysisOrchestrator {
 
     /**
      * Tracks new requests from the current test execution.
+     * @return Number of new requests tracked
      */
-    private static void trackNewRequests(
+    private static int trackNewRequests(
             List<ServeEvent> allServeEvents,
             Integer existingRequestCount,
             File testResourcesDir,
@@ -165,6 +168,7 @@ public final class DynamicFieldAnalysisOrchestrator {
             Integer annotationIndex) {
 
         int startIndex = existingRequestCount != null ? existingRequestCount : 0;
+        int trackedCount = 0;
 
         for (int i = startIndex; i < allServeEvents.size(); i++) {
             ServeEvent event = allServeEvents.get(i);
@@ -176,6 +180,9 @@ public final class DynamicFieldAnalysisOrchestrator {
             // Empty body is fine - it will be stored as null or empty string
             RequestBodyTracker.trackRequest(testResourcesDir, testClassName,
                     testMethodName, url, method, body != null ? body : "", annotationIndex);
+            trackedCount++;
         }
+        
+        return trackedCount;
     }
 }
