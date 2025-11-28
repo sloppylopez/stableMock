@@ -315,19 +315,14 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
                     File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
                     
                     java.util.List<WireMockServerManager.AnnotationInfo> annotationInfos = methodStore.getAnnotationInfos();
+                    java.util.List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server.getAllServeEvents();
                     if (annotationInfos != null && annotationInfos.size() > 1) {
-                        java.util.List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server.getAllServeEvents();
-                        if (serveEvents.isEmpty() || serveEvents.size() <= existingRequestCount) {
-                            // No new requests, skip save
-                        } else {
+                        if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
                             java.util.List<WireMockServer> allServers = classStore.getServers();
                             MappingStorage.saveMappingsForTestMethodMultipleAnnotations(server, mappingsDir, baseMappingsDir, annotationInfos, existingRequestCount, allServers);
                         }
                     } else {
-                        java.util.List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server.getAllServeEvents();
-                        if (serveEvents.isEmpty() || serveEvents.size() <= existingRequestCount) {
-                            // No new requests, skip save
-                        } else {
+                        if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
                             MappingStorage.saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl, existingRequestCount);
                         }
                     }
@@ -383,28 +378,31 @@ public class StableMockExtension implements BeforeAllCallback, BeforeEachCallbac
             classStore.removePort();
         }
         
-               if (StableMockConfig.isRecordMode() || StableMockConfig.isPlaybackMode()) {
-                   String testClassName = TestContextResolver.getTestClassName(context);
-                   File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-                   File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
-                   MappingStorage.cleanupClassLevelDirectory(baseMappingsDir);
-                   
-                   // Clean up temporary url_X directories used for playback
-                   File[] urlDirs = baseMappingsDir.listFiles(file -> 
-                       file.isDirectory() && file.getName().startsWith("url_"));
-                   if (urlDirs != null) {
-                       for (File urlDir : urlDirs) {
-                           try {
-                               java.nio.file.Files.walk(urlDir.toPath())
-                                   .sorted(java.util.Comparator.reverseOrder())
-                                   .map(java.nio.file.Path::toFile)
-                                   .forEach(File::delete);
-                           } catch (Exception e) {
-                               logger.error("Failed to clean up {}: {}", urlDir.getName(), e.getMessage());
-                           }
-                       }
-                   }
-               }
+        if (StableMockConfig.isRecordMode() || StableMockConfig.isPlaybackMode()) {
+            String testClassName = TestContextResolver.getTestClassName(context);
+            File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
+            File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+            MappingStorage.cleanupClassLevelDirectory(baseMappingsDir);
+            
+            // Clean up temporary url_X directories used for playback
+            File[] urlDirs = baseMappingsDir.listFiles(file -> 
+                file.isDirectory() && file.getName().startsWith("url_"));
+            if (urlDirs != null) {
+                for (File urlDir : urlDirs) {
+                    try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.walk(urlDir.toPath())) {
+                        stream.sorted(java.util.Comparator.reverseOrder())
+                            .map(java.nio.file.Path::toFile)
+                            .forEach(file -> {
+                                if (!file.delete()) {
+                                    logger.warn("Failed to delete file: {}", file.getPath());
+                                }
+                            });
+                    } catch (Exception e) {
+                        logger.error("Failed to clean up {}: {}", urlDir.getName(), e.getMessage());
+                    }
+                }
+            }
+        }
         
         System.clearProperty(StableMockConfig.PORT_PROPERTY);
         System.clearProperty(StableMockConfig.BASE_URL_PROPERTY);
