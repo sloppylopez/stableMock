@@ -59,8 +59,9 @@ tasks.named('stableMockRecord') {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
 
-    // Keep same parallelism as test task
-    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    // Run recording sequentially to ensure all tests execute and all mappings are recorded
+    // Parallel execution can cause race conditions or missed recordings in CI environments
+    maxParallelForks = 1
 }
 
 tasks.named('stableMockPlayback') {

@@ -53,10 +53,7 @@ jobs:
           fi
       
       - name: Run Spring Boot example tests using Makefile
-        run: |
-          make spring-example
-          echo "=== Regular test task (playback mode) ==="
-          cd examples/spring-boot-example && ./gradlew test --no-daemon
+        run: make spring-example
       
       - name: Upload test results
         if: always()
