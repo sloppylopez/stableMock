@@ -336,64 +336,6 @@ public final class MappingStorage {
         }
     }
     
-    public static void mergeAnnotationMappingsForMethod(File methodMappingsDir) {
-        File mergedMappingsDir = new File(methodMappingsDir, "mappings");
-        File mergedFilesDir = new File(methodMappingsDir, "__files");
-        
-        if (!mergedMappingsDir.exists() && !mergedMappingsDir.mkdirs()) {
-            logger.warn("Failed to create merged mappings directory");
-            return;
-        }
-        
-        if (!mergedFilesDir.exists() && !mergedFilesDir.mkdirs()) {
-            logger.warn("Failed to create merged __files directory");
-            return;
-        }
-        
-        File[] annotationDirs = methodMappingsDir.listFiles(file -> 
-            file.isDirectory() && file.getName().startsWith("annotation_"));
-        if (annotationDirs == null || annotationDirs.length == 0) {
-            return;
-        }
-        
-        for (File annotationDir : annotationDirs) {
-            File annotationMappingsDir = new File(annotationDir, "mappings");
-            File annotationFilesDir = new File(annotationDir, "__files");
-            
-            if (annotationMappingsDir.exists() && annotationMappingsDir.isDirectory()) {
-                File[] mappingFiles = annotationMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-                if (mappingFiles != null) {
-                    for (File mappingFile : mappingFiles) {
-                        try {
-                            String prefix = annotationDir.getName() + "_";
-                            String newName = prefix + mappingFile.getName();
-                            File destFile = new File(mergedMappingsDir, newName);
-                            java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
-                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                        } catch (Exception e) {
-                            logger.error("Failed to copy annotation mapping {}: {}", mappingFile.getName(), e.getMessage());
-                        }
-                    }
-                }
-            }
-            
-            if (annotationFilesDir.exists() && annotationFilesDir.isDirectory()) {
-                File[] bodyFiles = annotationFilesDir.listFiles();
-                if (bodyFiles != null) {
-                    for (File bodyFile : bodyFiles) {
-                        try {
-                            File destFile = new File(mergedFilesDir, bodyFile.getName());
-                            java.nio.file.Files.copy(bodyFile.toPath(), destFile.toPath(), 
-                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                        } catch (Exception e) {
-                            // Ignore individual file copy failures
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
     /**
      * Merges all test methods' annotation_X mappings for a specific URL index into url_X directory.
      * This is used in playback mode for multiple URLs.
@@ -405,11 +347,14 @@ public final class MappingStorage {
         
         // Clean up existing url_X directory if it exists
         if (urlDir.exists()) {
-            try {
-                java.nio.file.Files.walk(urlDir.toPath())
-                    .sorted(java.util.Comparator.reverseOrder())
+            try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.walk(urlDir.toPath())) {
+                stream.sorted(java.util.Comparator.reverseOrder())
                     .map(java.nio.file.Path::toFile)
-                    .forEach(File::delete);
+                    .forEach(file -> {
+                        if (!file.delete()) {
+                            logger.warn("Failed to delete file: {}", file.getPath());
+                        }
+                    });
             } catch (Exception e) {
                 logger.error("Failed to clean up url_{} directory: {}", urlIndex, e.getMessage());
             }
@@ -437,7 +382,7 @@ public final class MappingStorage {
             
             if (annotationMappingsDir.exists() && annotationMappingsDir.isDirectory()) {
                 File[] mappingFiles = annotationMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-                if (mappingFiles != null && mappingFiles.length > 0) {
+                if (mappingFiles != null) {
                     for (File mappingFile : mappingFiles) {
                         try {
                             String prefix = testMethodDir.getName() + "_";
@@ -623,14 +568,18 @@ public final class MappingStorage {
         if (baseMappingsSubDir.exists() && baseMappingsSubDir.isDirectory()) {
             File[] remainingFiles = baseMappingsSubDir.listFiles();
             if (remainingFiles == null || remainingFiles.length == 0) {
-                baseMappingsSubDir.delete();
+                if (!baseMappingsSubDir.delete()) {
+                    logger.warn("Failed to delete base mappings directory: {}", baseMappingsSubDir.getAbsolutePath());
+                }
             }
         }
         
         if (baseFilesDir.exists() && baseFilesDir.isDirectory()) {
             File[] remainingFiles = baseFilesDir.listFiles();
             if (remainingFiles == null || remainingFiles.length == 0) {
-                baseFilesDir.delete();
+                if (!baseFilesDir.delete()) {
+                    logger.warn("Failed to delete base files directory: {}", baseFilesDir.getAbsolutePath());
+                }
             }
         }
     }
@@ -656,7 +605,7 @@ public final class MappingStorage {
             try {
                 java.net.URL parsedAnnotationUrl = new java.net.URL(annotationUrl);
                 String annotationPath = parsedAnnotationUrl.getPath();
-                if (requestUrl.startsWith(annotationPath) || annotationPath.isEmpty()) {
+                if (annotationPath.isEmpty() || requestUrl.startsWith(annotationPath)) {
                     return true;
                 }
             } catch (java.net.MalformedURLException e) {
