@@ -231,6 +231,23 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 if (mappingFiles != null && mappingFiles.length > 0) {
                     for (File mappingFile : mappingFiles) {
                         try {
+                            // Read mapping to log method and URL for debugging
+                            if (logger.isDebugEnabled()) {
+                                try {
+                                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                    com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(mappingFile);
+                                    com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
+                                    if (requestNode != null) {
+                                        String method = requestNode.has("method") ? requestNode.get("method").asText() : "UNKNOWN";
+                                        String url = requestNode.has("url") ? requestNode.get("url").asText() : 
+                                                   (requestNode.has("urlPath") ? requestNode.get("urlPath").asText() : "UNKNOWN");
+                                        logger.debug("Merging mapping: {} {} from {}", method, url, testMethodDir.getName());
+                                    }
+                                } catch (Exception e) {
+                                    logger.debug("Could not parse mapping file for logging: {}", e.getMessage());
+                                }
+                            }
+                            
                             String prefix = testMethodDir.getName() + "_";
                             String newName = prefix + mappingFile.getName();
                             File destFile = new File(classMappingsDir, newName);
@@ -251,7 +268,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                     logger.info("Copied {} mapping(s) from test method {} to class-level", 
                         mappingFiles.length, testMethodDir.getName());
                 } else {
-                    logger.debug("No mapping files found in {}", methodMappingsDir.getAbsolutePath());
+                    logger.warn("No mapping files found in {} - test method may not have made any HTTP requests", methodMappingsDir.getAbsolutePath());
                 }
             }
             
@@ -270,6 +287,33 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                     }
                 }
             }
+        }
+        
+        // Log summary of merged mappings
+        File[] finalMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+        if (finalMappings != null && finalMappings.length > 0) {
+            logger.info("Successfully merged {} total mapping(s) to class-level directory. Mappings:", finalMappings.length);
+            for (File mappingFile : finalMappings) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(mappingFile);
+                    com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
+                    if (requestNode != null) {
+                        String method = requestNode.has("method") ? requestNode.get("method").asText() : "UNKNOWN";
+                        String url = "UNKNOWN";
+                        if (requestNode.has("url")) {
+                            url = requestNode.get("url").asText();
+                        } else if (requestNode.has("urlPath")) {
+                            url = requestNode.get("urlPath").asText();
+                        }
+                        logger.info("  - {} {} ({})", method, url, mappingFile.getName());
+                    }
+                } catch (Exception e) {
+                    logger.debug("Could not parse mapping file {} for summary: {}", mappingFile.getName(), e.getMessage());
+                }
+            }
+        } else {
+            logger.warn("No mappings found in class-level directory after merge!");
         }
         
         // Force file system sync to ensure all files are written before WireMock loads them
