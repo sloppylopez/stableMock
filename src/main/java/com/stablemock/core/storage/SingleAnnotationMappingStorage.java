@@ -74,11 +74,22 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         }
 
         List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> allServeEvents = wireMockServer.getAllServeEvents();
+        logger.info("=== RECORDING: Total serve events in server: {}, existing count: {} ===", 
+            allServeEvents.size(), existingRequestCount);
+        
         List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> testMethodServeEvents = 
             allServeEvents.subList(existingRequestCount, allServeEvents.size());
         
         if (testMethodServeEvents.isEmpty()) {
+            logger.warn("No serve events for this test method (existing: {}, total: {})", 
+                existingRequestCount, allServeEvents.size());
             return;
+        }
+
+        logger.info("=== RECORDING: {} serve event(s) for this test method ===", testMethodServeEvents.size());
+        for (int i = 0; i < testMethodServeEvents.size(); i++) {
+            com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(i);
+            logger.info("  ServeEvent[{}]: {} {}", i, se.getRequest().getMethod().getName(), se.getRequest().getUrl());
         }
 
         RecordSpecBuilder builder = new RecordSpecBuilder()
@@ -89,57 +100,60 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         com.github.tomakehurst.wiremock.recording.SnapshotRecordResult result = wireMockServer.snapshotRecord(builder.build());
         List<StubMapping> allMappings = result.getStubMappings();
         
-        logger.info("Found {} total mappings from snapshotRecord, {} serve events for this test method", 
-            allMappings.size(), testMethodServeEvents.size());
+        logger.info("=== RECORDING: snapshotRecord created {} mapping(s) ===", allMappings.size());
+        for (int i = 0; i < allMappings.size(); i++) {
+            StubMapping m = allMappings.get(i);
+            String method = m.getRequest().getMethod() != null ? m.getRequest().getMethod().getName() : "UNKNOWN";
+            String url = m.getRequest().getUrl() != null ? m.getRequest().getUrl() 
+                : (m.getRequest().getUrlPath() != null ? m.getRequest().getUrlPath() : "UNKNOWN");
+            logger.info("  Mapping[{}]: {} {}", i, method, url);
+        }
         
-        // Match mappings to serve events using WireMock's built-in matching
-        // This ensures we only match mappings that correspond to THIS test method's requests
+        // Match mappings to serve events
         List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
-        logger.info("Matching {} mapping(s) to {} serve event(s) for this test method", 
+        logger.info("=== RECORDING: Matching {} mapping(s) to {} serve event(s) ===", 
             allMappings.size(), testMethodServeEvents.size());
         
-        for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
+        for (int seIdx = 0; seIdx < testMethodServeEvents.size(); seIdx++) {
+            com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent = testMethodServeEvents.get(seIdx);
             String method = serveEvent.getRequest().getMethod().getName();
             String url = serveEvent.getRequest().getUrl();
-            logger.info("  ServeEvent: {} {}", method, url);
             
-            // Find the mapping that matches this serve event
             boolean found = false;
-            for (StubMapping mapping : allMappings) {
+            for (int mIdx = 0; mIdx < allMappings.size(); mIdx++) {
+                StubMapping mapping = allMappings.get(mIdx);
                 try {
-                    // Use WireMock's matching - this is the most reliable way
                     com.github.tomakehurst.wiremock.matching.MatchResult matchResult = 
                         mapping.getRequest().match(serveEvent.getRequest());
                     if (matchResult.isExactMatch() || matchResult.getDistance() < 0.01) {
-                        // Only add if not already added (avoid duplicates)
                         if (!testMethodMappings.contains(mapping)) {
                             testMethodMappings.add(mapping);
                             String mappingUrl = mapping.getRequest().getUrl() != null 
                                 ? mapping.getRequest().getUrl() 
                                 : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
-                            logger.info("  ✓ Matched mapping: {} -> {} (distance: {})", url, mappingUrl, matchResult.getDistance());
+                            logger.info("  ✓ Match[SE{}->M{}]: {} {} -> {} {} (distance: {})", 
+                                seIdx, mIdx, method, url, 
+                                mapping.getRequest().getMethod() != null ? mapping.getRequest().getMethod().getName() : "UNKNOWN",
+                                mappingUrl, matchResult.getDistance());
                             found = true;
-                            break; // Found match for this serve event, move to next
+                            break;
                         }
                     }
                 } catch (Exception e) {
-                    // If WireMock matching fails, try fallback: match by method + normalized path
                     String mappingMethod = mapping.getRequest().getMethod() != null 
                         ? mapping.getRequest().getMethod().getName() : "";
                     if (mappingMethod.equalsIgnoreCase(method)) {
                         String mappingUrl = mapping.getRequest().getUrl() != null 
                             ? mapping.getRequest().getUrl() 
                             : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
-                        
-                        // Normalize paths for comparison
                         String serveEventPath = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
                         String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
                         serveEventPath = serveEventPath.replaceAll("^/+|/+$", "");
                         mappingPath = mappingPath.replaceAll("^/+|/+$", "");
-                        
                         if (serveEventPath.equals(mappingPath) && !testMethodMappings.contains(mapping)) {
                             testMethodMappings.add(mapping);
-                            logger.info("  ✓ Matched mapping (fallback): {} -> {}", url, mappingUrl);
+                            logger.info("  ✓ Match[SE{}->M{}] (fallback): {} {} -> {} {}", 
+                                seIdx, mIdx, method, url, mappingMethod, mappingUrl);
                             found = true;
                             break;
                         }
@@ -147,27 +161,30 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 }
             }
             if (!found) {
-                logger.warn("  ✗ No mapping found for serve event: {} {}", method, url);
+                logger.error("  ✗ NO MATCH for ServeEvent[{}]: {} {} - This mapping will be MISSING!", 
+                    seIdx, method, url);
             }
         }
 
-        logger.info("Matched {} mapping(s) for test method out of {} total mappings", 
-            testMethodMappings.size(), allMappings.size());
-        for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
-            String method = serveEvent.getRequest().getMethod().getName();
-            String url = serveEvent.getRequest().getUrl();
-            logger.info("  ServeEvent: {} {}", method, url);
-        }
-        for (StubMapping mapping : testMethodMappings) {
-            String method = mapping.getRequest().getMethod() != null ? mapping.getRequest().getMethod().getName() : "UNKNOWN";
-            String url = mapping.getRequest().getUrl() != null ? mapping.getRequest().getUrl() : 
-                (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "UNKNOWN");
-            logger.info("  Matched mapping: {} {}", method, url);
+        logger.info("=== RECORDING: Matched {}/{} mapping(s) for this test method ===", 
+            testMethodMappings.size(), testMethodServeEvents.size());
+        for (int i = 0; i < testMethodMappings.size(); i++) {
+            StubMapping m = testMethodMappings.get(i);
+            String method = m.getRequest().getMethod() != null ? m.getRequest().getMethod().getName() : "UNKNOWN";
+            String url = m.getRequest().getUrl() != null ? m.getRequest().getUrl() 
+                : (m.getRequest().getUrlPath() != null ? m.getRequest().getUrlPath() : "UNKNOWN");
+            logger.info("  Saved mapping[{}]: {} {}", i, method, url);
         }
         
         if (testMethodMappings.isEmpty()) {
-            logger.warn("No mappings matched for test method - this test may not have made any HTTP requests or matching failed");
+            logger.error("=== RECORDING FAILED: No mappings matched! Test method made {} request(s) but 0 mappings saved ===", 
+                testMethodServeEvents.size());
             return;
+        }
+        
+        if (testMethodMappings.size() < testMethodServeEvents.size()) {
+            logger.error("=== RECORDING WARNING: Only {}/{} mappings matched! Some requests will fail in playback ===", 
+                testMethodMappings.size(), testMethodServeEvents.size());
         }
 
         File baseFilesDir = new File(baseMappingsDir, "__files");
@@ -202,11 +219,22 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 tempServer.addStubMapping(mapping);
             }
             tempServer.saveMappings();
+            logger.info("=== RECORDING: Saved {} mapping(s) to {} ===", 
+                testMethodMappings.size(), testMethodMappingsSubDir.getAbsolutePath());
+            
+            // Verify files were actually written
+            File[] savedFiles = testMethodMappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            if (savedFiles != null) {
+                logger.info("=== RECORDING: Verified {} file(s) written to disk ===", savedFiles.length);
+                for (File f : savedFiles) {
+                    logger.info("  File: {} ({} bytes)", f.getName(), f.length());
+                }
+            } else {
+                logger.error("=== RECORDING ERROR: No files found after save! ===");
+            }
         } finally {
             tempServer.stop();
         }
-        
-        logger.info("Saved {} mappings to {}", testMethodMappings.size(), testMethodMappingsSubDir.getAbsolutePath());
     }
     
     public static void mergePerTestMethodMappings(File baseMappingsDir) {
