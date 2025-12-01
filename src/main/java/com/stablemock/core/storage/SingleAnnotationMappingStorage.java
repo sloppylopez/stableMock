@@ -107,6 +107,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         // Match mappings by method + URL path only (ignore query params, exact URL format)
         List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
+        logger.info("Looking for mappings matching {} signature(s): {}", testMethodSignatures.size(), testMethodSignatures);
         for (StubMapping mapping : allMappings) {
             String mappingMethod = mapping.getRequest().getMethod() != null 
                 ? mapping.getRequest().getMethod().getName() : "";
@@ -119,9 +120,12 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             mappingPath = mappingPath.replaceAll("^/+|/+$", ""); // Normalize
             String mappingSignature = mappingMethod.toUpperCase() + ":" + mappingPath;
             
+            logger.info("  Checking mapping: {} (signature: {})", mappingUrl, mappingSignature);
             if (testMethodSignatures.contains(mappingSignature)) {
                 testMethodMappings.add(mapping);
-                logger.info("  Matched mapping signature: {} -> {}", mappingSignature, mappingUrl);
+                logger.info("  ✓ Matched mapping signature: {} -> {}", mappingSignature, mappingUrl);
+            } else {
+                logger.debug("  ✗ No match for mapping signature: {} (not in test method signatures)", mappingSignature);
             }
         }
 
