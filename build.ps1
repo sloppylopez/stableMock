@@ -5,6 +5,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Set CI mode to match pipeline behavior (sequential execution, no daemon)
+$env:CI = "true"
+
 function Write-Step {
     param([string]$Message)
     Write-Host "=== $Message ===" -ForegroundColor Cyan
@@ -32,14 +35,32 @@ function Invoke-SpringExample {
     Write-Step "Running Spring Boot example tests"
     Push-Location examples/spring-boot-example
     try {
+        $gradleArgs = ""
+        if ($env:CI) {
+            $gradleArgs = "--no-daemon"
+        }
+        
+        Write-Step "Cleaning old recordings"
+        & .\gradlew.bat cleanStableMock $gradleArgs
+        if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
+        
         Write-Step "Record mode (first time)"
-        & .\gradlew.bat stableMockRecord
+        & .\gradlew.bat stableMockRecord $gradleArgs
         if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
+        
+        Write-Step "Verifying recordings from first run"
+        $mappingsPath = "src\test\resources\stablemock\SpringBootIntegrationTest\testCreatePostViaController\mappings"
+        if (-not (Test-Path $mappingsPath)) {
+            throw "ERROR: testCreatePostViaController mappings not found after recording!"
+        }
+        Write-Host "All expected test method mappings found" -ForegroundColor Green
+        
         Write-Step "Record mode (second time)"
-        & .\gradlew.bat stableMockRecord
+        & .\gradlew.bat stableMockRecord $gradleArgs
         if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
+        
         Write-Step "Playback mode"
-        & .\gradlew.bat stableMockPlayback
+        & .\gradlew.bat stableMockPlayback $gradleArgs
         if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
         
         Write-Step "Verifying cleanup - checking for class-level directories"

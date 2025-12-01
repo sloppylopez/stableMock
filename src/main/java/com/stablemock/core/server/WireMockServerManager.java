@@ -95,6 +95,9 @@ public final class WireMockServerManager {
                     logger.info(foundMsg);
                     int postCount = 0;
                     int getCount = 0;
+                    // Sort files for consistent ordering and better debugging
+                    java.util.Arrays.sort(mappingFiles, java.util.Comparator.comparing(File::getName));
+                    
                     for (File mappingFile : mappingFiles) {
                         try {
                             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -108,9 +111,16 @@ public final class WireMockServerManager {
                                 } else if (requestNode.has("urlPath")) {
                                     url = requestNode.get("urlPath").asText();
                                 }
-                                String mappingInfo = "  Loaded: " + method + " " + url + " (" + mappingFile.getName() + ")";
+                                String mappingName = mappingJson.has("name") ? mappingJson.get("name").asText() : "unnamed";
+                                String mappingInfo = "  Loaded: " + method + " " + url + " (name: " + mappingName + ", file: " + mappingFile.getName() + ")";
                                 System.out.println(mappingInfo);
                                 logger.info(mappingInfo);
+                                
+                                // Log if this is GET /users/2 for debugging
+                                if ("GET".equalsIgnoreCase(method) && "/users/2".equals(url)) {
+                                    logger.info("  >>> FOUND GET /users/2 mapping: {} <<<", mappingFile.getName());
+                                }
+                                
                                 if ("POST".equalsIgnoreCase(method)) {
                                     postCount++;
                                 } else if ("GET".equalsIgnoreCase(method)) {
@@ -118,7 +128,7 @@ public final class WireMockServerManager {
                                 }
                             }
                         } catch (Exception e) {
-                            // Ignore parse errors for counting
+                            logger.error("Failed to parse mapping file {}: {}", mappingFile.getName(), e.getMessage());
                         }
                     }
                     String breakdownMsg = "Mappings breakdown: " + getCount + " GET, " + postCount + " POST, " + (mappingFiles.length - getCount - postCount) + " other";
@@ -204,6 +214,25 @@ public final class WireMockServerManager {
 
         WireMockServer server = new WireMockServer(config);
         server.start();
+        
+        // Add request listener to log all incoming requests for debugging
+        server.addMockServiceRequestListener((request, response) -> {
+            String method = request.getMethod() != null ? request.getMethod().getName() : "UNKNOWN";
+            String url = request.getUrl();
+            logger.info("=== PLAYBACK REQUEST: {} {} ===", method, url);
+            
+            // Check if this request matched any stub
+            java.util.List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server.getServeEvents().getRequests();
+            if (!serveEvents.isEmpty()) {
+                com.github.tomakehurst.wiremock.stubbing.ServeEvent lastEvent = serveEvents.get(serveEvents.size() - 1);
+                if (lastEvent.getWasMatched()) {
+                    logger.info("  ✓ Request matched stub: {}", lastEvent.getStubMapping() != null ? lastEvent.getStubMapping().getName() : "unknown");
+                } else {
+                    logger.error("  ✗ Request NOT matched! Closest stub: {}", 
+                        lastEvent.getStubMapping() != null ? lastEvent.getStubMapping().getName() : "none");
+                }
+            }
+        });
 
         logger.info("Playback mode on port {}, loading mappings from {}", port, mappingsDir.getAbsolutePath());
         return server;

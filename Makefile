@@ -1,5 +1,8 @@
 .PHONY: all build publish spring-example help
 
+# Set CI mode to match pipeline behavior (sequential execution, no daemon)
+export CI=true
+
 # Default target
 all: build publish spring-example
 	@echo ""
