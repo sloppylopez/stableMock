@@ -92,40 +92,62 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         logger.info("Found {} total mappings from snapshotRecord, {} serve events for this test method", 
             allMappings.size(), testMethodServeEvents.size());
         
-        // Build a set of (method, urlPath) pairs from serve events for simple matching
-        java.util.Set<String> testMethodSignatures = new java.util.HashSet<>();
+        // Match mappings to serve events using WireMock's built-in matching
+        // This ensures we only match mappings that correspond to THIS test method's requests
+        List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
+        logger.info("Matching {} mapping(s) to {} serve event(s) for this test method", 
+            allMappings.size(), testMethodServeEvents.size());
+        
         for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
             String method = serveEvent.getRequest().getMethod().getName();
             String url = serveEvent.getRequest().getUrl();
-            // Extract path without query params
-            String urlPath = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
-            urlPath = urlPath.replaceAll("^/+|/+$", ""); // Normalize
-            String signature = method.toUpperCase() + ":" + urlPath;
-            testMethodSignatures.add(signature);
-            logger.info("  ServeEvent signature: {}", signature);
-        }
-        
-        // Match mappings by method + URL path only (ignore query params, exact URL format)
-        List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
-        logger.info("Looking for mappings matching {} signature(s): {}", testMethodSignatures.size(), testMethodSignatures);
-        for (StubMapping mapping : allMappings) {
-            String mappingMethod = mapping.getRequest().getMethod() != null 
-                ? mapping.getRequest().getMethod().getName() : "";
-            String mappingUrl = mapping.getRequest().getUrl() != null 
-                ? mapping.getRequest().getUrl() 
-                : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
+            logger.info("  ServeEvent: {} {}", method, url);
             
-            // Extract path without query params
-            String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
-            mappingPath = mappingPath.replaceAll("^/+|/+$", ""); // Normalize
-            String mappingSignature = mappingMethod.toUpperCase() + ":" + mappingPath;
-            
-            logger.info("  Checking mapping: {} (signature: {})", mappingUrl, mappingSignature);
-            if (testMethodSignatures.contains(mappingSignature)) {
-                testMethodMappings.add(mapping);
-                logger.info("  ✓ Matched mapping signature: {} -> {}", mappingSignature, mappingUrl);
-            } else {
-                logger.debug("  ✗ No match for mapping signature: {} (not in test method signatures)", mappingSignature);
+            // Find the mapping that matches this serve event
+            boolean found = false;
+            for (StubMapping mapping : allMappings) {
+                try {
+                    // Use WireMock's matching - this is the most reliable way
+                    com.github.tomakehurst.wiremock.matching.MatchResult matchResult = 
+                        mapping.getRequest().match(serveEvent.getRequest());
+                    if (matchResult.isExactMatch() || matchResult.getDistance() < 0.01) {
+                        // Only add if not already added (avoid duplicates)
+                        if (!testMethodMappings.contains(mapping)) {
+                            testMethodMappings.add(mapping);
+                            String mappingUrl = mapping.getRequest().getUrl() != null 
+                                ? mapping.getRequest().getUrl() 
+                                : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
+                            logger.info("  ✓ Matched mapping: {} -> {} (distance: {})", url, mappingUrl, matchResult.getDistance());
+                            found = true;
+                            break; // Found match for this serve event, move to next
+                        }
+                    }
+                } catch (Exception e) {
+                    // If WireMock matching fails, try fallback: match by method + normalized path
+                    String mappingMethod = mapping.getRequest().getMethod() != null 
+                        ? mapping.getRequest().getMethod().getName() : "";
+                    if (mappingMethod.equalsIgnoreCase(method)) {
+                        String mappingUrl = mapping.getRequest().getUrl() != null 
+                            ? mapping.getRequest().getUrl() 
+                            : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
+                        
+                        // Normalize paths for comparison
+                        String serveEventPath = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
+                        String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
+                        serveEventPath = serveEventPath.replaceAll("^/+|/+$", "");
+                        mappingPath = mappingPath.replaceAll("^/+|/+$", "");
+                        
+                        if (serveEventPath.equals(mappingPath) && !testMethodMappings.contains(mapping)) {
+                            testMethodMappings.add(mapping);
+                            logger.info("  ✓ Matched mapping (fallback): {} -> {}", url, mappingUrl);
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!found) {
+                logger.warn("  ✗ No mapping found for serve event: {} {}", method, url);
             }
         }
 
