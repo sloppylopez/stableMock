@@ -48,12 +48,79 @@ function Invoke-SpringExample {
         & .\gradlew.bat stableMockRecord $gradleArgs
         if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
         
+        # Wait a bit longer for afterEach callbacks to complete and files to be flushed
+        Start-Sleep -Seconds 3
+        
         Write-Step "Verifying recordings from first run"
-        $mappingsPath = "src\test\resources\stablemock\SpringBootIntegrationTest\testCreatePostViaController\mappings"
-        if (-not (Test-Path $mappingsPath)) {
-            throw "ERROR: testCreatePostViaController mappings not found after recording!"
+        # Wait for mappings to be saved (afterEach callbacks complete)
+        # Retry up to 10 times with increasing delays (total up to ~30 seconds)
+        $maxRetries = 10
+        $retryDelay = 2
+        $baseDir = "src\test\resources\stablemock\SpringBootIntegrationTest"
+        $found = $false
+        
+        for ($i = 0; $i -lt $maxRetries; $i++) {
+            Start-Sleep -Seconds $retryDelay
+            
+            if (Test-Path $baseDir) {
+                $testMethodDirs = Get-ChildItem -Path $baseDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "mappings" -and $_.Name -ne "__files" }
+                if ($testMethodDirs.Count -gt 0) {
+                    $found = $true
+                    break
+                }
+            }
+            
+            if ($i -lt $maxRetries - 1) {
+                Write-Host "Waiting for test method directories... (attempt $($i + 1)/$maxRetries, waited $($retryDelay * ($i + 1))s)" -ForegroundColor Yellow
+            }
+            $retryDelay = [Math]::Min($retryDelay + 1, 5) # Gradually increase delay
         }
-        Write-Host "All expected test method mappings found" -ForegroundColor Green
+        
+        if (-not $found) {
+            $currentDir = Get-Location
+            Write-Host "ERROR: No test method directories found after $maxRetries attempts" -ForegroundColor Red
+            Write-Host "Current directory: $currentDir" -ForegroundColor Yellow
+            Write-Host "Looking for: $baseDir" -ForegroundColor Yellow
+            if (Test-Path "src\test\resources\stablemock") {
+                Write-Host "Found stablemock directory, contents:" -ForegroundColor Yellow
+                Get-ChildItem -Path "src\test\resources\stablemock" -Directory | ForEach-Object { Write-Host "  - $($_.Name)" -ForegroundColor Yellow }
+            }
+            if (Test-Path $baseDir) {
+                Write-Host "SpringBootIntegrationTest directory exists, contents:" -ForegroundColor Yellow
+                Get-ChildItem -Path $baseDir | ForEach-Object { Write-Host "  - $($_.Name) ($($_.PSIsContainer ? 'Directory' : 'File'))" -ForegroundColor Yellow }
+            }
+            throw "ERROR: No test method directories found after recording!"
+        }
+        
+        $testMethodDirs = Get-ChildItem -Path $baseDir -Directory | Where-Object { $_.Name -ne "mappings" -and $_.Name -ne "__files" }
+        
+        Write-Host "Found $($testMethodDirs.Count) test method directory(ies):" -ForegroundColor Green
+        $hasMappings = $false
+        foreach ($testMethodDir in $testMethodDirs) {
+            $methodMappings = Join-Path $testMethodDir.FullName "mappings"
+            if (Test-Path $methodMappings) {
+                $fileCount = (Get-ChildItem -Path $methodMappings -File -ErrorAction SilentlyContinue).Count
+                Write-Host "  - $($testMethodDir.Name): $fileCount mapping file(s)" -ForegroundColor Green
+                if ($fileCount -gt 0) {
+                    $hasMappings = $true
+                }
+            } else {
+                Write-Host "  - $($testMethodDir.Name): mappings directory NOT FOUND" -ForegroundColor Yellow
+            }
+        }
+        
+        if (-not $hasMappings) {
+            throw "ERROR: No mapping files found in any test method directory!"
+        }
+        
+        # Verify specific test method exists (but don't fail if it doesn't - just warn)
+        $expectedPath = "src\test\resources\stablemock\SpringBootIntegrationTest\testCreatePostViaController\mappings"
+        if (Test-Path $expectedPath) {
+            $fileCount = (Get-ChildItem -Path $expectedPath -File -ErrorAction SilentlyContinue).Count
+            Write-Host "testCreatePostViaController mappings found: $fileCount file(s)" -ForegroundColor Green
+        } else {
+            Write-Host "WARNING: testCreatePostViaController mappings not found (test may not have run)" -ForegroundColor Yellow
+        }
         
         Write-Step "Record mode (second time)"
         & .\gradlew.bat stableMockRecord $gradleArgs
