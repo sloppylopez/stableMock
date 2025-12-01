@@ -92,46 +92,36 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         logger.info("Found {} total mappings from snapshotRecord, {} serve events for this test method", 
             allMappings.size(), testMethodServeEvents.size());
         
-        // Use WireMock's built-in matching instead of string comparison - more robust across JDK versions
+        // Build a set of (method, urlPath) pairs from serve events for simple matching
+        java.util.Set<String> testMethodSignatures = new java.util.HashSet<>();
+        for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
+            String method = serveEvent.getRequest().getMethod().getName();
+            String url = serveEvent.getRequest().getUrl();
+            // Extract path without query params
+            String urlPath = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
+            urlPath = urlPath.replaceAll("^/+|/+$", ""); // Normalize
+            String signature = method.toUpperCase() + ":" + urlPath;
+            testMethodSignatures.add(signature);
+            logger.info("  ServeEvent signature: {}", signature);
+        }
+        
+        // Match mappings by method + URL path only (ignore query params, exact URL format)
         List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
         for (StubMapping mapping : allMappings) {
-            // Check if this mapping matches any of the test method's serve events using WireMock's matching
-            for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
-                try {
-                    // Use WireMock's built-in matching - this handles URL normalization, query params, etc.
-                    com.github.tomakehurst.wiremock.matching.MatchResult matchResult = mapping.getRequest().match(serveEvent.getRequest());
-                    if (matchResult.isExactMatch() || matchResult.getDistance() < 0.1) {
-                        testMethodMappings.add(mapping);
-                        logger.debug("Matched mapping {} to serve event {} (distance: {})", 
-                            mapping.getRequest().getUrl(), serveEvent.getRequest().getUrl(), matchResult.getDistance());
-                        break; // Found a match, move to next mapping
-                    }
-                } catch (Exception e) {
-                    // If matching fails, try fallback: match by method and URL path only
-                    String mappingMethod = mapping.getRequest().getMethod() != null 
-                        ? mapping.getRequest().getMethod().getName() : "";
-                    String requestMethod = serveEvent.getRequest().getMethod().getName();
-                    
-                    if (mappingMethod.equalsIgnoreCase(requestMethod)) {
-                        // Extract URL paths (ignore query params and exact format)
-                        String mappingUrl = mapping.getRequest().getUrl() != null 
-                            ? mapping.getRequest().getUrl() 
-                            : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
-                        String requestUrl = serveEvent.getRequest().getUrl();
-                        
-                        // Normalize paths
-                        String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
-                        String requestPath = requestUrl.contains("?") ? requestUrl.substring(0, requestUrl.indexOf("?")) : requestUrl;
-                        mappingPath = mappingPath.replaceAll("^/+|/+$", "");
-                        requestPath = requestPath.replaceAll("^/+|/+$", "");
-                        
-                        if (mappingPath.equals(requestPath)) {
-                            testMethodMappings.add(mapping);
-                            logger.debug("Matched mapping {} to serve event {} (fallback)", mappingUrl, requestUrl);
-                            break;
-                        }
-                    }
-                }
+            String mappingMethod = mapping.getRequest().getMethod() != null 
+                ? mapping.getRequest().getMethod().getName() : "";
+            String mappingUrl = mapping.getRequest().getUrl() != null 
+                ? mapping.getRequest().getUrl() 
+                : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
+            
+            // Extract path without query params
+            String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
+            mappingPath = mappingPath.replaceAll("^/+|/+$", ""); // Normalize
+            String mappingSignature = mappingMethod.toUpperCase() + ":" + mappingPath;
+            
+            if (testMethodSignatures.contains(mappingSignature)) {
+                testMethodMappings.add(mapping);
+                logger.info("  Matched mapping signature: {} -> {}", mappingSignature, mappingUrl);
             }
         }
 
