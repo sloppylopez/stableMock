@@ -105,13 +105,18 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             allMappings.size(), testMethodServeEvents.size());
         
         // Build normalized signatures from serve events
+        // Normalize paths but preserve leading slash (WireMock expects it)
         java.util.Map<String, Integer> serveEventSignatures = new java.util.HashMap<>();
         for (int i = 0; i < testMethodServeEvents.size(); i++) {
             com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(i);
             String method = se.getRequest().getMethod().getName();
             String url = se.getRequest().getUrl();
             String path = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
-            path = path.replaceAll("^/+|/+$", "");
+            // Normalize: ensure leading slash, remove trailing slash
+            if (!path.startsWith("/")) {
+                path = "/" + path;
+            }
+            path = path.replaceAll("/+$", "");
             String signature = method.toUpperCase() + ":" + path;
             serveEventSignatures.put(signature, i);
         }
@@ -130,7 +135,11 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 ? mapping.getRequest().getUrl() 
                 : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
             String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
-            mappingPath = mappingPath.replaceAll("^/+|/+$", "");
+            // Normalize: ensure leading slash, remove trailing slash (same as serve events)
+            if (!mappingPath.startsWith("/")) {
+                mappingPath = "/" + mappingPath;
+            }
+            mappingPath = mappingPath.replaceAll("/+$", "");
             String mappingSignature = mappingMethod.toUpperCase() + ":" + mappingPath;
             
             logger.info("  Mapping[{}]: signature='{}' ({} {})", mIdx, mappingSignature, mappingMethod, mappingUrl);
