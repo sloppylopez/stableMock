@@ -91,69 +91,57 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         logger.info("Found {} total mappings from snapshotRecord, {} serve events for this test method", 
             allMappings.size(), testMethodServeEvents.size());
-        for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
-            String method = serveEvent.getRequest().getMethod().getName();
-            String url = serveEvent.getRequest().getUrl();
-            logger.info("  ServeEvent: {} {}", method, url);
-        }
-
+        
+        // Use WireMock's built-in matching instead of string comparison - more robust across JDK versions
         List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
         for (StubMapping mapping : allMappings) {
-            boolean matches = false;
-            String mappingMethod = mapping.getRequest().getMethod() != null 
-                ? mapping.getRequest().getMethod().getName() 
-                : "";
-            String mappingUrl = mapping.getRequest().getUrl() != null 
-                ? mapping.getRequest().getUrl() 
-                : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
-            
+            // Check if this mapping matches any of the test method's serve events using WireMock's matching
             for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
-                String requestUrl = serveEvent.getRequest().getUrl();
-                String requestMethod = serveEvent.getRequest().getMethod().getName();
-                
-                // For POST requests, be very lenient - match by method and URL path only
-                // POST requests often have different bodies/query params between recording and playback
-                if ("POST".equalsIgnoreCase(mappingMethod) && "POST".equalsIgnoreCase(requestMethod)) {
-                    // Extract URL path without query params for comparison
-                    String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
-                    String requestPath = requestUrl.contains("?") ? requestUrl.substring(0, requestUrl.indexOf("?")) : requestUrl;
-                    // Normalize paths (remove leading/trailing slashes for comparison)
-                    mappingPath = mappingPath.replaceAll("^/+|/+$", "");
-                    requestPath = requestPath.replaceAll("^/+|/+$", "");
-                    // Match if paths are the same (ignoring query params and exact format)
-                    if (mappingPath.equals(requestPath) || mappingPath.endsWith(requestPath) || requestPath.endsWith(mappingPath)) {
-                        matches = true;
-                        logger.debug("Matched POST mapping: {} to request: {}", mappingUrl, requestUrl);
-                        break;
+                try {
+                    // Use WireMock's built-in matching - this handles URL normalization, query params, etc.
+                    com.github.tomakehurst.wiremock.matching.MatchResult matchResult = mapping.getRequest().match(serveEvent.getRequest());
+                    if (matchResult.isExactMatch() || matchResult.getDistance() < 0.1) {
+                        testMethodMappings.add(mapping);
+                        logger.debug("Matched mapping {} to serve event {} (distance: {})", 
+                            mapping.getRequest().getUrl(), serveEvent.getRequest().getUrl(), matchResult.getDistance());
+                        break; // Found a match, move to next mapping
                     }
-                } else {
-                    // For GET and other methods, try exact match first, then fallback
-                    try {
-                        if (mapping.getRequest().match(serveEvent.getRequest()).isExactMatch()) {
-                            matches = true;
-                            break;
-                        }
-                    } catch (Exception e) {
-                        // Fallback: match by method and URL path (ignore query params for GET too)
+                } catch (Exception e) {
+                    // If matching fails, try fallback: match by method and URL path only
+                    String mappingMethod = mapping.getRequest().getMethod() != null 
+                        ? mapping.getRequest().getMethod().getName() : "";
+                    String requestMethod = serveEvent.getRequest().getMethod().getName();
+                    
+                    if (mappingMethod.equalsIgnoreCase(requestMethod)) {
+                        // Extract URL paths (ignore query params and exact format)
+                        String mappingUrl = mapping.getRequest().getUrl() != null 
+                            ? mapping.getRequest().getUrl() 
+                            : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
+                        String requestUrl = serveEvent.getRequest().getUrl();
+                        
+                        // Normalize paths
                         String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
                         String requestPath = requestUrl.contains("?") ? requestUrl.substring(0, requestUrl.indexOf("?")) : requestUrl;
-                        if (mappingMethod.equals(requestMethod) && 
-                            (mappingPath.equals(requestPath) || mappingPath.contains(requestPath) || requestPath.contains(mappingPath))) {
-                            matches = true;
-                            logger.debug("Matched {} mapping: {} to request: {} (fallback)", mappingMethod, mappingUrl, requestUrl);
+                        mappingPath = mappingPath.replaceAll("^/+|/+$", "");
+                        requestPath = requestPath.replaceAll("^/+|/+$", "");
+                        
+                        if (mappingPath.equals(requestPath)) {
+                            testMethodMappings.add(mapping);
+                            logger.debug("Matched mapping {} to serve event {} (fallback)", mappingUrl, requestUrl);
                             break;
                         }
                     }
                 }
             }
-            
-            if (matches) {
-                testMethodMappings.add(mapping);
-            }
         }
 
         logger.info("Matched {} mapping(s) for test method out of {} total mappings", 
             testMethodMappings.size(), allMappings.size());
+        for (com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent : testMethodServeEvents) {
+            String method = serveEvent.getRequest().getMethod().getName();
+            String url = serveEvent.getRequest().getUrl();
+            logger.info("  ServeEvent: {} {}", method, url);
+        }
         for (StubMapping mapping : testMethodMappings) {
             String method = mapping.getRequest().getMethod() != null ? mapping.getRequest().getMethod().getName() : "UNKNOWN";
             String url = mapping.getRequest().getUrl() != null ? mapping.getRequest().getUrl() : 
