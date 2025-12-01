@@ -92,6 +92,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             logger.info("  ServeEvent[{}]: {} {}", i, se.getRequest().getMethod().getName(), se.getRequest().getUrl());
         }
 
+        // Use snapshotRecord and match leniently by method + normalized URL path
         RecordSpecBuilder builder = new RecordSpecBuilder()
                 .forTarget(targetUrl)
                 .makeStubsPersistent(true)
@@ -100,91 +101,78 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         com.github.tomakehurst.wiremock.recording.SnapshotRecordResult result = wireMockServer.snapshotRecord(builder.build());
         List<StubMapping> allMappings = result.getStubMappings();
         
-        logger.info("=== RECORDING: snapshotRecord created {} mapping(s) ===", allMappings.size());
-        for (int i = 0; i < allMappings.size(); i++) {
-            StubMapping m = allMappings.get(i);
-            String method = m.getRequest().getMethod() != null ? m.getRequest().getMethod().getName() : "UNKNOWN";
-            String url = m.getRequest().getUrl() != null ? m.getRequest().getUrl() 
-                : (m.getRequest().getUrlPath() != null ? m.getRequest().getUrlPath() : "UNKNOWN");
-            logger.info("  Mapping[{}]: {} {}", i, method, url);
-        }
-        
-        // Match mappings to serve events
-        List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
-        logger.info("=== RECORDING: Matching {} mapping(s) to {} serve event(s) ===", 
+        logger.info("=== RECORDING: snapshotRecord created {} mapping(s), matching to {} serve event(s) ===", 
             allMappings.size(), testMethodServeEvents.size());
         
-        for (int seIdx = 0; seIdx < testMethodServeEvents.size(); seIdx++) {
-            com.github.tomakehurst.wiremock.stubbing.ServeEvent serveEvent = testMethodServeEvents.get(seIdx);
-            String method = serveEvent.getRequest().getMethod().getName();
-            String url = serveEvent.getRequest().getUrl();
-            
-            boolean found = false;
-            for (int mIdx = 0; mIdx < allMappings.size(); mIdx++) {
-                StubMapping mapping = allMappings.get(mIdx);
-                try {
-                    com.github.tomakehurst.wiremock.matching.MatchResult matchResult = 
-                        mapping.getRequest().match(serveEvent.getRequest());
-                    if (matchResult.isExactMatch() || matchResult.getDistance() < 0.01) {
-                        if (!testMethodMappings.contains(mapping)) {
-                            testMethodMappings.add(mapping);
-                            String mappingUrl = mapping.getRequest().getUrl() != null 
-                                ? mapping.getRequest().getUrl() 
-                                : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
-                            logger.info("  ✓ Match[SE{}->M{}]: {} {} -> {} {} (distance: {})", 
-                                seIdx, mIdx, method, url, 
-                                mapping.getRequest().getMethod() != null ? mapping.getRequest().getMethod().getName() : "UNKNOWN",
-                                mappingUrl, matchResult.getDistance());
-                            found = true;
-                            break;
-                        }
-                    }
-                } catch (Exception e) {
-                    String mappingMethod = mapping.getRequest().getMethod() != null 
-                        ? mapping.getRequest().getMethod().getName() : "";
-                    if (mappingMethod.equalsIgnoreCase(method)) {
-                        String mappingUrl = mapping.getRequest().getUrl() != null 
-                            ? mapping.getRequest().getUrl() 
-                            : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
-                        String serveEventPath = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
-                        String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
-                        serveEventPath = serveEventPath.replaceAll("^/+|/+$", "");
-                        mappingPath = mappingPath.replaceAll("^/+|/+$", "");
-                        if (serveEventPath.equals(mappingPath) && !testMethodMappings.contains(mapping)) {
-                            testMethodMappings.add(mapping);
-                            logger.info("  ✓ Match[SE{}->M{}] (fallback): {} {} -> {} {}", 
-                                seIdx, mIdx, method, url, mappingMethod, mappingUrl);
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            if (!found) {
-                logger.error("  ✗ NO MATCH for ServeEvent[{}]: {} {} - This mapping will be MISSING!", 
-                    seIdx, method, url);
-            }
-        }
-
-        logger.info("=== RECORDING: Matched {}/{} mapping(s) for this test method ===", 
-            testMethodMappings.size(), testMethodServeEvents.size());
-        for (int i = 0; i < testMethodMappings.size(); i++) {
-            StubMapping m = testMethodMappings.get(i);
-            String method = m.getRequest().getMethod() != null ? m.getRequest().getMethod().getName() : "UNKNOWN";
-            String url = m.getRequest().getUrl() != null ? m.getRequest().getUrl() 
-                : (m.getRequest().getUrlPath() != null ? m.getRequest().getUrlPath() : "UNKNOWN");
-            logger.info("  Saved mapping[{}]: {} {}", i, method, url);
+        // Build normalized signatures from serve events
+        java.util.Map<String, Integer> serveEventSignatures = new java.util.HashMap<>();
+        for (int i = 0; i < testMethodServeEvents.size(); i++) {
+            com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(i);
+            String method = se.getRequest().getMethod().getName();
+            String url = se.getRequest().getUrl();
+            String path = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
+            path = path.replaceAll("^/+|/+$", "");
+            String signature = method.toUpperCase() + ":" + path;
+            serveEventSignatures.put(signature, i);
         }
         
+        // Match mappings to serve events by signature
+        List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
+        java.util.Set<Integer> matchedServeEventIndices = new java.util.HashSet<>();
+        
+        logger.info("=== RECORDING: Looking for signatures: {} ===", serveEventSignatures.keySet());
+        
+        for (int mIdx = 0; mIdx < allMappings.size(); mIdx++) {
+            StubMapping mapping = allMappings.get(mIdx);
+            String mappingMethod = mapping.getRequest().getMethod() != null 
+                ? mapping.getRequest().getMethod().getName() : "";
+            String mappingUrl = mapping.getRequest().getUrl() != null 
+                ? mapping.getRequest().getUrl() 
+                : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
+            String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
+            mappingPath = mappingPath.replaceAll("^/+|/+$", "");
+            String mappingSignature = mappingMethod.toUpperCase() + ":" + mappingPath;
+            
+            logger.info("  Mapping[{}]: signature='{}' ({} {})", mIdx, mappingSignature, mappingMethod, mappingUrl);
+            
+            if (serveEventSignatures.containsKey(mappingSignature)) {
+                Integer seIdx = serveEventSignatures.get(mappingSignature);
+                if (!matchedServeEventIndices.contains(seIdx)) {
+                    testMethodMappings.add(mapping);
+                    matchedServeEventIndices.add(seIdx);
+                    logger.info("  ✓ Match[M{}->SE{}]: {} {} -> {} {}", 
+                        mIdx, seIdx, mappingMethod, mappingUrl,
+                        testMethodServeEvents.get(seIdx).getRequest().getMethod().getName(),
+                        testMethodServeEvents.get(seIdx).getRequest().getUrl());
+                } else {
+                    logger.warn("  ⊗ Skip[M{}->SE{}]: Already matched (duplicate signature)", mIdx, seIdx);
+                }
+            } else {
+                logger.info("  ✗ Filter[M{}]: signature '{}' not in serve events (from other test)", mIdx, mappingSignature);
+            }
+        }
+        
+        // Check for unmatched serve events
+        for (int i = 0; i < testMethodServeEvents.size(); i++) {
+            if (!matchedServeEventIndices.contains(i)) {
+                com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(i);
+                logger.error("  ✗ NO MATCH for ServeEvent[{}]: {} {} - Mapping will be MISSING!", 
+                    i, se.getRequest().getMethod().getName(), se.getRequest().getUrl());
+            }
+        }
+        
+        logger.info("=== RECORDING: Matched {}/{} mapping(s) ===", 
+            testMethodMappings.size(), testMethodServeEvents.size());
+        
         if (testMethodMappings.isEmpty()) {
-            logger.error("=== RECORDING FAILED: No mappings matched! Test method made {} request(s) but 0 mappings saved ===", 
-                testMethodServeEvents.size());
+            logger.error("=== RECORDING FAILED: No mappings matched! ===");
             return;
         }
         
         if (testMethodMappings.size() < testMethodServeEvents.size()) {
-            logger.error("=== RECORDING WARNING: Only {}/{} mappings matched! Some requests will fail in playback ===", 
-                testMethodMappings.size(), testMethodServeEvents.size());
+            logger.error("=== RECORDING WARNING: Only {}/{} mappings matched! {} request(s) will fail in playback ===", 
+                testMethodMappings.size(), testMethodServeEvents.size(), 
+                testMethodServeEvents.size() - testMethodMappings.size());
         }
 
         File baseFilesDir = new File(baseMappingsDir, "__files");
