@@ -191,20 +191,76 @@ When `scenario = true`, StableMock uses WireMock scenarios to return responses s
 
 ### Handling Dynamic Data
 
-Real-world APIs often include dynamic data like timestamps, request IDs, or session tokens. Use the `ignore` parameter:
+Real-world APIs often include dynamic data like timestamps, request IDs, or session tokens. StableMock provides two ways to handle this:
+
+#### 1. Auto-Detection (Recommended)
+
+StableMock automatically detects changing fields by comparing requests across multiple test runs. **This feature is enabled by default** and requires no configuration.
+
+**How it works:**
+1. During recording, StableMock tracks request bodies for each test method
+2. After multiple runs, it compares requests to identify fields that change between runs
+3. Detected fields are automatically ignored using WireMock 3's `${json-unit.ignore}` placeholders
+4. Results are saved to `.stablemock-analysis/<TestClass>/<testMethod>/detected-fields.json`
+
+**Example:**
+```java
+@SpringBootTest
+@U(urls = { "https://api.example.com" })
+public class MyTest {
+    
+    @Test
+    void testCreatePost() {
+        // First run: Records request with timestamp="2025-01-01T10:00:00Z"
+        // Second run: Records request with timestamp="2025-01-01T10:00:01Z"
+        // StableMock automatically detects "timestamp" as a dynamic field
+        // Third run: Playback works even with different timestamp values
+    }
+}
+```
+
+**Detection results:**
+After running tests multiple times, check `.stablemock-analysis/<TestClass>/<testMethod>/detected-fields.json`:
+```json
+{
+  "testClass": "MyTest",
+  "testMethod": "testCreatePost",
+  "analyzed_requests_count": 4,
+  "dynamic_fields": [
+    {
+      "field_path": "timestamp",
+      "confidence": "HIGH",
+      "sample_values": ["2025-01-01T10:00:00Z", "2025-01-01T10:00:01Z", "2025-01-01T10:00:02Z"]
+    }
+  ],
+  "ignore_patterns": ["json:timestamp"]
+}
+```
+
+#### 2. Manual Ignore Patterns
+
+You can also manually specify fields to ignore using the `ignore` parameter:
 
 ```java
 @U(urls = { "https://api.example.com" }, 
    ignore = { 
        "json:timestamp",           // Ignore JSON field
        "json:requestId",            // Ignore nested JSON field
+       "json:metadata.requestId",   // Ignore nested JSON field with dot notation
        "gql:variables.cursor",      // Ignore GraphQL variable
-       "xml://MessageID"            // Ignore XML element
+       "xml://*[local-name()='MessageID']"  // Ignore XML element (XPath)
    })
 public class MyTest {
     // ...
 }
 ```
+
+**Pattern syntax:**
+- **JSON**: `"json:fieldName"` or `"json:nested.field"` - Uses WireMock 3's `${json-unit.ignore}` placeholder
+- **GraphQL**: `"gql:variables.fieldName"` or `"graphql:variables.fieldName"`
+- **XML**: `"xml://XPathExpression"` - Uses WireMock 3's `${xmlunit.ignore}` placeholder
+
+**Note:** Auto-detection and manual ignore patterns work together. Manual patterns are always applied, and auto-detected patterns are added automatically.
 
 ### Complete Spring Boot Example
 
@@ -324,7 +380,3 @@ This will show detailed matching information for each request, helpful when trou
 ## License
 
 MIT License - See LICENSE file for details.
-
-
-
-ok now we need to strat adding the cool features, now that this works, the point tis that , and we will start doign this for json requets response only, the pint is that when we are recording tests we hould have the hability record the request comapre wiht the last requets we had and if ti changes save a file with the fiels that chnage and the paths we need to do to gnore them,@src/main/java/com/stablemock/U.java , so everythign that changess always in the reuqets can be aautoignored, after recording, you can read this docu for examples K:\dev2\mockero\README.md, and check only the offical wiremock 3.0 way to ignore fiedls in request canonically, in the end, just annotatoion a test and giving the url, we should be able to ignore it

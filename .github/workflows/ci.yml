@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [ '17', '21' ]
+        java: [ '21' ]
     
     steps:
       - name: Checkout code
@@ -52,17 +52,8 @@ jobs:
             cp gradle/wrapper/gradle-wrapper.jar examples/spring-boot-example/gradle/wrapper/gradle-wrapper.jar
           fi
       
-      - name: Run Spring Boot example tests
-        working-directory: examples/spring-boot-example
-        run: |
-          echo "=== Record mode (first time) ==="
-          ./gradlew stableMockRecord --no-daemon
-          echo "=== Record mode (second time) ==="
-          ./gradlew stableMockRecord --no-daemon
-          echo "=== Playback mode ==="
-          ./gradlew stableMockPlayback --no-daemon
-          echo "=== Regular test task (playback mode) ==="
-          ./gradlew test --no-daemon
+      - name: Run Spring Boot example tests using Makefile
+        run: make spring-example
       
       - name: Upload test results
         if: always()

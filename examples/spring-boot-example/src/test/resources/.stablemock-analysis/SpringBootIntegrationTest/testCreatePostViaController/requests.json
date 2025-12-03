@@ -1,0 +1,51 @@
+[ {
+  "timestamp" : "2025-12-03T16:25:46.208234823Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:25:46.218600772Z",
+  "url" : "/users/3",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:27:54.826822407Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:27:54.926543772Z",
+  "url" : "/users/3",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:27:54.936005669Z",
+  "url" : "/posts",
+  "method" : "POST",
+  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}"
+}, {
+  "timestamp" : "2025-12-03T16:27:54.946168730Z",
+  "url" : "/users/2",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:32:04.878969Z",
+  "url" : "/posts",
+  "method" : "POST",
+  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}"
+}, {
+  "timestamp" : "2025-12-03T16:32:04.891568400Z",
+  "url" : "/users/3",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:32:04.893574400Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:32:04.900087Z",
+  "url" : "/users/2",
+  "method" : "GET",
+  "body" : ""
+} ]

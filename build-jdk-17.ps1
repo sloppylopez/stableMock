@@ -5,6 +5,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Set JDK 17 for local builds
+$env:JAVA_HOME = "C:\Users\sergi\.jdks\corretto-17.0.14"
+Write-Host "Using JDK 17: $env:JAVA_HOME" -ForegroundColor Green
+
 # Set CI mode to match pipeline behavior (sequential execution, no daemon)
 $env:CI = "true"
 

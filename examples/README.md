@@ -14,7 +14,8 @@ This directory contains runnable example projects demonstrating StableMock integ
 - Automatic proxy URL injection via system properties
 - Complete Spring Boot application with controller, service, and tests
 - Parallel test execution with isolated WireMock instances
-- JSON field ignoring and auto-detection
+- **Automatic dynamic field detection** - StableMock detects changing fields (timestamps, IDs) automatically
+- Manual ignore patterns for JSON, XML, and GraphQL
 - Request verification
 
 ## Quarkus Example

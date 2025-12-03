@@ -230,30 +230,54 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
         
         File[] testMethodDirs = baseMappingsDir.listFiles(file -> 
             file.isDirectory() && !file.getName().equals("mappings") && !file.getName().equals("__files") && !file.getName().startsWith("url_"));
-        if (testMethodDirs == null) {
+        if (testMethodDirs == null || testMethodDirs.length == 0) {
+            logger.warn("No test method directories found in {} for url_{}", baseMappingsDir.getAbsolutePath(), urlIndex);
             return;
         }
+        
+        // Sort test method directories for consistent ordering across platforms
+        // This ensures the same merge order on Windows and Linux
+        java.util.Arrays.sort(testMethodDirs, java.util.Comparator.comparing(File::getName));
+        
+        logger.info("Merging mappings for url_{} from {} test method(s)", urlIndex, testMethodDirs.length);
         
         for (File testMethodDir : testMethodDirs) {
             File annotationDir = new File(testMethodDir, "annotation_" + urlIndex);
             File annotationMappingsDir = new File(annotationDir, "mappings");
             File annotationFilesDir = new File(annotationDir, "__files");
             
+            if (!annotationMappingsDir.exists() || !annotationMappingsDir.isDirectory()) {
+                logger.debug("No annotation_{} mappings directory found for test method {}", urlIndex, testMethodDir.getName());
+                continue;
+            }
+            
             if (annotationMappingsDir.exists() && annotationMappingsDir.isDirectory()) {
                 File[] mappingFiles = annotationMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
                 if (mappingFiles != null) {
                     for (File mappingFile : mappingFiles) {
                         try {
+                            // Use test method name as prefix to avoid conflicts between test methods
+                            // This ensures mappings from different test methods don't overwrite each other
                             String prefix = testMethodDir.getName() + "_";
                             String newName = prefix + mappingFile.getName();
                             File destFile = new File(urlMappingsDir, newName);
+                            
+                            // Ensure destination directory exists
+                            if (!urlMappingsDir.exists() && !urlMappingsDir.mkdirs()) {
+                                logger.error("Failed to create url_{} mappings directory", urlIndex);
+                                continue;
+                            }
+                            
                             java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            logger.debug("Copied mapping {} from {} to {}", mappingFile.getName(), testMethodDir.getName(), destFile.getName());
                         } catch (Exception e) {
-                            logger.error("Failed to copy mapping {}: {}", mappingFile.getName(), e.getMessage());
+                            logger.error("Failed to copy mapping {}: {}", mappingFile.getName(), e.getMessage(), e);
                         }
                     }
                 }
+                logger.info("Copied {} mapping(s) from test method {} annotation_{} to url_{}", 
+                    mappingFiles.length, testMethodDir.getName(), urlIndex, urlIndex);
             }
             
             // Copy body files from annotation_X/__files
@@ -311,6 +335,8 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
                 }
             }
         }
+        
+        logger.info("Completed merging mappings for url_{}", urlIndex);
     }
 }
 

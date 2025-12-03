@@ -343,19 +343,69 @@ By checking the system property directly in the service method (not during bean 
 
 The project includes additional test classes demonstrating StableMock features:
 
-### AutoIgnoreFeatureTest
+### DynamicFieldDetectionTest
 
-Tests demonstrating auto-ignore and manual ignore patterns:
+Tests demonstrating **automatic dynamic field detection** - StableMock's most powerful feature:
 
-- **Manual ignore patterns**: `@U(ignore = { "json:id", "json:userId" })` - explicitly ignore dynamic fields
-- **Auto-detect**: Run tests twice in RECORD mode to see automatic detection of dynamic fields
-- **Request verification**: Use `StableMockVerifier` to verify requests were made
-- **Multiple requests**: Count and verify multiple requests to the same endpoint
+**Auto-Detection (Enabled by Default):**
+- StableMock automatically detects changing fields by comparing requests across multiple test runs
+- No configuration needed - just run your tests multiple times in RECORD mode
+- Detected fields are automatically ignored using WireMock 3's `${json-unit.ignore}` placeholders
+- Results are saved to `.stablemock-analysis/<TestClass>/<testMethod>/detected-fields.json`
 
-```bash
-# Run auto-ignore tests
-../../gradlew stableMockRecord --tests AutoIgnoreFeatureTest
+**Example:**
+```java
+@SpringBootTest
+@U(urls = { "https://jsonplaceholder.typicode.com" })
+class DynamicFieldDetectionTest {
+    
+    @Test
+    void testDetectChangingFields() {
+        // First run: Records POST with timestamp="2025-01-01T10:00:00Z", requestId="abc-123"
+        // Second run: Records POST with timestamp="2025-01-01T10:00:01Z", requestId="def-456"
+        // StableMock automatically detects "timestamp" and "requestId" as dynamic fields
+        // Third run: Playback works even with different timestamp/requestId values
+    }
+}
 ```
+
+**How to test:**
+```bash
+# Run in RECORD mode multiple times to trigger auto-detection
+../../gradlew stableMockRecord --tests DynamicFieldDetectionTest
+../../gradlew stableMockRecord --tests DynamicFieldDetectionTest
+# Now check detected-fields.json
+cat src/test/resources/.stablemock-analysis/DynamicFieldDetectionTest/testDetectChangingFields/detected-fields.json
+```
+
+**Detection results:**
+```json
+{
+  "testClass": "DynamicFieldDetectionTest",
+  "testMethod": "testDetectChangingFields",
+  "analyzed_requests_count": 4,
+  "dynamic_fields": [
+    {
+      "field_path": "timestamp",
+      "confidence": "HIGH",
+      "sample_values": ["2025-01-01T10:00:00Z", "2025-01-01T10:00:01Z"]
+    },
+    {
+      "field_path": "requestId",
+      "confidence": "HIGH",
+      "sample_values": ["abc-123", "def-456"]
+    }
+  ],
+  "ignore_patterns": ["json:timestamp", "json:requestId"]
+}
+```
+
+**Manual ignore patterns** (if needed):
+```java
+@U(urls = { "https://api.example.com" }, 
+   ignore = { "json:timestamp", "json:requestId" })
+```
+Manual patterns work alongside auto-detection - both are applied.
 
 ### AdvancedFeaturesTest
 
