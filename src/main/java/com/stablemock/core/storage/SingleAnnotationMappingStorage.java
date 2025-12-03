@@ -329,14 +329,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         File[] testMethodDirs = baseMappingsDir.listFiles(file ->
             file.isDirectory() && !file.getName().equals("mappings") && !file.getName().equals("__files") && !file.getName().startsWith("url_"));
         if (testMethodDirs == null || testMethodDirs.length == 0) {
-            String warnMsg = "WARNING: No test method directories found in " + baseMappingsDir.getAbsolutePath() + " - no mappings to merge. WireMock will start with no stubs.";
-            System.err.println(warnMsg);
-            logger.warn(warnMsg);
-            // Create empty mappings directory so WireMock can start (even with no mappings)
-            File emptyMappingsDir = new File(baseMappingsDir, "mappings");
-            if (!emptyMappingsDir.exists() && !emptyMappingsDir.mkdirs()) {
-                logger.warn("Failed to create empty mappings directory: {}", emptyMappingsDir.getAbsolutePath());
-            }
+            logger.error("No test method directories found in {} - merge cannot proceed!", baseMappingsDir.getAbsolutePath());
             return;
         }
         
@@ -448,18 +441,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                             java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                             
-                            // Force file system sync - critical for JDK 17 on Linux
-                            // JDK 17 Temurin on Linux may have different file system caching behavior
-                            try {
-                                // Sync the file descriptor to ensure write is committed to disk
-                                java.io.FileOutputStream fos = new java.io.FileOutputStream(destFile, true);
-                                fos.getFD().sync();
-                                fos.close();
-                            } catch (Exception e) {
-                                logger.debug("File sync failed for {} (non-critical): {}", destFile.getName(), e.getMessage());
-                            }
-                            
-                            // Verify file was actually written and is readable
+                            // Verify file was actually written
                             if (!destFile.exists() || destFile.length() == 0) {
                                 String errorMsg = "  ERROR: File copy failed - dest does not exist or is empty: " + destFile.getName();
                                 System.err.println(errorMsg);
@@ -626,58 +608,6 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 System.err.println(dirsMsg);
                 logger.error(dirsMsg);
             }
-        }
-        
-        // Force file system sync to ensure all files are written before WireMock loads them
-        // This is critical on Linux where file system caching might delay visibility
-        try {
-            // Sync each copied file to ensure it's written to disk
-            if (finalMappings != null && finalMappings.length > 0) {
-                logger.info("Syncing {} mapping file(s) to disk", finalMappings.length);
-                for (File mappingFile : finalMappings) {
-                    try {
-                        // Open file in append mode and sync to force write to disk
-                        java.io.FileOutputStream fos = new java.io.FileOutputStream(mappingFile, true);
-                        fos.getFD().sync();
-                        fos.close();
-                        logger.debug("Synced file to disk: {}", mappingFile.getName());
-                    } catch (Exception e) {
-                        logger.warn("File sync failed for {}: {}", mappingFile.getName(), e.getMessage());
-                    }
-                }
-                // Force directory metadata sync by touching a marker file
-                try {
-                    File markerFile = new File(classMappingsDir, ".sync-marker");
-                    markerFile.createNewFile();
-                    java.io.FileOutputStream markerFos = new java.io.FileOutputStream(markerFile, true);
-                    markerFos.getFD().sync();
-                    markerFos.close();
-                    markerFile.delete(); // Clean up marker file
-                } catch (Exception e) {
-                    logger.debug("Directory sync marker failed (non-critical): {}", e.getMessage());
-                }
-            }
-        } catch (Exception e) {
-            logger.warn("File sync check failed: {}", e.getMessage());
-        }
-        
-        // Longer delay to ensure file system has processed all writes (especially on Linux/CI with JDK 17)
-        // JDK 17 Temurin on Linux may have different file system caching behavior than JDK 21 or Windows
-        // This is critical for CI environments where file system operations may be slower
-        try {
-            Thread.sleep(1000); // Increased to 1 second for JDK 17 on Linux
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        
-        // Final verification: re-read directory to ensure all files are visible
-        // This helps catch file system caching issues on Linux with JDK 17
-        File[] verifyMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-        if (verifyMappings != null && verifyMappings.length != totalMappingsCopied) {
-            String warnMsg = "WARNING: Expected " + totalMappingsCopied + " mapping files but directory listing shows " + 
-                verifyMappings.length + " - file system may not have synced yet";
-            System.err.println(warnMsg);
-            logger.warn(warnMsg);
         }
         
         logger.info("Completed merging mappings to class-level directory");

@@ -1,51 +1,51 @@
 [ {
-  "timestamp" : "2025-12-03T16:12:03.899360200Z",
+  "timestamp" : "2025-12-03T16:31:02.899227567Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:31:02.905948872Z",
   "url" : "/users/3",
   "method" : "GET",
   "body" : ""
 }, {
-  "timestamp" : "2025-12-03T16:12:03.905869500Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-12-03T16:13:17.025003737Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-12-03T16:13:17.127175030Z",
+  "timestamp" : "2025-12-03T16:32:04.986071800Z",
   "url" : "/users/2",
   "method" : "GET",
   "body" : ""
 }, {
-  "timestamp" : "2025-12-03T16:13:57.726566056Z",
+  "timestamp" : "2025-12-03T16:32:04.988076700Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:32:20.074688Z",
   "url" : "/posts",
   "method" : "POST",
   "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}"
 }, {
-  "timestamp" : "2025-12-03T16:13:57.822285796Z",
+  "timestamp" : "2025-12-03T16:32:20.089311300Z",
   "url" : "/users/2",
   "method" : "GET",
   "body" : ""
 }, {
-  "timestamp" : "2025-12-03T16:13:57.829980347Z",
+  "timestamp" : "2025-12-03T16:32:20.090309100Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:32:20.095310100Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:32:20.096311700Z",
+  "url" : "/users/2",
+  "method" : "GET",
+  "body" : ""
+}, {
+  "timestamp" : "2025-12-03T16:32:20.096311700Z",
   "url" : "/users/3",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-12-03T16:13:57.838664708Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-12-03T16:13:57.846559722Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-12-03T16:13:57.853378167Z",
-  "url" : "/users/2",
   "method" : "GET",
   "body" : ""
 } ]

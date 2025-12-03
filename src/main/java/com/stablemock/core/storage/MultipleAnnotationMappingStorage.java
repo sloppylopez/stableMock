@@ -336,16 +336,6 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
             }
         }
         
-        // Force file system sync to ensure all files are written before WireMock loads them
-        // This is important on Linux where file system caching might delay visibility
-        try {
-            java.nio.file.Files.createFile(new File(urlMappingsDir, ".merge-complete").toPath());
-            java.nio.file.Files.deleteIfExists(new File(urlMappingsDir, ".merge-complete").toPath());
-        } catch (Exception e) {
-            // Ignore - this is just to force a sync
-            logger.debug("File sync check failed (non-critical): {}", e.getMessage());
-        }
-        
         logger.info("Completed merging mappings for url_{}", urlIndex);
     }
 }
