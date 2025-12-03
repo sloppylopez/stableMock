@@ -68,6 +68,13 @@ spring-example:
 	cd examples/spring-boot-example && \
 	echo "=== Cleaning old recordings ===" && \
 	./gradlew cleanStableMock $$gradle_args && \
+	echo "=== Verifying cleanup completed ===" && \
+	if [ -d "src/test/resources/stablemock" ]; then \
+		echo "WARNING: stablemock directory still exists after cleanup - forcing removal"; \
+		rm -rf src/test/resources/stablemock; \
+	fi && \
+	echo "=== Waiting for file system to process deletions (important for JDK 17 on Linux) ===" && \
+	sleep 0.5 && \
 	echo "=== Record mode (first time) ===" && \
 	./gradlew stableMockRecord $$gradle_args && \
 	echo "=== Verifying recordings from first run ===" && \

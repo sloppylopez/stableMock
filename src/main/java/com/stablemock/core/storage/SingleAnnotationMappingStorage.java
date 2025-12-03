@@ -191,19 +191,32 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         }
         
         // Check for unmatched serve events
+        int unmatchedCount = 0;
         for (int i = 0; i < testMethodServeEvents.size(); i++) {
             if (!matchedServeEventIndices.contains(i)) {
+                unmatchedCount++;
                 com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(i);
-                logger.error("  ✗ NO MATCH for ServeEvent[{}]: {} {} - Mapping will be MISSING!", 
-                    i, se.getRequest().getMethod().getName(), se.getRequest().getUrl());
+                String errorMsg = "  ✗ NO MATCH for ServeEvent[" + i + "]: " + 
+                    se.getRequest().getMethod().getName() + " " + se.getRequest().getUrl() + 
+                    " - Mapping will be MISSING!";
+                System.err.println("ERROR: " + errorMsg);
+                logger.error(errorMsg);
             }
         }
         
         logger.info("=== RECORDING: Matched {}/{} mapping(s) ===", 
             testMethodMappings.size(), testMethodServeEvents.size());
         
+        if (unmatchedCount > 0) {
+            String errorMsg = "=== RECORDING WARNING: " + unmatchedCount + " serve event(s) had no matching mapping! ===";
+            System.err.println(errorMsg);
+            logger.error(errorMsg);
+        }
+        
         if (testMethodMappings.isEmpty()) {
-            logger.error("=== RECORDING FAILED: No mappings matched! ===");
+            String errorMsg = "=== RECORDING FAILED: No mappings matched! ===";
+            System.err.println(errorMsg);
+            logger.error(errorMsg);
             return;
         }
         
@@ -313,10 +326,17 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 java.util.Arrays.stream(allDirs).map(File::getName).toArray(String[]::new)));
         }
         
-        File[] testMethodDirs = baseMappingsDir.listFiles(file -> 
+        File[] testMethodDirs = baseMappingsDir.listFiles(file ->
             file.isDirectory() && !file.getName().equals("mappings") && !file.getName().equals("__files") && !file.getName().startsWith("url_"));
         if (testMethodDirs == null || testMethodDirs.length == 0) {
-            logger.error("No test method directories found in {} - merge cannot proceed!", baseMappingsDir.getAbsolutePath());
+            String warnMsg = "WARNING: No test method directories found in " + baseMappingsDir.getAbsolutePath() + " - no mappings to merge. WireMock will start with no stubs.";
+            System.err.println(warnMsg);
+            logger.warn(warnMsg);
+            // Create empty mappings directory so WireMock can start (even with no mappings)
+            File emptyMappingsDir = new File(baseMappingsDir, "mappings");
+            if (!emptyMappingsDir.exists() && !emptyMappingsDir.mkdirs()) {
+                logger.warn("Failed to create empty mappings directory: {}", emptyMappingsDir.getAbsolutePath());
+            }
             return;
         }
         
@@ -428,20 +448,34 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                             java.nio.file.Files.copy(mappingFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                             
-                            // Force file system sync
+                            // Force file system sync - critical for JDK 17 on Linux
+                            // JDK 17 Temurin on Linux may have different file system caching behavior
                             try {
-                                java.nio.file.Files.getFileStore(destFile.toPath()).getUsableSpace();
-                                destFile.getParentFile().getAbsolutePath();
+                                // Sync the file descriptor to ensure write is committed to disk
+                                java.io.FileOutputStream fos = new java.io.FileOutputStream(destFile, true);
+                                fos.getFD().sync();
+                                fos.close();
                             } catch (Exception e) {
-                                // Ignore
+                                logger.debug("File sync failed for {} (non-critical): {}", destFile.getName(), e.getMessage());
                             }
                             
-                            // Verify file was actually written
+                            // Verify file was actually written and is readable
                             if (!destFile.exists() || destFile.length() == 0) {
                                 String errorMsg = "  ERROR: File copy failed - dest does not exist or is empty: " + destFile.getName();
                                 System.err.println(errorMsg);
                                 logger.error(errorMsg);
                                 continue;
+                            }
+                            
+                            // Additional verification: try to read the file to ensure it's accessible
+                            // This helps catch file system caching issues on Linux with JDK 17
+                            try {
+                                java.nio.file.Files.readAllBytes(destFile.toPath());
+                            } catch (Exception e) {
+                                String errorMsg = "  ERROR: File copied but not readable: " + destFile.getName() + " - " + e.getMessage();
+                                System.err.println(errorMsg);
+                                logger.error(errorMsg);
+                                // Continue anyway - might be a transient issue
                             }
                             
                             totalMappingsCopied++;
@@ -562,6 +596,19 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 String warnMsg = "WARNING: No POST mappings found in merged mappings! This will cause POST requests to fail.";
                 System.err.println(warnMsg);
                 logger.error(warnMsg);
+                // List all test method directories to help debug
+                if (testMethodDirs != null && testMethodDirs.length > 0) {
+                    System.err.println("Test method directories checked:");
+                    for (File testMethodDir : testMethodDirs) {
+                        File methodMappingsDir = new File(testMethodDir, "mappings");
+                        int fileCount = 0;
+                        if (methodMappingsDir.exists()) {
+                            File[] files = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                            fileCount = files != null ? files.length : 0;
+                        }
+                        System.err.println("  - " + testMethodDir.getName() + ": " + fileCount + " mapping file(s)");
+                    }
+                }
             }
             if (getCount < 3) {
                 String warnMsg = "WARNING: Expected at least 3 GET mappings (/users/1, /users/2, /users/3) but found only " + getCount;
@@ -614,12 +661,23 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             logger.warn("File sync check failed: {}", e.getMessage());
         }
         
-        // Longer delay to ensure file system has processed all writes (especially on Linux/CI)
+        // Longer delay to ensure file system has processed all writes (especially on Linux/CI with JDK 17)
+        // JDK 17 Temurin on Linux may have different file system caching behavior than JDK 21 or Windows
         // This is critical for CI environments where file system operations may be slower
         try {
-            Thread.sleep(500); // Increased from 100ms to 500ms for CI environments
+            Thread.sleep(1000); // Increased to 1 second for JDK 17 on Linux
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+        
+        // Final verification: re-read directory to ensure all files are visible
+        // This helps catch file system caching issues on Linux with JDK 17
+        File[] verifyMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+        if (verifyMappings != null && verifyMappings.length != totalMappingsCopied) {
+            String warnMsg = "WARNING: Expected " + totalMappingsCopied + " mapping files but directory listing shows " + 
+                verifyMappings.length + " - file system may not have synced yet";
+            System.err.println(warnMsg);
+            logger.warn(warnMsg);
         }
         
         logger.info("Completed merging mappings to class-level directory");

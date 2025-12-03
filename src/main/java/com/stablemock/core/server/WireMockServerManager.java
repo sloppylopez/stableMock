@@ -207,6 +207,25 @@ public final class WireMockServerManager {
             }
         }
 
+        // Verify mappings directory exists and has files before starting WireMock
+        File mappingsSubDir = new File(mappingsDir, "mappings");
+        if (mappingsSubDir.exists()) {
+            File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            if (mappingFiles == null || mappingFiles.length == 0) {
+                String warnMsg = "WARNING: No mapping files found in " + mappingsSubDir.getAbsolutePath() + " - WireMock will have no stubs! Tests may fail.";
+                System.err.println(warnMsg);
+                logger.warn(warnMsg);
+                // Don't throw - allow WireMock to start without mappings, tests will fail naturally if mappings are missing
+            } else {
+                logger.info("Verified {} mapping file(s) exist before starting WireMock", mappingFiles.length);
+            }
+        } else {
+            String warnMsg = "WARNING: Mappings directory does not exist: " + mappingsSubDir.getAbsolutePath() + " - WireMock will have no stubs! Tests may fail.";
+            System.err.println(warnMsg);
+            logger.warn(warnMsg);
+            // Don't throw - allow WireMock to start without mappings, tests will fail naturally if mappings are missing
+        }
+
         WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
                 .port(port)
                 .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
@@ -214,6 +233,15 @@ public final class WireMockServerManager {
 
         WireMockServer server = new WireMockServer(config);
         server.start();
+        
+        // Verify WireMock loaded the mappings
+        int loadedStubCount = server.getStubMappings().size();
+        logger.info("WireMock loaded {} stub mapping(s) on startup", loadedStubCount);
+        if (loadedStubCount == 0) {
+            String errorMsg = "ERROR: WireMock loaded 0 stub mappings! Mappings may not be valid or WireMock couldn't parse them.";
+            System.err.println(errorMsg);
+            logger.error(errorMsg);
+        }
         
         // Add request listener to log all incoming requests for debugging
         server.addMockServiceRequestListener((request, response) -> {

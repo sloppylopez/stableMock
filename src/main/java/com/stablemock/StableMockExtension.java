@@ -142,6 +142,15 @@ public class StableMockExtension
                     logger.error(errorMsg, e);
                     throw new RuntimeException("Failed to merge test method mappings for " + testClassName, e);
                 }
+                
+                // Small delay after merge to ensure file system has fully synced
+                // This is critical for JDK 17 Temurin on Linux where file system caching may delay visibility
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                
                 // Collect ignore patterns from all annotations (for class-level, we use all annotations)
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
