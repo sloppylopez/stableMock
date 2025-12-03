@@ -356,14 +356,19 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         int totalMappingsCopied = 0;
         int postMappingsCopied = 0;
         int getMappingsCopied = 0;
+        int skippedMethods = 0;
         for (File testMethodDir : testMethodDirs) {
             File methodMappingsDir = new File(testMethodDir, "mappings");
             File methodFilesDir = new File(testMethodDir, "__files");
             
             logger.info("Processing test method: {}", testMethodDir.getName());
+            System.out.println("Processing test method: " + testMethodDir.getName());
             
             if (!methodMappingsDir.exists() || !methodMappingsDir.isDirectory()) {
-                logger.warn("  No mappings directory found for test method {}", testMethodDir.getName());
+                String warnMsg = "  No mappings directory found for test method " + testMethodDir.getName();
+                logger.warn(warnMsg);
+                System.err.println("WARNING: " + warnMsg);
+                skippedMethods++;
                 continue;
             }
             
@@ -477,9 +482,15 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         // Log summary of merged mappings
         String completeMsg = "=== Merge complete: " + totalMappingsCopied + " mapping(s) copied (during copy: " + 
-            getMappingsCopied + " GET, " + postMappingsCopied + " POST) ===";
+            getMappingsCopied + " GET, " + postMappingsCopied + " POST), " + skippedMethods + " test method(s) skipped ===";
         System.out.println(completeMsg);
         logger.info(completeMsg);
+        
+        if (skippedMethods > 0) {
+            String skipMsg = "WARNING: " + skippedMethods + " test method(s) had no mappings directory - they may not have made HTTP requests during recording";
+            System.err.println(skipMsg);
+            logger.warn(skipMsg);
+        }
         
         File[] finalMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
         if (finalMappings != null && finalMappings.length > 0) {
@@ -571,28 +582,42 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         }
         
         // Force file system sync to ensure all files are written before WireMock loads them
-        // This is important on Linux where file system caching might delay visibility
+        // This is critical on Linux where file system caching might delay visibility
         try {
             // Sync each copied file to ensure it's written to disk
-            if (finalMappings != null) {
+            if (finalMappings != null && finalMappings.length > 0) {
+                logger.info("Syncing {} mapping file(s) to disk", finalMappings.length);
                 for (File mappingFile : finalMappings) {
                     try {
+                        // Open file in append mode and sync to force write to disk
                         java.io.FileOutputStream fos = new java.io.FileOutputStream(mappingFile, true);
                         fos.getFD().sync();
                         fos.close();
+                        logger.debug("Synced file to disk: {}", mappingFile.getName());
                     } catch (Exception e) {
-                        logger.debug("File sync failed for {} (non-critical): {}", mappingFile.getName(), e.getMessage());
+                        logger.warn("File sync failed for {}: {}", mappingFile.getName(), e.getMessage());
                     }
+                }
+                // Force directory metadata sync by touching a marker file
+                try {
+                    File markerFile = new File(classMappingsDir, ".sync-marker");
+                    markerFile.createNewFile();
+                    java.io.FileOutputStream markerFos = new java.io.FileOutputStream(markerFile, true);
+                    markerFos.getFD().sync();
+                    markerFos.close();
+                    markerFile.delete(); // Clean up marker file
+                } catch (Exception e) {
+                    logger.debug("Directory sync marker failed (non-critical): {}", e.getMessage());
                 }
             }
         } catch (Exception e) {
-            // Ignore - this is just to force a sync
-            logger.debug("File sync check failed (non-critical): {}", e.getMessage());
+            logger.warn("File sync check failed: {}", e.getMessage());
         }
         
-        // Small delay to ensure file system has processed all writes (especially on Linux)
+        // Longer delay to ensure file system has processed all writes (especially on Linux/CI)
+        // This is critical for CI environments where file system operations may be slower
         try {
-            Thread.sleep(100);
+            Thread.sleep(500); // Increased from 100ms to 500ms for CI environments
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
