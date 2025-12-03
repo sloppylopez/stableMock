@@ -106,7 +106,8 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         // Build normalized signatures from serve events
         // Normalize paths but preserve leading slash (WireMock expects it)
-        java.util.Map<String, Integer> serveEventSignatures = new java.util.HashMap<>();
+        // Use List<Integer> to handle duplicate signatures (same request made multiple times)
+        java.util.Map<String, java.util.List<Integer>> serveEventSignatures = new java.util.HashMap<>();
         for (int i = 0; i < testMethodServeEvents.size(); i++) {
             com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(i);
             String method = se.getRequest().getMethod().getName();
@@ -118,12 +119,14 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             }
             path = path.replaceAll("/+$", "");
             String signature = method.toUpperCase() + ":" + path;
-            serveEventSignatures.put(signature, i);
+            serveEventSignatures.computeIfAbsent(signature, k -> new java.util.ArrayList<>()).add(i);
         }
         
         // Match mappings to serve events by signature
         List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
         java.util.Set<Integer> matchedServeEventIndices = new java.util.HashSet<>();
+        // Track which serve event index we're matching for each signature
+        java.util.Map<String, Integer> signatureMatchIndex = new java.util.HashMap<>();
         
         logger.info("=== RECORDING: Looking for signatures: {} ===", serveEventSignatures.keySet());
         
@@ -145,16 +148,42 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             logger.info("  Mapping[{}]: signature='{}' ({} {})", mIdx, mappingSignature, mappingMethod, mappingUrl);
             
             if (serveEventSignatures.containsKey(mappingSignature)) {
-                Integer seIdx = serveEventSignatures.get(mappingSignature);
-                if (!matchedServeEventIndices.contains(seIdx)) {
-                    testMethodMappings.add(mapping);
-                    matchedServeEventIndices.add(seIdx);
-                    logger.info("  ✓ Match[M{}->SE{}]: {} {} -> {} {}", 
-                        mIdx, seIdx, mappingMethod, mappingUrl,
-                        testMethodServeEvents.get(seIdx).getRequest().getMethod().getName(),
-                        testMethodServeEvents.get(seIdx).getRequest().getUrl());
+                java.util.List<Integer> seIndices = serveEventSignatures.get(mappingSignature);
+                // Get the next unmatched serve event index for this signature
+                int matchIndex = signatureMatchIndex.getOrDefault(mappingSignature, 0);
+                if (matchIndex < seIndices.size()) {
+                    Integer seIdx = seIndices.get(matchIndex);
+                    if (!matchedServeEventIndices.contains(seIdx)) {
+                        testMethodMappings.add(mapping);
+                        matchedServeEventIndices.add(seIdx);
+                        signatureMatchIndex.put(mappingSignature, matchIndex + 1);
+                        logger.info("  ✓ Match[M{}->SE{}]: {} {} -> {} {}", 
+                            mIdx, seIdx, mappingMethod, mappingUrl,
+                            testMethodServeEvents.get(seIdx).getRequest().getMethod().getName(),
+                            testMethodServeEvents.get(seIdx).getRequest().getUrl());
+                    } else {
+                        // This serve event was already matched, try next one
+                        boolean foundUnmatched = false;
+                        for (int nextIdx = matchIndex + 1; nextIdx < seIndices.size(); nextIdx++) {
+                            Integer nextSeIdx = seIndices.get(nextIdx);
+                            if (!matchedServeEventIndices.contains(nextSeIdx)) {
+                                testMethodMappings.add(mapping);
+                                matchedServeEventIndices.add(nextSeIdx);
+                                signatureMatchIndex.put(mappingSignature, nextIdx + 1);
+                                logger.info("  ✓ Match[M{}->SE{}]: {} {} -> {} {} (skipped already-matched SE{})", 
+                                    mIdx, nextSeIdx, mappingMethod, mappingUrl,
+                                    testMethodServeEvents.get(nextSeIdx).getRequest().getMethod().getName(),
+                                    testMethodServeEvents.get(nextSeIdx).getRequest().getUrl(), seIdx);
+                                foundUnmatched = true;
+                                break;
+                            }
+                        }
+                        if (!foundUnmatched) {
+                            logger.warn("  ⊗ Skip[M{}->SE{}]: All serve events with this signature already matched", mIdx, seIdx);
+                        }
+                    }
                 } else {
-                    logger.warn("  ⊗ Skip[M{}->SE{}]: Already matched (duplicate signature)", mIdx, seIdx);
+                    logger.warn("  ⊗ Skip[M{}]: No more unmatched serve events for signature '{}'", mIdx, mappingSignature);
                 }
             } else {
                 logger.info("  ✗ Filter[M{}]: signature '{}' not in serve events (from other test)", mIdx, mappingSignature);
@@ -544,11 +573,28 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         // Force file system sync to ensure all files are written before WireMock loads them
         // This is important on Linux where file system caching might delay visibility
         try {
-            java.nio.file.Files.createFile(new File(classMappingsDir, ".merge-complete").toPath());
-            java.nio.file.Files.deleteIfExists(new File(classMappingsDir, ".merge-complete").toPath());
+            // Sync each copied file to ensure it's written to disk
+            if (finalMappings != null) {
+                for (File mappingFile : finalMappings) {
+                    try {
+                        java.io.FileOutputStream fos = new java.io.FileOutputStream(mappingFile, true);
+                        fos.getFD().sync();
+                        fos.close();
+                    } catch (Exception e) {
+                        logger.debug("File sync failed for {} (non-critical): {}", mappingFile.getName(), e.getMessage());
+                    }
+                }
+            }
         } catch (Exception e) {
             // Ignore - this is just to force a sync
             logger.debug("File sync check failed (non-critical): {}", e.getMessage());
+        }
+        
+        // Small delay to ensure file system has processed all writes (especially on Linux)
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
         
         logger.info("Completed merging mappings to class-level directory");
