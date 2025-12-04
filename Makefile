@@ -88,6 +88,8 @@ spring-example:
 	fi && \
 	echo "=== Record mode (second time) ===" && \
 	./gradlew stableMockRecord $$gradle_args && \
+	echo "=== Waiting for mappings to be saved (afterEach callbacks) ===" && \
+	sleep 2 && \
 	echo "=== Playback mode ===" && \
 	./gradlew stableMockPlayback $$gradle_args
 	@echo "=== Verifying cleanup - checking for class-level directories ==="
