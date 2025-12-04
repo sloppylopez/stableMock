@@ -293,16 +293,20 @@ public final class WireMockServerManager {
                                                     new com.fasterxml.jackson.databind.ObjectMapper();
                                             testMapper.readTree(expectedBody);
                                             
-                                            // It's valid JSON, replace ignored fields with ${json-unit.ignore}
+                                            // It's valid JSON, replace ignored fields with ${json-unit.ignore} placeholders
                                             String normalizedJson = normalizeJsonStringWithPlaceholders(expectedBody, ignorePatterns);
                                             
-                                            // Remove the old matcher and add equalToJson
-                                            patternObj.remove(matcherKey);
-                                            patternObj.put("equalToJson", normalizedJson);
-                                            patternObj.put("ignoreArrayOrder", false);
-                                            patternObj.put("ignoreExtraElements", true);
-                                            modified = true;
-                                            logger.debug("Changed {} to equalToJson with json-unit.ignore placeholders", matcherKey);
+                                            // Convert equalTo to equalToJson for WireMock 3 compatibility, even if normalization didn't change anything
+                                            // This ensures proper JSON matching behavior
+                                            if (matcherKey.equals("equalTo") || !normalizedJson.equals(expectedBody)) {
+                                                // Remove the old matcher and add equalToJson
+                                                patternObj.remove(matcherKey);
+                                                patternObj.put("equalToJson", normalizedJson);
+                                                patternObj.put("ignoreArrayOrder", false);
+                                                patternObj.put("ignoreExtraElements", true);
+                                                modified = true;
+                                                logger.debug("Changed {} to equalToJson with json-unit.ignore placeholders", matcherKey);
+                                            }
                                         } catch (Exception e) {
                                             // Not valid JSON, try XML
                                             try {
@@ -311,11 +315,14 @@ public final class WireMockServerManager {
                                                     // It's XML, replace ignored elements/attributes with ${xmlunit.ignore}
                                                     String normalizedXml = normalizeXmlStringWithPlaceholders(expectedBody, ignorePatterns);
                                                     
-                                                    // Remove the old matcher and add equalToXml
-                                                    patternObj.remove(matcherKey);
-                                                    patternObj.put("equalToXml", normalizedXml);
-                                                    modified = true;
-                                                    logger.debug("Changed {} to equalToXml with xmlunit.ignore placeholders", matcherKey);
+                                                    // Convert equalTo to equalToXml for WireMock 3 compatibility, even if normalization didn't change anything
+                                                    if (matcherKey.equals("equalTo") || !normalizedXml.equals(expectedBody)) {
+                                                        // Remove the old matcher and add equalToXml
+                                                        patternObj.remove(matcherKey);
+                                                        patternObj.put("equalToXml", normalizedXml);
+                                                        modified = true;
+                                                        logger.debug("Changed {} to equalToXml with xmlunit.ignore placeholders", matcherKey);
+                                                    }
                                                 }
                                             } catch (Exception xmlEx) {
                                                 // Not XML either, skip

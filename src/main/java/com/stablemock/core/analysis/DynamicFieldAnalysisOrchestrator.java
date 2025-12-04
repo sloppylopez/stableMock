@@ -171,11 +171,12 @@ public final class DynamicFieldAnalysisOrchestrator {
             String url = event.getRequest().getUrl();
             String method = event.getRequest().getMethod().getName();
             String body = event.getRequest().getBodyAsString();
+            String contentType = event.getRequest().getHeader("Content-Type");
 
             // Track all requests (including GET requests without bodies)
             // Empty body is fine - it will be stored as null or empty string
             RequestBodyTracker.trackRequest(testResourcesDir, testClassName,
-                    testMethodName, url, method, body != null ? body : "", annotationIndex);
+                    testMethodName, url, method, body != null ? body : "", contentType, annotationIndex);
         }
     }
 }

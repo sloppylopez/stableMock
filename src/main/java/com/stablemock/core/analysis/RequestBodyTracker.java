@@ -38,12 +38,13 @@ public final class RequestBodyTracker {
      * @param url              Request URL
      * @param method           HTTP method
      * @param body             Request body
+     * @param contentType      Content-Type header value (may be null)
      * @param annotationIndex  Optional annotation index (null for single
      *                         annotation)
      */
     public static void trackRequest(File testResourcesDir, String testClassName,
             String testMethodName, String url, String method,
-            String body, Integer annotationIndex) {
+            String body, String contentType, Integer annotationIndex) {
         try {
             File trackingFile = getTrackingFile(testResourcesDir, testClassName,
                     testMethodName, annotationIndex);
@@ -52,7 +53,7 @@ public final class RequestBodyTracker {
             List<RequestSnapshot> history = loadRequestHistory(trackingFile);
 
             // Add new request
-            history.add(new RequestSnapshot(url, method, body));
+            history.add(new RequestSnapshot(url, method, body, contentType));
 
             // Keep only last N requests
             if (history.size() > MAX_HISTORY_SIZE) {

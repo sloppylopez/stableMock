@@ -2,6 +2,7 @@ package com.stablemock;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.stablemock.core.analysis.*;
+import com.stablemock.core.config.Constants;
 import com.stablemock.core.config.StableMockConfig;
 import com.stablemock.core.context.ExtensionContextManager;
 import com.stablemock.core.resolver.TestContextResolver;
@@ -109,7 +110,7 @@ public class StableMockExtension
             classStore.putMode(mode);
             classStore.putTargetUrl(allUrls.get(0));
 
-            String baseUrl = "http://localhost:" + ports.get(0);
+            String baseUrl = Constants.LOCALHOST_URL_PREFIX + ports.get(0);
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(ports.get(0));
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
@@ -117,7 +118,7 @@ public class StableMockExtension
 
             for (int i = 0; i < ports.size(); i++) {
                 System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
-                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, "http://localhost:" + ports.get(i));
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
             }
 
             logger.info("Started {} WireMock server(s) for {} in {} mode", servers.size(), testClassName, mode);
@@ -164,7 +165,7 @@ public class StableMockExtension
             classStore.putMode(mode);
             classStore.putTargetUrl(allUrls.get(0));
 
-            String baseUrl = "http://localhost:" + port;
+            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(port);
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
@@ -205,7 +206,7 @@ public class StableMockExtension
 
         if (classServer != null) {
             Integer port = classStore.getPort();
-            String baseUrl = "http://localhost:" + port;
+            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(port);
 
@@ -250,7 +251,7 @@ public class StableMockExtension
                     for (int i = 0; i < ports.size(); i++) {
                         String portProp = StableMockConfig.PORT_PROPERTY + "." + i;
                         String urlProp = StableMockConfig.BASE_URL_PROPERTY + "." + i;
-                        String urlValue = "http://localhost:" + ports.get(i);
+                        String urlValue = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
                         System.setProperty(portProp, String.valueOf(ports.get(i)));
                         System.setProperty(urlProp, urlValue);
                     }
@@ -296,7 +297,7 @@ public class StableMockExtension
             methodStore.putTargetUrl(annotationInfos.get(0).urls[0]);
             methodStore.putUseClassLevelServer(false);
 
-            String baseUrl = "http://localhost:" + ports.get(0);
+            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(0);
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(ports.get(0));
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
@@ -304,7 +305,7 @@ public class StableMockExtension
 
             for (int i = 0; i < ports.size(); i++) {
                 System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
-                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, "http://localhost:" + ports.get(i));
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
             }
         } else {
             int port = WireMockServerManager.findFreePort();
@@ -337,7 +338,7 @@ public class StableMockExtension
             methodStore.putTargetUrl(allUrls.get(0));
             methodStore.putUseClassLevelServer(false);
 
-            String baseUrl = "http://localhost:" + port;
+            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(port);
             System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
