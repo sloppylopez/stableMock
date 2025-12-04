@@ -428,6 +428,12 @@ public class StableMockExtension
                     }
                 }
                 wireMockServer.stop();
+                // Give the server a moment to release the port
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
 

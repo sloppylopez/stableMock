@@ -116,7 +116,7 @@ public final class JsonFieldDetector {
                         logger.info("Detected dynamic JSON field: {} (confidence: {}, samples: {})",
                                 jsonPath, confidence, sampleValues.size());
                     } else if (fieldValues.get(0).isObject() || fieldValues.get(0).isArray()) {
-                        // Recurse into nested objects/arrays
+                        // Values are same, but recurse to check nested structure
                         detectDynamicFieldsInJsonRecursive(fieldValues, currentPath, result);
                     }
                 }

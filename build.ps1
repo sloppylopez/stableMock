@@ -77,8 +77,8 @@ function Invoke-SpringExample {
         & .\gradlew.bat stableMockRecord $gradleArgs
         if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
         
-        # Wait for afterEach callbacks to complete and files to be flushed
-        Start-Sleep -Seconds 2
+        # Wait for afterEach callbacks to complete, files to be flushed, and ports to be released
+        Start-Sleep -Seconds 5
         
         Write-Step "Playback mode"
         & .\gradlew.bat stableMockPlayback $gradleArgs

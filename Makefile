@@ -78,7 +78,7 @@ spring-example:
 	echo "=== Record mode (first time) ===" && \
 	./gradlew stableMockRecord $$gradle_args && \
 	echo "=== Waiting for mappings to be saved (afterEach callbacks) ===" && \
-	sleep 2 && \
+	sleep 3 && \
 	echo "=== Verifying recordings from first run ===" && \
 	if [ ! -d "src/test/resources/stablemock/SpringBootIntegrationTest/testCreatePostViaController/mappings" ]; then \
 		echo "WARNING: testCreatePostViaController mappings not found after recording (may still be saving)"; \
@@ -88,8 +88,8 @@ spring-example:
 	fi && \
 	echo "=== Record mode (second time) ===" && \
 	./gradlew stableMockRecord $$gradle_args && \
-	echo "=== Waiting for mappings to be saved (afterEach callbacks) ===" && \
-	sleep 2 && \
+	echo "=== Waiting for mappings to be saved, files to be flushed, and ports to be released ===" && \
+	sleep 5 && \
 	echo "=== Playback mode ===" && \
 	./gradlew stableMockPlayback $$gradle_args
 	@echo "=== Verifying cleanup - checking for class-level directories ==="
