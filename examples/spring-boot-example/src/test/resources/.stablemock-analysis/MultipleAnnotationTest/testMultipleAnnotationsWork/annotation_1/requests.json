@@ -1,51 +1,61 @@
 [ {
-  "timestamp" : "2025-12-03T17:23:57.387114800Z",
-  "url" : "/get?id=2",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-12-03T17:23:57.388115300Z",
+  "timestamp" : "2025-12-04T10:45:03.103952800Z",
   "url" : "/get?id=1",
   "method" : "GET",
-  "body" : ""
+  "body" : "",
+  "contentType" : null
 }, {
-  "timestamp" : "2025-12-04T09:56:48.310674600Z",
+  "timestamp" : "2025-12-04T10:45:03.104950700Z",
   "url" : "/get?id=2",
   "method" : "GET",
-  "body" : ""
+  "body" : "",
+  "contentType" : null
 }, {
-  "timestamp" : "2025-12-04T09:56:48.311195Z",
+  "timestamp" : "2025-12-04T12:27:35.091324189Z",
   "url" : "/get?id=1",
   "method" : "GET",
-  "body" : ""
+  "body" : "",
+  "contentType" : null
 }, {
-  "timestamp" : "2025-12-04T09:57:02.222965700Z",
+  "timestamp" : "2025-12-04T12:27:35.099161004Z",
   "url" : "/get?id=2",
   "method" : "GET",
-  "body" : ""
+  "body" : "",
+  "contentType" : null
 }, {
-  "timestamp" : "2025-12-04T09:57:02.223962800Z",
+  "timestamp" : "2025-12-04T12:28:16.839947363Z",
   "url" : "/get?id=1",
   "method" : "GET",
-  "body" : ""
+  "body" : "",
+  "contentType" : null
 }, {
-  "timestamp" : "2025-12-04T09:58:59.332685913Z",
-  "url" : "/get?id=1",
-  "method" : "GET",
-  "body" : ""
-}, {
-  "timestamp" : "2025-12-04T09:58:59.340412190Z",
+  "timestamp" : "2025-12-04T12:28:16.847432220Z",
   "url" : "/get?id=2",
   "method" : "GET",
-  "body" : ""
+  "body" : "",
+  "contentType" : null
 }, {
-  "timestamp" : "2025-12-04T09:59:41.025935975Z",
+  "timestamp" : "2025-12-04T14:01:32.300325500Z",
   "url" : "/get?id=1",
   "method" : "GET",
-  "body" : ""
+  "body" : "",
+  "contentType" : null
 }, {
-  "timestamp" : "2025-12-04T09:59:41.032312032Z",
+  "timestamp" : "2025-12-04T14:01:32.301325300Z",
   "url" : "/get?id=2",
   "method" : "GET",
-  "body" : ""
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-04T14:01:46.714466Z",
+  "url" : "/get?id=1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-04T14:01:46.714466Z",
+  "url" : "/get?id=2",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
 } ]
