@@ -187,6 +187,13 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
                     tempServer.addStubMapping(mapping);
                 }
                 tempServer.saveMappings();
+                
+                // Small delay to ensure files are flushed to disk (especially important for WSL)
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             } finally {
                 tempServer.stop();
             }

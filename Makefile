@@ -1,12 +1,35 @@
-.PHONY: all build publish spring-example help
+.PHONY: all test build publish spring-example help
 
 # Set CI mode to match pipeline behavior (sequential execution, no daemon)
 export CI=true
 
 # Default target
-all: build publish spring-example
+all: test build publish spring-example
 	@echo ""
 	@echo "=== Workflow Complete! ==="
+
+# Run unit tests
+test:
+	@echo "=== Running unit tests ==="
+	@if [ -z "$$JAVA_HOME" ]; then \
+		if command -v java >/dev/null 2>&1; then \
+			java_path=$$(which java); \
+			if [ -L "$$java_path" ]; then \
+				java_path=$$(readlink -f "$$java_path"); \
+			fi; \
+			export JAVA_HOME=$$(dirname $$(dirname "$$java_path")); \
+			echo "Auto-detected JAVA_HOME: $$JAVA_HOME"; \
+		else \
+			echo "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH."; \
+			echo "Please set the JAVA_HOME variable or install Java."; \
+			exit 1; \
+		fi; \
+	fi
+	@gradle_args=""; \
+	if [ -n "$$CI" ]; then \
+		gradle_args="--no-daemon"; \
+	fi; \
+	./gradlew test $$gradle_args
 
 # Build StableMock library (skip tests)
 build:
@@ -77,8 +100,8 @@ spring-example:
 	sleep 0.5 && \
 	echo "=== Record mode (first time) ===" && \
 	./gradlew stableMockRecord $$gradle_args && \
-	echo "=== Waiting for mappings to be saved (afterEach callbacks) ===" && \
-	sleep 3 && \
+	echo "=== Waiting for mappings to be saved, files to be flushed, and ports to be released ===" && \
+	sleep 10 && \
 	echo "=== Verifying recordings from first run ===" && \
 	if [ ! -d "src/test/resources/stablemock/SpringBootIntegrationTest/testCreatePostViaController/mappings" ]; then \
 		echo "WARNING: testCreatePostViaController mappings not found after recording (may still be saving)"; \
@@ -89,7 +112,9 @@ spring-example:
 	echo "=== Record mode (second time) ===" && \
 	./gradlew stableMockRecord $$gradle_args && \
 	echo "=== Waiting for mappings to be saved, files to be flushed, and ports to be released ===" && \
-	sleep 5 && \
+	sync && \
+	sleep 15 && \
+	sync && \
 	echo "=== Playback mode ===" && \
 	./gradlew stableMockPlayback $$gradle_args
 	@echo "=== Verifying cleanup - checking for class-level directories ==="
@@ -141,7 +166,8 @@ verify-cleanup:
 # Help target
 help:
 	@echo "Available targets:"
-	@echo "  all              - Build, publish, and test Spring Boot example"
+	@echo "  all              - Run tests, build, publish, and test Spring Boot example"
+	@echo "  test             - Run unit tests"
 	@echo "  build            - Build StableMock library (skip tests)"
 	@echo "  publish          - Publish to Maven Local (skip tests)"
 	@echo "  spring-example   - Run Spring Boot example tests"
