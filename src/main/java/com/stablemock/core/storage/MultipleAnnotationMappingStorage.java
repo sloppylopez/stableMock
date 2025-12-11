@@ -183,7 +183,9 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
             tempServer.start();
             
             try {
+                // Regenerate IDs to avoid duplicate ID conflicts when re-recording
                 for (StubMapping mapping : annotationMappings) {
+                    mapping.setId(java.util.UUID.randomUUID());
                     tempServer.addStubMapping(mapping);
                 }
                 tempServer.saveMappings();

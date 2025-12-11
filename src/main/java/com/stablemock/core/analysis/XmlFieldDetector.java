@@ -77,8 +77,20 @@ public final class XmlFieldDetector {
 
                     String confidence = calculateConfidence(values.size());
                     // Generate XPath pattern for WireMock XML matching
-                    // Use local-name() to handle namespaces
-                    String xpathPattern = "//*[local-name()='" + extractElementName(path) + "']";
+                    // Handle both elements and attributes
+                    String xpathPattern;
+                    if (path.contains("@")) {
+                        // Attribute: root/child@attr -> //root/child/@attr
+                        String[] parts = path.split("@");
+                        String elementPath = parts[0];
+                        String attrName = parts[1];
+                        String[] elementParts = elementPath.split("/");
+                        String lastElement = elementParts[elementParts.length - 1];
+                        xpathPattern = "//*[local-name()='" + lastElement + "']/@*[local-name()='" + attrName + "']";
+                    } else {
+                        // Element: Use local-name() to handle namespaces
+                        xpathPattern = "//*[local-name()='" + extractElementName(path) + "']";
+                    }
                     String xmlPath = "xml:" + xpathPattern;
 
                     result.addDynamicField(new DetectionResult.DynamicField(

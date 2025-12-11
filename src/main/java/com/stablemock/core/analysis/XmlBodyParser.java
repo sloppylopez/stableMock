@@ -91,11 +91,11 @@ public final class XmlBodyParser {
     }
 
     /**
-     * Extracts all element values from an XML document as a flat map.
-     * Keys are XPath-like paths (e.g., "root/child/grandchild").
+     * Extracts all element values and attributes from an XML document as a flat map.
+     * Keys are XPath-like paths (e.g., "root/child/grandchild" for elements, "root/child@attr" for attributes).
      * 
      * @param doc The XML document
-     * @return Map of element paths to their text content
+     * @return Map of element/attribute paths to their values
      */
     public static Map<String, String> extractElementValues(Document doc) {
         Map<String, String> values = new HashMap<>();
@@ -113,6 +113,22 @@ public final class XmlBodyParser {
 
         String elementName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
         String newPath = currentPath.isEmpty() ? elementName : currentPath + "/" + elementName;
+
+        // Extract attributes
+        if (element.hasAttributes()) {
+            org.w3c.dom.NamedNodeMap attributes = element.getAttributes();
+            for (int i = 0; i < attributes.getLength(); i++) {
+                Node attr = attributes.item(i);
+                if (attr.getNodeType() == Node.ATTRIBUTE_NODE) {
+                    String attrName = attr.getLocalName() != null ? attr.getLocalName() : attr.getNodeName();
+                    String attrPath = newPath + "@" + attrName;
+                    String attrValue = attr.getNodeValue();
+                    if (attrValue != null) {
+                        values.put(attrPath, attrValue);
+                    }
+                }
+            }
+        }
 
         // Get text content (direct text nodes only, not nested elements)
         NodeList childNodes = element.getChildNodes();

@@ -314,7 +314,9 @@ public class StableMockExtension
             if (StableMockConfig.isRecordMode()) {
                 wireMockServer = WireMockServerManager.startRecording(port, mappingsDir, allUrls);
             } else {
-                MappingStorage.mergePerTestMethodMappings(mappingsDir);
+                // mergePerTestMethodMappings expects class-level directory, not method-level
+                File classMappingsDir = mappingsDir.getParentFile();
+                MappingStorage.mergePerTestMethodMappings(classMappingsDir);
                 // Collect ignore patterns from all annotations (for method-level)
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
@@ -327,7 +329,8 @@ public class StableMockExtension
                         }
                     }
                 }
-                wireMockServer = WireMockServerManager.startPlayback(port, mappingsDir, 
+                // After merge, mappings are in class-level directory, so use that for playback
+                wireMockServer = WireMockServerManager.startPlayback(port, classMappingsDir, 
                         testResourcesDir, testClassName, testMethodName, annotationIgnorePatterns);
             }
 

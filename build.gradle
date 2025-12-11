@@ -54,8 +54,13 @@ test {
     useJUnitPlatform()
     // System properties passed via -D flag are available via System.getProperty()
     // This works cross-platform (Windows PowerShell, bash, etc.)
-    systemProperty 'stablemock.mode', System.getProperty('stablemock.mode', '')
+    systemProperty 'stablemock.mode', System.getProperty('stablemock.mode', System.getenv('STABLEMOCK_MODE') ?: '')
     systemProperty 'stablemock.showMatches', System.getProperty('stablemock.showMatches', '')
+    // Exclude XML E2E tests from regular test runs (they require RECORD mode first)
+    // Only exclude if not explicitly requested via --tests
+    if (!project.hasProperty('includeXmlE2E')) {
+        exclude '**/XmlE2ETest.class'
+    }
     // Restore parallel execution - JaCoCo errors are harmless warnings
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
     testLogging {

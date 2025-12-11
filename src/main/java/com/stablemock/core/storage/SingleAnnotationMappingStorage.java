@@ -50,7 +50,9 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         tempServer.start();
         
         try {
+            // Regenerate IDs to avoid conflicts when re-recording
             for (StubMapping mapping : mappings) {
+                mapping.setId(java.util.UUID.randomUUID());
                 tempServer.addStubMapping(mapping);
             }
             tempServer.saveMappings();
@@ -472,7 +474,10 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         try {
             // Add all merged mappings to temp server
+            // Regenerate IDs to avoid duplicate ID conflicts when re-recording
             for (StubMapping mapping : mergedMappings) {
+                // Create a new UUID for each mapping to avoid conflicts
+                mapping.setId(java.util.UUID.randomUUID());
                 tempServer.addStubMapping(mapping);
             }
             tempServer.saveMappings();
