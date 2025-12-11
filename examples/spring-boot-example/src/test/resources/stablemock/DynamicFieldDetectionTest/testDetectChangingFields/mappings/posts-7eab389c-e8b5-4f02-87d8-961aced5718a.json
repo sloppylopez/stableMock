@@ -1,0 +1,44 @@
+{
+  "id" : "7eab389c-e8b5-4f02-87d8-961aced5718a",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2025-12-11T23:05:24.495041107Z\",\"requestId\":\"91bdbb51-41e2-456a-8a4f-0df4bbd2c220\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9ac8a066f8d398af-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1765494367",
+      "x-ratelimit-remaining" : "997",
+      "pragma" : "no-cache",
+      "Date" : "Thu, 11 Dec 2025 23:05:24 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=mMHUmb%2Bz5wAGRQ3cllnfpuaSdjisfRR5MMj9tVF0prw%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1765494324\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=mMHUmb%2Bz5wAGRQ3cllnfpuaSdjisfRR5MMj9tVF0prw%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1765494324\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "7eab389c-e8b5-4f02-87d8-961aced5718a",
+  "persistent" : true,
+  "insertionIndex" : 0
+}

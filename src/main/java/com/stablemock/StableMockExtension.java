@@ -113,12 +113,23 @@ public class StableMockExtension
             String baseUrl = Constants.LOCALHOST_URL_PREFIX + ports.get(0);
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(ports.get(0));
+            String[] baseUrls = new String[ports.size()];
+            for (int i = 0; i < ports.size(); i++) {
+                baseUrls[i] = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
+            }
+            WireMockContext.setBaseUrls(baseUrls);
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
             System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(ports.get(0)));
+            // Class-scoped properties to avoid global races in parallel Spring tests
+            System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
+            System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(ports.get(0)));
 
             for (int i = 0; i < ports.size(); i++) {
                 System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
                 System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
+                // Also class-scoped indexed properties for multi-URL tests
+                System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
             }
 
             logger.info("Started {} WireMock server(s) for {} in {} mode", servers.size(), testClassName, mode);
@@ -170,6 +181,9 @@ public class StableMockExtension
             WireMockContext.setPort(port);
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
             System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
+            // Class-scoped properties to avoid global races in parallel Spring tests
+            System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
+            System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(port));
 
             logger.info("Started WireMock server for {} on port {} in {} mode", testClassName, port, mode);
         }
@@ -209,6 +223,14 @@ public class StableMockExtension
             String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(port);
+            List<Integer> portsForThreadLocal = classStore.getPorts();
+            if (portsForThreadLocal != null && !portsForThreadLocal.isEmpty()) {
+                String[] baseUrls = new String[portsForThreadLocal.size()];
+                for (int i = 0; i < portsForThreadLocal.size(); i++) {
+                    baseUrls[i] = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + portsForThreadLocal.get(i);
+                }
+                WireMockContext.setBaseUrls(baseUrls);
+            }
 
             String testClassName = TestContextResolver.getTestClassName(context);
             String testMethodName = TestContextResolver.getTestMethodName(context);
@@ -224,6 +246,10 @@ public class StableMockExtension
             methodStore.putTargetUrl(classStore.getTargetUrl());
             methodStore.putUseClassLevelServer(true);
             methodStore.putExistingRequestCount(existingRequestCount);
+
+            // Refresh class-scoped properties (Spring may have evaluated @DynamicPropertySource early)
+            System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
+            System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(port));
 
             if (allUrls.size() > 1) {
                 // Create AnnotationInfo objects for saving mappings
@@ -254,6 +280,8 @@ public class StableMockExtension
                         String urlValue = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
                         System.setProperty(portProp, String.valueOf(ports.get(i)));
                         System.setProperty(urlProp, urlValue);
+                        System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
+                        System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, urlValue);
                     }
                 } else {
                     logger.warn("No ports found for multiple URLs in beforeEach");
@@ -300,6 +328,11 @@ public class StableMockExtension
             String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(0);
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(ports.get(0));
+            String[] baseUrls = new String[ports.size()];
+            for (int i = 0; i < ports.size(); i++) {
+                baseUrls[i] = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
+            }
+            WireMockContext.setBaseUrls(baseUrls);
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
             System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(ports.get(0)));
 
