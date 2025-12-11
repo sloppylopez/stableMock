@@ -1,40 +1,4 @@
 [ {
-  "timestamp" : "2025-12-11T22:46:31.374070800Z",
-  "url" : "/users/2",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-11T22:46:31.380074200Z",
-  "url" : "/users/3",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-11T22:52:02.545538700Z",
-  "url" : "/post",
-  "method" : "POST",
-  "body" : "<request><id>123</id><message>Hello</message></request>",
-  "contentType" : "application/xml"
-}, {
-  "timestamp" : "2025-12-11T22:52:31.358773100Z",
-  "url" : "/post",
-  "method" : "POST",
-  "body" : "<request><id>123</id><message>Hello</message></request>",
-  "contentType" : "application/xml"
-}, {
-  "timestamp" : "2025-12-11T22:57:46.938772800Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-11T22:58:15.612522200Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
   "timestamp" : "2025-12-11T23:00:02.979592Z",
   "url" : "/users/1",
   "method" : "GET",
@@ -54,6 +18,42 @@
   "contentType" : null
 }, {
   "timestamp" : "2025-12-11T23:05:26.909468733Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:12:55.591732313Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:13:56.454763120Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:19:12.286765Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:19:41.807817400Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:23:51.133364926Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:24:53.530143851Z",
   "url" : "/users/1",
   "method" : "GET",
   "body" : "",

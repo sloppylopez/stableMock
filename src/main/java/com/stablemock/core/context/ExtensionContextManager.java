@@ -5,6 +5,7 @@ import com.stablemock.core.server.WireMockServerManager;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.File;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Manages ExtensionContext.Store operations for storing and retrieving WireMock server state.
@@ -88,6 +89,14 @@ public final class ExtensionContextManager {
         public java.util.List<Integer> getPorts() {
             return store.get("ports", java.util.List.class);
         }
+
+        public ReentrantLock getClassLock() {
+            return store.get("classLock", ReentrantLock.class);
+        }
+
+        public void putClassLock(ReentrantLock lock) {
+            store.put("classLock", lock);
+        }
     }
     
     public static class MethodLevelStore {
@@ -160,6 +169,14 @@ public final class ExtensionContextManager {
         @SuppressWarnings("unchecked")
         public java.util.List<WireMockServerManager.AnnotationInfo> getAnnotationInfos() {
             return store.get("annotationInfos", java.util.List.class);
+        }
+
+        public void putClassLock(ReentrantLock lock) {
+            store.put("classLock", lock);
+        }
+
+        public ReentrantLock getClassLock() {
+            return store.get("classLock", ReentrantLock.class);
         }
     }
 }
