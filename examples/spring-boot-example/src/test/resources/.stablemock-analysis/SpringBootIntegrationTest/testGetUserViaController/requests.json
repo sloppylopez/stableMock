@@ -1,52 +1,4 @@
 [ {
-  "timestamp" : "2025-12-11T23:19:48.548511Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-11T23:19:48.558752200Z",
-  "url" : "/users/2",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-11T23:23:57.273946761Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-11T23:23:57.279995097Z",
-  "url" : "/users/3",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-11T23:23:57.290040825Z",
-  "url" : "/users/2",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-11T23:23:57.298029602Z",
-  "url" : "/posts",
-  "method" : "POST",
-  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}",
-  "contentType" : "text/plain;charset=UTF-8"
-}, {
-  "timestamp" : "2025-12-11T23:24:59.765654047Z",
-  "url" : "/users/2",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-11T23:24:59.774076993Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
   "timestamp" : "2025-12-11T23:24:59.782486500Z",
   "url" : "/posts",
   "method" : "POST",
@@ -54,6 +6,54 @@
   "contentType" : "text/plain;charset=UTF-8"
 }, {
   "timestamp" : "2025-12-11T23:24:59.792842673Z",
+  "url" : "/users/3",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:27:00.120545Z",
+  "url" : "/posts",
+  "method" : "POST",
+  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}",
+  "contentType" : "text/plain;charset=UTF-8"
+}, {
+  "timestamp" : "2025-12-11T23:27:00.121545400Z",
+  "url" : "/users/3",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:27:00.121545400Z",
+  "url" : "/users/2",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:27:00.123007500Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:27:29.264669300Z",
+  "url" : "/posts",
+  "method" : "POST",
+  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}",
+  "contentType" : "text/plain;charset=UTF-8"
+}, {
+  "timestamp" : "2025-12-11T23:27:29.264669300Z",
+  "url" : "/users/2",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:27:29.265668700Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-11T23:27:29.266669500Z",
   "url" : "/users/3",
   "method" : "GET",
   "body" : "",
