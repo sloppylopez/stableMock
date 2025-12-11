@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.File;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 /**
  * Manages ExtensionContext.Store operations for storing and retrieving WireMock server state.
@@ -96,6 +97,18 @@ public final class ExtensionContextManager {
 
         public void putClassLock(ReentrantLock lock) {
             store.put("classLock", lock);
+        }
+
+        /**
+         * Returns a single lock instance per test class, created atomically.
+         * This is critical for parallel RECORD runs where multiple test methods
+         * may enter beforeEach concurrently.
+         */
+        public ReentrantLock getOrCreateClassLock() {
+            return store.getOrComputeIfAbsent(
+                    "classLock",
+                    (Function<String, ReentrantLock>) key -> new ReentrantLock(),
+                    ReentrantLock.class);
         }
     }
     

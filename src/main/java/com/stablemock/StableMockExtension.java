@@ -221,11 +221,7 @@ public class StableMockExtension
 
         if (classServer != null) {
             if (StableMockConfig.isRecordMode()) {
-                ReentrantLock lock = classStore.getClassLock();
-                if (lock == null) {
-                    lock = new ReentrantLock();
-                    classStore.putClassLock(lock);
-                }
+                ReentrantLock lock = classStore.getOrCreateClassLock();
                 lock.lock();
                 methodStore.putClassLock(lock);
             }
