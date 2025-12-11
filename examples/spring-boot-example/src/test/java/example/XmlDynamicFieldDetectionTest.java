@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * - PLAYBACK mode: auto-applies detected ignore patterns by injecting ${xmlunit.ignore} placeholders
  *   into the recorded request-body matchers so future requests with different dynamic values still match.
  */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @U(urls = { "https://postman-echo.com" })
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class XmlDynamicFieldDetectionTest {
 
     @Autowired
@@ -36,7 +36,10 @@ class XmlDynamicFieldDetectionTest {
         registry.add("app.thirdparty.url", () -> {
             String baseUrl = getThreadLocalBaseUrl();
             if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl");
+                baseUrl = System.getProperty("stablemock.baseUrl.XmlDynamicFieldDetectionTest");
+                if (baseUrl == null || baseUrl.isEmpty()) {
+                    baseUrl = System.getProperty("stablemock.baseUrl");
+                }
             }
             return baseUrl != null && !baseUrl.isEmpty()
                     ? baseUrl
@@ -46,7 +49,10 @@ class XmlDynamicFieldDetectionTest {
         registry.add("app.postmanecho.url", () -> {
             String baseUrl = getThreadLocalBaseUrl();
             if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl");
+                baseUrl = System.getProperty("stablemock.baseUrl.XmlDynamicFieldDetectionTest");
+                if (baseUrl == null || baseUrl.isEmpty()) {
+                    baseUrl = System.getProperty("stablemock.baseUrl");
+                }
             }
             return baseUrl != null && !baseUrl.isEmpty()
                     ? baseUrl

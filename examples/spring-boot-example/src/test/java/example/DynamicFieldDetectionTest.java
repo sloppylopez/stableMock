@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * - RECORD mode: Detects changing fields and saves to detected-fields.json
  * - PLAYBACK mode: Auto-applies detected patterns (without manual annotation)
  */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @U(urls = { "https://jsonplaceholder.typicode.com" })
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class DynamicFieldDetectionTest {
 
     @Autowired
@@ -37,7 +37,10 @@ class DynamicFieldDetectionTest {
         registry.add("app.thirdparty.url", () -> {
             String baseUrl = getThreadLocalBaseUrl();
             if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl");
+                baseUrl = System.getProperty("stablemock.baseUrl.DynamicFieldDetectionTest");
+                if (baseUrl == null || baseUrl.isEmpty()) {
+                    baseUrl = System.getProperty("stablemock.baseUrl");
+                }
             }
             return baseUrl != null && !baseUrl.isEmpty()
                     ? baseUrl

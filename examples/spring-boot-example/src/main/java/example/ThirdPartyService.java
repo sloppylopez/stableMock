@@ -18,7 +18,10 @@ public class ThirdPartyService {
     private String defaultThirdPartyUrl;
 
     @Autowired
-    public ThirdPartyService(JsonPlaceholderClient jsonPlaceholderClient, PostmanEchoClient postmanEchoClient, Environment environment) {
+    public ThirdPartyService(
+            JsonPlaceholderClient jsonPlaceholderClient,
+            PostmanEchoClient postmanEchoClient,
+            Environment environment) {
         this.jsonPlaceholderClient = jsonPlaceholderClient;
         this.postmanEchoClient = postmanEchoClient;
         this.environment = environment;
