@@ -36,6 +36,12 @@ public class ThirdPartyService {
         return postmanEchoClient.getUser(userId);
     }
 
+    public String postXmlToPostmanEcho(String xmlBody) {
+        // FeignClient uses the URL from app.postmanecho.url property
+        // This is set by @DynamicPropertySource in tests to point to WireMock
+        return postmanEchoClient.postXml(xmlBody);
+    }
+
     public String createPost(String title, String body, int userId) {
         // FeignClient uses the URL from app.thirdparty.url property
         // This is set by @DynamicPropertySource in tests to point to WireMock

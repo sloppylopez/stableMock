@@ -35,5 +35,11 @@ public class UserController {
         String user = thirdPartyService.getUserFromPostmanEcho(id);
         return ResponseEntity.ok(user);
     }
+
+    @PostMapping(value = "/postmanecho/xml", consumes = "application/xml")
+    public ResponseEntity<String> postXmlToPostmanEcho(@RequestBody String xmlBody) {
+        String response = thirdPartyService.postXmlToPostmanEcho(xmlBody);
+        return ResponseEntity.ok(response);
+    }
 }
 

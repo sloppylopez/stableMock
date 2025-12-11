@@ -26,48 +26,6 @@ function Invoke-Test {
     Invoke-Gradle "test"
 }
 
-function Invoke-XmlE2ETest {
-    Write-Step "Running XML E2E tests (RECORD then PLAYBACK)"
-    
-    # Always use --no-daemon to ensure clean environment between runs
-    $gradleArgs = "--no-daemon"
-    
-    Write-Step "Cleaning old XML E2E recordings"
-    $xmlTestDir = "src\test\resources\stablemock\XmlE2ETest"
-    if (Test-Path $xmlTestDir) {
-        Remove-Item -Path $xmlTestDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    
-    Write-Step "XML E2E: Record mode (first run)"
-    $env:STABLEMOCK_MODE = "RECORD"
-    & .\gradlew.bat test --tests XmlE2ETest -PincludeXmlE2E=true $gradleArgs
-    if ($LASTEXITCODE -ne 0) { 
-        Remove-Item Env:\STABLEMOCK_MODE -ErrorAction SilentlyContinue
-        throw "Gradle command failed with exit code $LASTEXITCODE" 
-    }
-    Remove-Item Env:\STABLEMOCK_MODE -ErrorAction SilentlyContinue
-    
-    Start-Sleep -Seconds 5
-    
-    Write-Step "XML E2E: Record mode (second run - triggers dynamic field detection)"
-    $env:STABLEMOCK_MODE = "RECORD"
-    & .\gradlew.bat test --tests XmlE2ETest -PincludeXmlE2E=true $gradleArgs
-    if ($LASTEXITCODE -ne 0) { 
-        Remove-Item Env:\STABLEMOCK_MODE -ErrorAction SilentlyContinue
-        throw "Gradle command failed with exit code $LASTEXITCODE" 
-    }
-    Remove-Item Env:\STABLEMOCK_MODE -ErrorAction SilentlyContinue
-    
-    Start-Sleep -Seconds 5
-    
-    Write-Step "XML E2E: Playback mode (verify recordings work)"
-    Remove-Item Env:\STABLEMOCK_MODE -ErrorAction SilentlyContinue
-    & .\gradlew.bat test --tests XmlE2ETest -PincludeXmlE2E=true $gradleArgs
-    if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
-    
-    Write-Host "XML E2E tests completed successfully!" -ForegroundColor Green
-}
-
 function Invoke-Build {
     Write-Step "Building StableMock library"
     Invoke-Gradle "build -x test"
@@ -188,7 +146,6 @@ function Test-StableMockCleanup {
 function Invoke-All {
     Write-Host "`n=== Running Complete Workflow ===" -ForegroundColor Green
     Invoke-Test
-    Invoke-XmlE2ETest
     Invoke-Build
     Invoke-Publish
     Invoke-SpringExample
@@ -199,7 +156,6 @@ function Invoke-All {
 switch ($Target.ToLower()) {
     "all" { Invoke-All }
     "test" { Invoke-Test }
-    "xml-e2e" { Invoke-XmlE2ETest }
     "build" { Invoke-Build }
     "publish" { Invoke-Publish }
     "spring-example" { Invoke-SpringExample }
@@ -208,7 +164,6 @@ switch ($Target.ToLower()) {
         Write-Host "`nAvailable targets:" -ForegroundColor Yellow
         Write-Host "  all              - Run tests, build, publish, and test Spring Boot example"
         Write-Host "  test             - Run unit tests"
-        Write-Host "  xml-e2e          - Run XML E2E tests (RECORD then PLAYBACK)"
         Write-Host "  build            - Build StableMock library (skip tests)"
         Write-Host "  publish          - Publish to Maven Local (skip tests)"
         Write-Host "  spring-example   - Run Spring Boot example tests"
