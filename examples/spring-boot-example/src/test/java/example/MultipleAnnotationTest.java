@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 3. Mappings are saved separately per annotation
  */
 @U(urls = { "https://jsonplaceholder.typicode.com", "https://postman-echo.com" })
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "spring.main.lazy-initialization=true")
 class MultipleAnnotationTest {
 
     @Autowired

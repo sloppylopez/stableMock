@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * - PLAYBACK mode: Auto-applies detected patterns (without manual annotation)
  */
 @U(urls = { "https://jsonplaceholder.typicode.com" })
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "spring.main.lazy-initialization=true")
 class DynamicFieldDetectionTest {
 
     @Autowired
