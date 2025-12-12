@@ -23,7 +23,12 @@ import static org.junit.jupiter.api.Assertions.*;
  * 5. Tests hit controller -> service -> Feign client -> WireMock
  */
 @U(urls = { "https://jsonplaceholder.typicode.com" })
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "spring.main.lazy-initialization=true")
+@SpringBootTest(
+        webEnvironment = WebEnvironment.RANDOM_PORT,
+        properties = {
+                "spring.main.lazy-initialization=true",
+                "stablemock.testClass=SpringBootIntegrationTest"
+        })
 class SpringBootIntegrationTest {
 
     @Autowired
