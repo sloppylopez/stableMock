@@ -272,7 +272,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                             java.nio.file.Files.copy(sourceFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                         } catch (Exception e) {
-                            logger.error("Failed to copy body file {}: {}", bodyFileName, e.getMessage());
+                            logBodyFileCopyFailure(bodyFileName, e);
                         }
                     }
                 }
@@ -558,9 +558,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                             java.nio.file.Files.copy(bodyFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                         } catch (Exception e) {
-                            // Ignore individual file copy failures - these are non-critical body files
-                            // that may not exist for all mappings. Missing body files won't break playback.
-                            logger.debug("Failed to copy body file {}: {}", bodyFile.getName(), e.getMessage());
+                            logBodyFileCopyFailure(bodyFile.getName(), e);
                         }
                     }
                 }

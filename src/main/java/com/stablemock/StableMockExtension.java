@@ -309,11 +309,11 @@ public class StableMockExtension
 
             for (int i = 0; i < annotationInfos.size(); i++) {
                 WireMockServerManager.AnnotationInfo info = annotationInfos.get(i);
-                if (info.urls.length > 0) {
+                if (info.urls().length > 0) {
                     int port = WireMockServerManager.findFreePort();
                     File annotationMappingsDir = new File(mappingsDir, "annotation_" + i);
                     WireMockServer server = WireMockServerManager.startRecording(port, annotationMappingsDir,
-                            Arrays.asList(info.urls));
+                            Arrays.asList(info.urls()));
                     servers.add(server);
                     ports.add(port);
                 }
@@ -324,7 +324,7 @@ public class StableMockExtension
             methodStore.putPort(ports.get(0));
             methodStore.putMode(mode);
             methodStore.putMappingsDir(mappingsDir);
-            methodStore.putTargetUrl(annotationInfos.get(0).urls[0]);
+            methodStore.putTargetUrl(annotationInfos.get(0).urls()[0]);
             methodStore.putUseClassLevelServer(false);
 
             String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(0);

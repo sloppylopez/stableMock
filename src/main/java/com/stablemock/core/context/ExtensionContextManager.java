@@ -7,86 +7,85 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
 
 /**
  * Manages ExtensionContext.Store operations for storing and retrieving WireMock server state.
  */
 public final class ExtensionContextManager {
-    
+
     private ExtensionContextManager() {
         // utility class
     }
-    
+
     public static class ClassLevelStore {
         private final ExtensionContext.Store store;
-        
+
         public ClassLevelStore(ExtensionContext context) {
             this.store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
         }
-        
+
         public void putServer(WireMockServer server) {
             store.put("wireMockServer", server);
         }
-        
+
         public WireMockServer getServer() {
             return store.get("wireMockServer", WireMockServer.class);
         }
-        
+
         public void putPort(int port) {
             store.put("port", port);
         }
-        
+
         public Integer getPort() {
             return store.get("port", Integer.class);
         }
-        
+
         public void putMode(String mode) {
             store.put("mode", mode);
         }
-        
+
         public String getMode() {
             return store.get("mode", String.class);
         }
-        
+
         public void putTargetUrl(String targetUrl) {
             store.put("targetUrl", targetUrl);
         }
-        
+
         public String getTargetUrl() {
             return store.get("targetUrl", String.class);
         }
-        
+
         public void removeServer() {
             store.remove("wireMockServer");
         }
-        
+
         public void removePort() {
             store.remove("port");
         }
-        
+
         public void putAnnotationInfos(List<WireMockServerManager.AnnotationInfo> infos) {
             store.put("annotationInfos", infos);
         }
-        
+
         @SuppressWarnings("unchecked")
         public List<WireMockServerManager.AnnotationInfo> getAnnotationInfos() {
             return store.get("annotationInfos", List.class);
         }
-        
+
         public void putServers(List<WireMockServer> servers) {
             store.put("wireMockServers", servers);
         }
-        
+
         @SuppressWarnings("unchecked")
         public List<WireMockServer> getServers() {
             return store.get("wireMockServers", List.class);
         }
-        
+
         public void putPorts(List<Integer> ports) {
             store.put("ports", ports);
         }
-        
+
         @SuppressWarnings("unchecked")
         public List<Integer> getPorts() {
             return store.get("ports", List.class);
@@ -100,78 +99,78 @@ public final class ExtensionContextManager {
         public ReentrantLock getOrCreateClassLock() {
             return store.getOrComputeIfAbsent(
                     "classLock",
-                    (Function<String, ReentrantLock>) key -> new ReentrantLock(),
+                    key -> new ReentrantLock(),
                     ReentrantLock.class);
         }
     }
-    
+
     public static class MethodLevelStore {
         private final ExtensionContext.Store store;
-        
+
         public MethodLevelStore(ExtensionContext context) {
             this.store = context.getStore(ExtensionContext.Namespace.create(context.getUniqueId()));
         }
-        
+
         public void putServer(WireMockServer server) {
             store.put("wireMockServer", server);
         }
-        
+
         public WireMockServer getServer() {
             return store.get("wireMockServer", WireMockServer.class);
         }
-        
+
         public void putPort(int port) {
             store.put("port", port);
         }
-        
+
         public Integer getPort() {
             return store.get("port", Integer.class);
         }
-        
+
         public void putMode(String mode) {
             store.put("mode", mode);
         }
-        
+
         public String getMode() {
             return store.get("mode", String.class);
         }
-        
+
         public void putMappingsDir(File mappingsDir) {
             store.put("mappingsDir", mappingsDir);
         }
-        
+
         public File getMappingsDir() {
             return store.get("mappingsDir", File.class);
         }
-        
+
         public void putTargetUrl(String targetUrl) {
             store.put("targetUrl", targetUrl);
         }
-        
+
         public String getTargetUrl() {
             return store.get("targetUrl", String.class);
         }
-        
+
         public void putUseClassLevelServer(boolean use) {
             store.put("useClassLevelServer", use);
         }
-        
+
         public Boolean getUseClassLevelServer() {
             return store.get("useClassLevelServer", Boolean.class);
         }
-        
+
         public void putExistingRequestCount(int count) {
             store.put("existingRequestCount", count);
         }
-        
+
         public Integer getExistingRequestCount() {
             return store.get("existingRequestCount", Integer.class);
         }
-        
+
         public void putAnnotationInfos(List<WireMockServerManager.AnnotationInfo> infos) {
             store.put("annotationInfos", infos);
         }
-        
+
         @SuppressWarnings("unchecked")
         public List<WireMockServerManager.AnnotationInfo> getAnnotationInfos() {
             return store.get("annotationInfos", List.class);

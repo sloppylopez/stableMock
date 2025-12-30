@@ -1,6 +1,7 @@
 package com.stablemock.core.server;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.stablemock.core.config.PortFinder;
 import org.slf4j.Logger;
@@ -61,29 +62,15 @@ public final class WireMockServerManager {
 
         String primaryUrl = targetUrls.get(0);
         server.stubFor(
-                com.github.tomakehurst.wiremock.client.WireMock.any(
-                                com.github.tomakehurst.wiremock.client.WireMock.anyUrl())
-                        .willReturn(
-                                com.github.tomakehurst.wiremock.client.WireMock.aResponse()
-                                        .proxiedFrom(primaryUrl)));
+                WireMock.any(WireMock.anyUrl())
+                        .willReturn(WireMock.aResponse()
+                                .proxiedFrom(primaryUrl)));
 
         logger.info("Recording mode on port {}, proxying to {}", port, primaryUrl);
         return server;
     }
 
-    public static class AnnotationInfo {
-        public final int index;
-        public final String[] urls;
-
-        public AnnotationInfo(int index, String[] urls) {
-            this.index = index;
-            this.urls = urls;
-        }
-    }
-    
-    public static WireMockServer startPlayback(int port, File mappingsDir, 
-            File testResourcesDir, String testClassName, String testMethodName) {
-        return startPlayback(port, mappingsDir, testResourcesDir, testClassName, testMethodName, null);
+    public record AnnotationInfo(int index, String[] urls) {
     }
     
     public static WireMockServer startPlayback(int port, File mappingsDir, 

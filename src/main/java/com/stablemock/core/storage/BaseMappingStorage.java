@@ -17,6 +17,17 @@ public abstract class BaseMappingStorage {
     }
     
     /**
+     * Logs a body file copy failure. Body files are non-critical - missing files won't break playback,
+     * but response bodies may be missing. Uses debug level to avoid cluttering logs.
+     * 
+     * @param fileName The name of the body file that failed to copy
+     * @param exception The exception that occurred
+     */
+    protected static void logBodyFileCopyFailure(String fileName, Exception exception) {
+        logger.debug("Failed to copy body file {}: {}", fileName, exception.getMessage());
+    }
+    
+    /**
      * Cleans up class-level mapping directories.
      */
     public static void cleanupClassLevelDirectory(File baseMappingsDir) {
