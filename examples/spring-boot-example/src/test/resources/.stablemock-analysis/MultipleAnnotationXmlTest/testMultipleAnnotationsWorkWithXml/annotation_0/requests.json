@@ -1,10 +1,4 @@
 [ {
-  "timestamp" : "2025-12-30T17:03:39.001696Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
   "timestamp" : "2025-12-30T17:09:12.386064302Z",
   "url" : "/users/1",
   "method" : "GET",
@@ -54,6 +48,12 @@
   "contentType" : null
 }, {
   "timestamp" : "2025-12-30T17:20:54.297916700Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-30T17:21:20.687743Z",
   "url" : "/users/1",
   "method" : "GET",
   "body" : "",
