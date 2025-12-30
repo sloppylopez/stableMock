@@ -634,6 +634,11 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 // This is a critical error - POST mappings are required
                 throw new IllegalStateException("POST mappings were copied but not found in final directory. This will cause POST requests to fail.");
             }
+            if (getMappingsCopied > 0 && getCount == 0) {
+                logger.error("{} GET mapping(s) were copied but 0 found in final directory! Files may not have been written correctly.", getMappingsCopied);
+                // This is a critical error - GET mappings are required
+                throw new IllegalStateException("GET mappings were copied but not found in final directory. This will cause GET requests to fail.");
+            }
             if (postCount == 0 && postMappingsCopied == 0) {
                 logger.error("No POST mappings found in merged mappings! This will cause POST requests to fail.");
                 // List all test method directories to help debug
@@ -649,6 +654,9 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                         logger.error("  - {}: {} mapping file(s)", testMethodDir.getName(), fileCount);
                     }
                 }
+            }
+            if (getCount == 0 && getMappingsCopied == 0) {
+                logger.error("No GET mappings found in merged mappings! This will cause GET requests to fail.");
             }
             if (getCount < 3) {
                 logger.warn("Expected at least 3 GET mappings (/users/1, /users/2, /users/3) but found only {}", getCount);
