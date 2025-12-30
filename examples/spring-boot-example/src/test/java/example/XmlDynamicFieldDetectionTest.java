@@ -25,12 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *   into the recorded request-body matchers so future requests with different dynamic values still match.
  */
 @U(urls = { "https://postman-echo.com" })
-@SpringBootTest(
-        webEnvironment = WebEnvironment.RANDOM_PORT,
-        properties = {
-                "spring.main.lazy-initialization=true",
-                "stablemock.testClass=XmlDynamicFieldDetectionTest"
-        })
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class XmlDynamicFieldDetectionTest {
 
     @Autowired
