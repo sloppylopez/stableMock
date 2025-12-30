@@ -335,7 +335,7 @@ Each test class gets its own WireMock instance, so parallel execution works corr
 2. **Dynamic URL override**: Feign client URL is overridden at runtime via URI parameter
 3. **Clean separation**: Production code doesn't need to know about testing - it just checks system property
 4. **Parallel execution**: Multiple test classes can run simultaneously, each with its own WireMock instance
-5. **No @DynamicPropertySource needed**: We bypass Spring's property resolution timing issue by using system properties directly
+5. **@DynamicPropertySource integration**: StableMock uses @DynamicPropertySource for automatic property registration, resolving Spring's property resolution timing issues with dynamic ports and parallel tests
 
 ## Using @DynamicPropertySource with StableMock
 
