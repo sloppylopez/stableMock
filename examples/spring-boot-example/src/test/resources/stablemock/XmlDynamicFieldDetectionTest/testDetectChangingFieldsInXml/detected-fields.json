@@ -1,0 +1,28 @@
+{
+  "testClass" : "XmlDynamicFieldDetectionTest",
+  "testMethod" : "testDetectChangingFieldsInXml",
+  "detectedAt" : "2025-12-30T17:40:37.674536Z",
+  "analyzed_requests_count" : 10,
+  "dynamic_fields" : [ {
+    "field_path" : "xml://*[local-name()='user']/@*[local-name()='sessionId']",
+    "confidence" : "HIGH",
+    "sample_values" : [ "44b02da2-08bc-4077-96c5-f53cafcd4ac5", "ed69e80e-e5f6-4d12-94c6-14260878fbb1", "7678266f-c7a2-4fbf-83de-36d9c008efe4" ]
+  }, {
+    "field_path" : "xml://*[local-name()='header']/@*[local-name()='id']",
+    "confidence" : "HIGH",
+    "sample_values" : [ "44b02da2-08bc-4077-96c5-f53cafcd4ac5", "ed69e80e-e5f6-4d12-94c6-14260878fbb1", "7678266f-c7a2-4fbf-83de-36d9c008efe4" ]
+  }, {
+    "field_path" : "xml://*[local-name()='header']/@*[local-name()='version']",
+    "confidence" : "HIGH",
+    "sample_values" : [ "1.1767116103237", "1.1767116100089", "1.1767116256073" ]
+  }, {
+    "field_path" : "xml://*[local-name()='requestId']",
+    "confidence" : "HIGH",
+    "sample_values" : [ "51279907-0e32-4806-9098-1a167596159f", "b0361018-f3c9-4431-b77c-05ff74078c66", "7439b131-33ef-4172-82d6-4a01996d9c25" ]
+  }, {
+    "field_path" : "xml://*[local-name()='timestamp']",
+    "confidence" : "HIGH",
+    "sample_values" : [ "2025-12-30T17:35:03.237186048Z", "2025-12-30T17:35:00.089276217Z", "2025-12-30T17:37:36.073109394Z" ]
+  } ],
+  "ignore_patterns" : [ "xml://*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='requestId']", "xml://*[local-name()='timestamp']" ]
+}
