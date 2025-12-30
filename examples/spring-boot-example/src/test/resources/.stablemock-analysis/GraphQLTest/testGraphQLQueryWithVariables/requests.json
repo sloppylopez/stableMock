@@ -1,22 +1,4 @@
 [ {
-  "timestamp" : "2025-12-30T23:18:56.702494300Z",
-  "url" : "/graphql",
-  "method" : "POST",
-  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
-  "contentType" : "application/json"
-}, {
-  "timestamp" : "2025-12-30T23:19:23.321566500Z",
-  "url" : "/graphql",
-  "method" : "POST",
-  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",
-  "contentType" : "application/json"
-}, {
-  "timestamp" : "2025-12-30T23:19:23.332190400Z",
-  "url" : "/graphql",
-  "method" : "POST",
-  "body" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
-  "contentType" : "application/json"
-}, {
   "timestamp" : "2025-12-30T23:19:23.340941100Z",
   "url" : "/graphql",
   "method" : "POST",
@@ -57,5 +39,23 @@
   "url" : "/graphql",
   "method" : "POST",
   "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2025-12-30T23:30:47.896717958Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2025-12-30T23:30:47.983669793Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2025-12-30T23:30:47.992651552Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",
   "contentType" : "application/json"
 } ]

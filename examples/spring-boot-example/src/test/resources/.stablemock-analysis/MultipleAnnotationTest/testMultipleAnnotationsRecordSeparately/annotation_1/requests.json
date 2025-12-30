@@ -1,16 +1,4 @@
 [ {
-  "timestamp" : "2025-12-30T23:13:35.924437600Z",
-  "url" : "/get?id=1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-30T23:13:35.924956900Z",
-  "url" : "/get?id=2",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
   "timestamp" : "2025-12-30T23:18:56.680696900Z",
   "url" : "/get?id=1",
   "method" : "GET",
@@ -55,6 +43,18 @@
 }, {
   "timestamp" : "2025-12-30T23:29:07.906483200Z",
   "url" : "/get?id=2",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-30T23:30:48.091641566Z",
+  "url" : "/get?id=2",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-30T23:30:48.099847728Z",
+  "url" : "/get?id=1",
   "method" : "GET",
   "body" : "",
   "contentType" : null

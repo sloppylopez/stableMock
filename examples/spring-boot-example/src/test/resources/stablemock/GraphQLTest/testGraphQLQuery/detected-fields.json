@@ -1,7 +1,7 @@
 {
   "testClass" : "GraphQLTest",
   "testMethod" : "testGraphQLQuery",
-  "detectedAt" : "2025-12-30T23:29:07.630415100Z",
+  "detectedAt" : "2025-12-30T23:30:48.004862499Z",
   "analyzed_requests_count" : 10,
   "dynamic_fields" : [ {
     "field_path" : "json:query",
