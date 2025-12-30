@@ -79,7 +79,7 @@ public final class DynamicFieldDetector {
                     // Try to detect from body content
                     boolean bodyIsXml = XmlBodyParser.isXml(request.getBody());
                     boolean bodyIsJson = JsonBodyParser.isJson(request.getBody());
-                    
+                    //TODO if we are able to distinguish between json and xml here, why do we use a try catch in the other code block annotated with a TODO?
                     // If both detect, prefer Content-Type if available, otherwise prefer JSON
                     if (bodyIsXml && bodyIsJson) {
                         // Ambiguous - default to JSON for backward compatibility

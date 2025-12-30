@@ -152,6 +152,7 @@ public final class WireMockServerManager {
                         System.err.println(warnMsg);
                         logger.warn(warnMsg);
                     }
+                    //TODO what is this???
                     if (getCount < 3) {
                         String warnMsg = "WARNING: Expected at least 3 GET mappings but found only " + getCount;
                         System.err.println(warnMsg);
@@ -321,6 +322,7 @@ public final class WireMockServerManager {
                                                 logger.debug("Changed {} to equalToJson with json-unit.ignore placeholders", matcherKey);
                                             }
                                         } catch (Exception e) {
+                                            //TODO is it really required to use a catch logic to identify xml from json?
                                             // Not valid JSON, try XML
                                             try {
                                                 // Check if it's XML by looking for XML structure

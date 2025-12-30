@@ -416,32 +416,17 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         }
         
         // Merge existing mappings with new ones (new mappings take precedence for duplicates)
-        List<StubMapping> mergedMappings = new java.util.ArrayList<>(existingMappings);
-        for (StubMapping newMapping : testMethodMappings) {
-            // Check if this mapping already exists (by request method + URL)
-            boolean isDuplicate = false;
-            String newMethod = newMapping.getRequest().getMethod().getName();
-            String newUrl = newMapping.getRequest().getUrl();
-            for (StubMapping existingMapping : existingMappings) {
-                String existingMethod = existingMapping.getRequest().getMethod().getName();
-                String existingUrl = existingMapping.getRequest().getUrl();
-                if (newMethod.equals(existingMethod) && newUrl.equals(existingUrl)) {
-                    isDuplicate = true;
-                    break;
-                }
-            }
-            if (!isDuplicate) {
-                mergedMappings.add(newMapping);
-            } else {
-                // Replace duplicate with new mapping (newer takes precedence)
-                mergedMappings.removeIf(m -> {
-                    String mMethod = m.getRequest().getMethod().getName();
-                    String mUrl = m.getRequest().getUrl();
-                    return mMethod.equals(newMethod) && mUrl.equals(newUrl);
-                });
-                mergedMappings.add(newMapping);
-            }
+        // Use LinkedHashMap for O(1) lookup while preserving insertion order
+        java.util.Map<String, StubMapping> mappingsByKey = new java.util.LinkedHashMap<>();
+        for (StubMapping mapping : existingMappings) {
+            String key = mapping.getRequest().getMethod().getName() + ":" + mapping.getRequest().getUrl();
+            mappingsByKey.put(key, mapping);
         }
+        for (StubMapping mapping : testMethodMappings) {
+            String key = mapping.getRequest().getMethod().getName() + ":" + mapping.getRequest().getUrl();
+            mappingsByKey.put(key, mapping); // New mappings overwrite existing (take precedence)
+        }
+        List<StubMapping> mergedMappings = new java.util.ArrayList<>(mappingsByKey.values());
         
         // Use a temporary directory for the temp server to avoid conflicts
         String uniqueId = java.util.UUID.randomUUID().toString();
