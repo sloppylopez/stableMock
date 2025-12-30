@@ -1,16 +1,16 @@
 {
   "testClass" : "GraphQLTest",
   "testMethod" : "testGraphQLQueryWithGB",
-  "detectedAt" : "2025-12-30T23:30:48.004862307Z",
+  "detectedAt" : "2025-12-30T23:35:02.662850750Z",
   "analyzed_requests_count" : 10,
   "dynamic_fields" : [ {
     "field_path" : "json:query",
     "confidence" : "HIGH",
-    "sample_values" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital } }", "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "{ countries { code name } }" ]
+    "sample_values" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "{ countries { code name } }" ]
   }, {
     "field_path" : "json:variables",
     "confidence" : "HIGH",
-    "sample_values" : [ "{\"code\":\"US\"}", "{\"code\":\"GB\"}", "{\"code\":\"US\"}" ]
+    "sample_values" : [ "{\"code\":\"GB\"}", "{\"code\":\"GB\"}", "{\"code\":\"US\"}" ]
   } ],
   "ignore_patterns" : [ "json:query", "json:variables" ]
 }
