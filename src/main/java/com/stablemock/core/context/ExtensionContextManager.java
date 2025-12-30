@@ -91,24 +91,6 @@ public final class ExtensionContextManager {
             return store.get("annotationInfos", List.class);
         }
 
-        public void putServers(List<WireMockServer> servers) {
-            store.put("wireMockServers", servers);
-        }
-
-        @SuppressWarnings("unchecked")
-        public List<WireMockServer> getServers() {
-            return store.get("wireMockServers", List.class);
-        }
-
-        public void putPorts(List<Integer> ports) {
-            store.put("ports", ports);
-        }
-
-        @SuppressWarnings("unchecked")
-        public List<Integer> getPorts() {
-            return store.get("ports", List.class);
-        }
-
         /**
          * Returns a single lock instance per test class, created atomically.
          * This is critical for parallel RECORD runs where multiple test methods
@@ -209,6 +191,24 @@ public final class ExtensionContextManager {
 
         public ReentrantLock getClassLock() {
             return store.get("classLock", ReentrantLock.class);
+        }
+
+        public void putServers(List<WireMockServer> servers) {
+            store.put("wireMockServers", servers);
+        }
+
+        @SuppressWarnings("unchecked")
+        public List<WireMockServer> getServers() {
+            return store.get("wireMockServers", List.class);
+        }
+
+        public void putPorts(List<Integer> ports) {
+            store.put("ports", ports);
+        }
+
+        @SuppressWarnings("unchecked")
+        public List<Integer> getPorts() {
+            return store.get("ports", List.class);
         }
     }
 }
