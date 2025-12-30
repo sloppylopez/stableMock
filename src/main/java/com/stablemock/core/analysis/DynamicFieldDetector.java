@@ -114,7 +114,7 @@ public final class DynamicFieldDetector {
                 
                 // Filter out null nodes (failed parses)
                 List<JsonNode> validJsonBodies = new ArrayList<>();
-                for (com.fasterxml.jackson.databind.JsonNode node : jsonBodies) {
+                for (JsonNode node : jsonBodies) {
                     if (node != null) {
                         validJsonBodies.add(node);
                     }

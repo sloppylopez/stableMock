@@ -139,6 +139,8 @@ public final class WireMockServerManager {
                     logger.info("Mappings breakdown: {} GET, {} POST, {} other", getCount, postCount, mappingFiles.length - getCount - postCount);
                     if (postCount == 0 && getCount == 0) {
                         logger.warn("No mappings found! All requests will fail.");
+                    } else if (postCount == 0) {
+                        logger.warn("No POST mappings found! POST requests may fail.");
                     }
                 } else {
                     logger.warn("No mapping files found in {}", mappingsSubDir.getAbsolutePath());
