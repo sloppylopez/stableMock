@@ -2,6 +2,7 @@ package com.stablemock;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.stablemock.core.analysis.*;
+import com.stablemock.core.config.Constants;
 import com.stablemock.core.config.StableMockConfig;
 import com.stablemock.core.context.ExtensionContextManager;
 import com.stablemock.core.resolver.TestContextResolver;
@@ -15,6 +16,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * JUnit 5 extension for StableMock that handles WireMock lifecycle per test.
@@ -109,15 +111,26 @@ public class StableMockExtension
             classStore.putMode(mode);
             classStore.putTargetUrl(allUrls.get(0));
 
-            String baseUrl = "http://localhost:" + ports.get(0);
+            String baseUrl = Constants.LOCALHOST_URL_PREFIX + ports.get(0);
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(ports.get(0));
+            String[] baseUrls = new String[ports.size()];
+            for (int i = 0; i < ports.size(); i++) {
+                baseUrls[i] = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
+            }
+            WireMockContext.setBaseUrls(baseUrls);
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
             System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(ports.get(0)));
+            // Class-scoped properties to avoid global races in parallel Spring tests
+            System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
+            System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(ports.get(0)));
 
             for (int i = 0; i < ports.size(); i++) {
                 System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
-                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, "http://localhost:" + ports.get(i));
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
+                // Also class-scoped indexed properties for multi-URL tests
+                System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
             }
 
             logger.info("Started {} WireMock server(s) for {} in {} mode", servers.size(), testClassName, mode);
@@ -164,11 +177,14 @@ public class StableMockExtension
             classStore.putMode(mode);
             classStore.putTargetUrl(allUrls.get(0));
 
-            String baseUrl = "http://localhost:" + port;
+            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(port);
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
             System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
+            // Class-scoped properties to avoid global races in parallel Spring tests
+            System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
+            System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(port));
 
             logger.info("Started WireMock server for {} on port {} in {} mode", testClassName, port, mode);
         }
@@ -204,10 +220,24 @@ public class StableMockExtension
         ExtensionContextManager.MethodLevelStore methodStore = new ExtensionContextManager.MethodLevelStore(context);
 
         if (classServer != null) {
+            if (StableMockConfig.isRecordMode()) {
+                ReentrantLock lock = classStore.getOrCreateClassLock();
+                lock.lock();
+                methodStore.putClassLock(lock);
+            }
+
             Integer port = classStore.getPort();
-            String baseUrl = "http://localhost:" + port;
+            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(port);
+            List<Integer> portsForThreadLocal = classStore.getPorts();
+            if (portsForThreadLocal != null && !portsForThreadLocal.isEmpty()) {
+                String[] baseUrls = new String[portsForThreadLocal.size()];
+                for (int i = 0; i < portsForThreadLocal.size(); i++) {
+                    baseUrls[i] = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + portsForThreadLocal.get(i);
+                }
+                WireMockContext.setBaseUrls(baseUrls);
+            }
 
             String testClassName = TestContextResolver.getTestClassName(context);
             String testMethodName = TestContextResolver.getTestMethodName(context);
@@ -223,6 +253,10 @@ public class StableMockExtension
             methodStore.putTargetUrl(classStore.getTargetUrl());
             methodStore.putUseClassLevelServer(true);
             methodStore.putExistingRequestCount(existingRequestCount);
+
+            // Refresh class-scoped properties (Spring may have evaluated @DynamicPropertySource early)
+            System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
+            System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(port));
 
             if (allUrls.size() > 1) {
                 // Create AnnotationInfo objects for saving mappings
@@ -250,9 +284,11 @@ public class StableMockExtension
                     for (int i = 0; i < ports.size(); i++) {
                         String portProp = StableMockConfig.PORT_PROPERTY + "." + i;
                         String urlProp = StableMockConfig.BASE_URL_PROPERTY + "." + i;
-                        String urlValue = "http://localhost:" + ports.get(i);
+                        String urlValue = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
                         System.setProperty(portProp, String.valueOf(ports.get(i)));
                         System.setProperty(urlProp, urlValue);
+                        System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
+                        System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, urlValue);
                     }
                 } else {
                     logger.warn("No ports found for multiple URLs in beforeEach");
@@ -296,15 +332,20 @@ public class StableMockExtension
             methodStore.putTargetUrl(annotationInfos.get(0).urls[0]);
             methodStore.putUseClassLevelServer(false);
 
-            String baseUrl = "http://localhost:" + ports.get(0);
+            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(0);
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(ports.get(0));
+            String[] baseUrls = new String[ports.size()];
+            for (int i = 0; i < ports.size(); i++) {
+                baseUrls[i] = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
+            }
+            WireMockContext.setBaseUrls(baseUrls);
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
             System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(ports.get(0)));
 
             for (int i = 0; i < ports.size(); i++) {
                 System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
-                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, "http://localhost:" + ports.get(i));
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
             }
         } else {
             int port = WireMockServerManager.findFreePort();
@@ -313,7 +354,9 @@ public class StableMockExtension
             if (StableMockConfig.isRecordMode()) {
                 wireMockServer = WireMockServerManager.startRecording(port, mappingsDir, allUrls);
             } else {
-                MappingStorage.mergePerTestMethodMappings(mappingsDir);
+                // mergePerTestMethodMappings expects class-level directory, not method-level
+                File classMappingsDir = mappingsDir.getParentFile();
+                MappingStorage.mergePerTestMethodMappings(classMappingsDir);
                 // Collect ignore patterns from all annotations (for method-level)
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
@@ -326,7 +369,8 @@ public class StableMockExtension
                         }
                     }
                 }
-                wireMockServer = WireMockServerManager.startPlayback(port, mappingsDir, 
+                // After merge, mappings are in class-level directory, so use that for playback
+                wireMockServer = WireMockServerManager.startPlayback(port, classMappingsDir, 
                         testResourcesDir, testClassName, testMethodName, annotationIgnorePatterns);
             }
 
@@ -337,7 +381,7 @@ public class StableMockExtension
             methodStore.putTargetUrl(allUrls.get(0));
             methodStore.putUseClassLevelServer(false);
 
-            String baseUrl = "http://localhost:" + port;
+            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(port);
             System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
@@ -349,88 +393,103 @@ public class StableMockExtension
     public void afterEach(ExtensionContext context) throws Exception {
         ExtensionContextManager.MethodLevelStore methodStore = new ExtensionContextManager.MethodLevelStore(context);
         Boolean useClassLevelServer = methodStore.getUseClassLevelServer();
+        ReentrantLock classLock = methodStore.getClassLock();
 
-        if (useClassLevelServer != null && useClassLevelServer) {
-            File mappingsDir = methodStore.getMappingsDir();
-            String targetUrl = methodStore.getTargetUrl();
+        try {
+            if (useClassLevelServer != null && useClassLevelServer) {
+                File mappingsDir = methodStore.getMappingsDir();
+                String targetUrl = methodStore.getTargetUrl();
 
-            if (StableMockConfig.isRecordMode() && mappingsDir != null && targetUrl != null) {
-                ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(
-                        context);
-                WireMockServer server = classStore.getServer();
-                if (server != null) {
-                    Integer existingRequestCount = methodStore.getExistingRequestCount();
-                    if (existingRequestCount == null) {
-                        existingRequestCount = 0;
-                    }
-
-                    String testClassName = TestContextResolver.getTestClassName(context);
-                    File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-                    File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
-
-                    List<WireMockServerManager.AnnotationInfo> annotationInfos = methodStore
-                            .getAnnotationInfos();
-                    List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server
-                            .getAllServeEvents();
-                    if (annotationInfos != null && annotationInfos.size() > 1) {
-                        if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
-                            List<WireMockServer> allServers = classStore.getServers();
-                            MappingStorage.saveMappingsForTestMethodMultipleAnnotations(server, mappingsDir,
-                                    baseMappingsDir, annotationInfos, existingRequestCount, allServers);
-
-                            // Track requests and run detection for multiple annotations/URLs
-                            // Pass allServers so requests can be tracked per server/URL
-                            performDynamicFieldDetectionWithServers(context, server, existingRequestCount,
-                                    testResourcesDir, testClassName, annotationInfos, allServers);
+                if (StableMockConfig.isRecordMode() && mappingsDir != null && targetUrl != null) {
+                    ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(
+                            context);
+                    WireMockServer server = classStore.getServer();
+                    if (server != null) {
+                        Integer existingRequestCount = methodStore.getExistingRequestCount();
+                        if (existingRequestCount == null) {
+                            existingRequestCount = 0;
                         }
-                    } else {
-                        if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
-                            MappingStorage.saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl,
-                                    existingRequestCount);
 
-                            // Track requests and run detection for single annotation
-                            performDynamicFieldDetection(context, server, existingRequestCount,
-                                    testResourcesDir, testClassName, null);
-                        }
-                    }
-                }
-            }
-        } else {
-            WireMockServer wireMockServer = methodStore.getServer();
-            File mappingsDir = methodStore.getMappingsDir();
-            String targetUrl = methodStore.getTargetUrl();
-
-            if (wireMockServer != null) {
-                if (StableMockConfig.isRecordMode()) {
-                    List<WireMockServerManager.AnnotationInfo> annotationInfos = methodStore
-                            .getAnnotationInfos();
-                    if (annotationInfos != null && annotationInfos.size() > 1) {
                         String testClassName = TestContextResolver.getTestClassName(context);
                         File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
                         File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
-                        // For method-level servers, we only have one server, so pass null
-                        MappingStorage.saveMappingsForTestMethodMultipleAnnotations(wireMockServer, mappingsDir,
-                                baseMappingsDir, annotationInfos, 0, null);
 
-                        // Track requests and run detection for multiple annotations
-                        // For method-level, we only have one server, so pass null for allServers
-                        performDynamicFieldDetectionWithServers(context, wireMockServer, 0,
-                                testResourcesDir, testClassName, annotationInfos, null);
-                    } else {
-                        MappingStorage.saveMappings(wireMockServer, mappingsDir, targetUrl);
+                        List<WireMockServerManager.AnnotationInfo> annotationInfos = methodStore
+                                .getAnnotationInfos();
+                        List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server
+                                .getAllServeEvents();
+                        if (annotationInfos != null && annotationInfos.size() > 1) {
+                            if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
+                                List<WireMockServer> allServers = classStore.getServers();
+                                MappingStorage.saveMappingsForTestMethodMultipleAnnotations(server, mappingsDir,
+                                        baseMappingsDir, annotationInfos, existingRequestCount, allServers);
 
-                        // Track requests and run detection for single annotation
-                        String testClassName = TestContextResolver.getTestClassName(context);
-                        File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-                        performDynamicFieldDetection(context, wireMockServer, 0,
-                                testResourcesDir, testClassName, null);
+                                // Track requests and run detection for multiple annotations/URLs
+                                // Pass allServers so requests can be tracked per server/URL
+                                performDynamicFieldDetectionWithServers(context, server, existingRequestCount,
+                                        testResourcesDir, testClassName, annotationInfos, allServers);
+                            }
+                        } else {
+                            if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
+                                MappingStorage.saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl,
+                                        existingRequestCount);
+
+                                // Track requests and run detection for single annotation
+                                performDynamicFieldDetection(context, server, existingRequestCount,
+                                        testResourcesDir, testClassName, null);
+                            }
+                        }
                     }
                 }
-                wireMockServer.stop();
+            } else {
+                WireMockServer wireMockServer = methodStore.getServer();
+                File mappingsDir = methodStore.getMappingsDir();
+                String targetUrl = methodStore.getTargetUrl();
+
+                if (wireMockServer != null) {
+                    if (StableMockConfig.isRecordMode()) {
+                        List<WireMockServerManager.AnnotationInfo> annotationInfos = methodStore
+                                .getAnnotationInfos();
+                        if (annotationInfos != null && annotationInfos.size() > 1) {
+                            String testClassName = TestContextResolver.getTestClassName(context);
+                            File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
+                            File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+                            // For method-level servers, we only have one server, so pass null
+                            MappingStorage.saveMappingsForTestMethodMultipleAnnotations(wireMockServer, mappingsDir,
+                                    baseMappingsDir, annotationInfos, 0, null);
+
+                            // Track requests and run detection for multiple annotations
+                            // For method-level, we only have one server, so pass null for allServers
+                            performDynamicFieldDetectionWithServers(context, wireMockServer, 0,
+                                    testResourcesDir, testClassName, annotationInfos, null);
+                        } else {
+                            MappingStorage.saveMappings(wireMockServer, mappingsDir, targetUrl);
+
+                            // Track requests and run detection for single annotation
+                            String testClassName = TestContextResolver.getTestClassName(context);
+                            File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
+                            performDynamicFieldDetection(context, wireMockServer, 0,
+                                    testResourcesDir, testClassName, null);
+                        }
+                    }
+                    wireMockServer.stop();
+                    // Give the server a moment to release the port
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+        } finally {
+            try {
+                if (classLock != null && classLock.isHeldByCurrentThread()) {
+                    classLock.unlock();
+                }
+            } finally {
+                WireMockContext.clear();
             }
         }
-
-        WireMockContext.clear();
     }
 
     @Override

@@ -5,7 +5,20 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.stablemock.core.config.PortFinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayInputStream;
+import java.io.StringWriter;
 import java.io.File;
 import java.util.List;
 
@@ -293,16 +306,20 @@ public final class WireMockServerManager {
                                                     new com.fasterxml.jackson.databind.ObjectMapper();
                                             testMapper.readTree(expectedBody);
                                             
-                                            // It's valid JSON, replace ignored fields with ${json-unit.ignore}
+                                            // It's valid JSON, replace ignored fields with ${json-unit.ignore} placeholders
                                             String normalizedJson = normalizeJsonStringWithPlaceholders(expectedBody, ignorePatterns);
                                             
-                                            // Remove the old matcher and add equalToJson
-                                            patternObj.remove(matcherKey);
-                                            patternObj.put("equalToJson", normalizedJson);
-                                            patternObj.put("ignoreArrayOrder", false);
-                                            patternObj.put("ignoreExtraElements", true);
-                                            modified = true;
-                                            logger.debug("Changed {} to equalToJson with json-unit.ignore placeholders", matcherKey);
+                                            // Convert equalTo to equalToJson for WireMock 3 compatibility, even if normalization didn't change anything
+                                            // This ensures proper JSON matching behavior
+                                            if (matcherKey.equals("equalTo") || !normalizedJson.equals(expectedBody)) {
+                                                // Remove the old matcher and add equalToJson
+                                                patternObj.remove(matcherKey);
+                                                patternObj.put("equalToJson", normalizedJson);
+                                                patternObj.put("ignoreArrayOrder", false);
+                                                patternObj.put("ignoreExtraElements", true);
+                                                modified = true;
+                                                logger.debug("Changed {} to equalToJson with json-unit.ignore placeholders", matcherKey);
+                                            }
                                         } catch (Exception e) {
                                             // Not valid JSON, try XML
                                             try {
@@ -311,11 +328,16 @@ public final class WireMockServerManager {
                                                     // It's XML, replace ignored elements/attributes with ${xmlunit.ignore}
                                                     String normalizedXml = normalizeXmlStringWithPlaceholders(expectedBody, ignorePatterns);
                                                     
-                                                    // Remove the old matcher and add equalToXml
-                                                    patternObj.remove(matcherKey);
-                                                    patternObj.put("equalToXml", normalizedXml);
-                                                    modified = true;
-                                                    logger.debug("Changed {} to equalToXml with xmlunit.ignore placeholders", matcherKey);
+                                                    // Convert equalTo to equalToXml for WireMock 3 compatibility, even if normalization didn't change anything
+                                                    if (matcherKey.equals("equalTo") || !normalizedXml.equals(expectedBody)) {
+                                                        // Remove the old matcher and add equalToXml with placeholder support
+                                                        patternObj.remove(matcherKey);
+                                                        patternObj.put("equalToXml", normalizedXml);
+                                                        patternObj.put("enablePlaceholders", true);
+                                                        patternObj.put("ignoreWhitespace", true);
+                                                        modified = true;
+                                                        logger.debug("Changed {} to equalToXml with xmlunit.ignore placeholders", matcherKey);
+                                                    }
                                                 }
                                             } catch (Exception xmlEx) {
                                                 // Not XML either, skip
@@ -368,37 +390,45 @@ public final class WireMockServerManager {
     /**
      * Normalizes XML by replacing ignored elements/attributes with ${xmlunit.ignore} placeholders.
      * This is the canonical WireMock 3 approach for ignoring dynamic XML content.
+     * Uses DOM manipulation for precise handling of nested elements and attributes.
      */
     private static String normalizeXmlStringWithPlaceholders(String xml, List<String> ignorePatterns) {
         try {
-            // Parse XML patterns and replace matching elements/attributes with ${xmlunit.ignore}
-            String result = xml;
+            // Parse XML into DOM
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setXIncludeAware(false);
+            factory.setExpandEntityReferences(false);
             
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes("UTF-8")));
+            
+            // Apply ignore patterns - replace ignored elements/attributes with placeholders
             for (String pattern : ignorePatterns) {
                 if (pattern.startsWith("xml:")) {
                     String xpathPattern = pattern.substring(4);
-                    // Handle XPath patterns like "//*[local-name()='timestamp']"
-                    // For now, support simple element name patterns
-                    if (xpathPattern.startsWith("//")) {
-                        // Extract element name from XPath
-                        String elementName = extractElementNameFromXPath(xpathPattern);
-                        if (elementName != null) {
-                            // Replace element content with ${xmlunit.ignore}
-                            result = replaceXmlElementWithPlaceholder(result, elementName);
-                        }
-                    } else {
-                        // Simple element name
-                        result = replaceXmlElementWithPlaceholder(result, xpathPattern);
-                    }
+                    applyXmlIgnorePattern(doc, xpathPattern);
                 }
             }
             
-            return result;
+            // Convert back to string
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "no");
+            
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(doc), new StreamResult(writer));
+            return writer.toString();
         } catch (Exception e) {
             logger.debug("Failed to normalize XML: {}", e.getMessage());
             return xml;
         }
     }
+    
     
     /**
      * Replaces a JSON field value with ${json-unit.ignore} placeholder.
@@ -428,6 +458,79 @@ public final class WireMockServerManager {
     }
     
     /**
+     * Sets ignored elements/attributes to ${xmlunit.ignore} placeholder.
+     */
+    private static void applyXmlIgnorePattern(Document doc, String xpathPattern) {
+        if (xpathPattern.startsWith("//")) {
+            if (xpathPattern.contains("@")) {
+                // Attribute pattern: //*[local-name()='element']/@*[local-name()='attr']
+                String[] parts = xpathPattern.split("/@");
+                if (parts.length == 2) {
+                    String elementPattern = parts[0];
+                    String attrPattern = parts[1];
+                    String elementName = extractElementNameFromXPath(elementPattern);
+                    String attrName = extractAttributeNameFromXPath(attrPattern);
+                    if (elementName != null && attrName != null) {
+                        setXmlAttributesToPlaceholder(doc, elementName, attrName);
+                    }
+                }
+            } else {
+                // Element pattern: //*[local-name()='element']
+                String elementName = extractElementNameFromXPath(xpathPattern);
+                if (elementName != null) {
+                    setXmlElementsToPlaceholder(doc, elementName);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Sets text content of matching leaf elements to ${xmlunit.ignore}.
+     */
+    private static void setXmlElementsToPlaceholder(Document doc, String elementName) {
+        NodeList elements = doc.getElementsByTagName("*");
+        for (int i = 0; i < elements.getLength(); i++) {
+            Node node = elements.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+                String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
+                if (localName.equals(elementName)) {
+                    // Only set placeholder when element has no child elements (leaf)
+                    NodeList children = element.getChildNodes();
+                    boolean hasElementChildren = false;
+                    for (int j = 0; j < children.getLength(); j++) {
+                        if (children.item(j).getNodeType() == Node.ELEMENT_NODE) {
+                            hasElementChildren = true;
+                            break;
+                        }
+                    }
+                    if (!hasElementChildren) {
+                        // Replace text content with placeholder while keeping structure
+                        element.setTextContent("${xmlunit.ignore}");
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Sets matching attributes to ${xmlunit.ignore}.
+     */
+    private static void setXmlAttributesToPlaceholder(Document doc, String elementName, String attrName) {
+        NodeList elements = doc.getElementsByTagName("*");
+        for (int i = 0; i < elements.getLength(); i++) {
+            Node node = elements.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+                String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
+                if (localName.equals(elementName) && element.hasAttribute(attrName)) {
+                    element.setAttribute(attrName, "${xmlunit.ignore}");
+                }
+            }
+        }
+    }
+    
+    /**
      * Extracts element name from XPath pattern like "//*[local-name()='timestamp']"
      */
     private static String extractElementNameFromXPath(String xpath) {
@@ -442,23 +545,17 @@ public final class WireMockServerManager {
     }
     
     /**
-     * Replaces XML element content with ${xmlunit.ignore} placeholder.
+     * Extracts attribute name from XPath pattern like "@*[local-name()='id']"
      */
-    private static String replaceXmlElementWithPlaceholder(String xml, String elementName) {
-        // Replace <elementName>value</elementName> with <elementName>${xmlunit.ignore}</elementName>
-        // Handle both self-closing and paired tags
-        String selfClosingPattern = "<" + java.util.regex.Pattern.quote(elementName) + 
-                "([^>]*?)/>";
-        String pairedPattern = "<" + java.util.regex.Pattern.quote(elementName) + 
-                "([^>]*?)>([^<]*)</" + java.util.regex.Pattern.quote(elementName) + ">";
-        
-        // Replace paired tags
-        xml = xml.replaceAll(pairedPattern, "<" + elementName + "$1>${xmlunit.ignore}</" + elementName + ">");
-        
-        // For self-closing tags, convert to paired with placeholder
-        xml = xml.replaceAll(selfClosingPattern, "<" + elementName + "$1>${xmlunit.ignore}</" + elementName + ">");
-        
-        return xml;
+    private static String extractAttributeNameFromXPath(String xpath) {
+        // Extract from patterns like @*[local-name()='attr']
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                "local-name\\(\\)=['\"]([^'\"]+)['\"]");
+        java.util.regex.Matcher matcher = pattern.matcher(xpath);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
     }
 
     public static int findFreePort() {

@@ -10,6 +10,11 @@ repositories {
     mavenLocal()  // For local StableMock builds
 }
 
+configurations.all {
+    // CI uses Gradle dependency caching; ensure SNAPSHOT updates are picked up immediately
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
 ext {
     snapshot_testing_version = '3.2.0'
     springCloudVersion = '2024.0.0'
@@ -31,6 +36,7 @@ dependencies {
     
     // Use local StableMock build (run './gradlew publishToMavenLocal' from parent)
     testImplementation('com.stablemock:stablemock:1.0-SNAPSHOT') {
+        changing = true
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }
     
@@ -64,6 +70,8 @@ tasks.named('stableMockRecord') {
     // Parallel execution can cause race conditions or missed recordings in CI environments
     if (System.getenv('CI') != null) {
         maxParallelForks = 1
+        // Also disable JUnit's internal parallel execution to avoid Spring context cache races
+        systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
     } else {
         maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
     }
@@ -79,6 +87,8 @@ tasks.named('stableMockPlayback') {
     // For local development, allow parallel execution for speed
     if (System.getenv('CI') != null) {
         maxParallelForks = 1
+        // Also disable JUnit's internal parallel execution to avoid Spring context cache races
+        systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
     } else {
         maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
     }

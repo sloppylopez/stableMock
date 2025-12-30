@@ -21,6 +21,11 @@ function Invoke-Gradle {
     }
 }
 
+function Invoke-Test {
+    Write-Step "Running unit tests"
+    Invoke-Gradle "test"
+}
+
 function Invoke-Build {
     Write-Step "Building StableMock library"
     Invoke-Gradle "build -x test"
@@ -48,8 +53,8 @@ function Invoke-SpringExample {
         & .\gradlew.bat stableMockRecord $gradleArgs
         if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
         
-        # Wait a bit longer for afterEach callbacks to complete and files to be flushed
-        Start-Sleep -Seconds 3
+        # Wait for afterEach callbacks to complete, files to be flushed, and ports to be released
+        Start-Sleep -Seconds 10
         
         Write-Step "Verifying recordings from first run"
         # Simple check - if mappings exist, great. If not, playback will fail anyway.
@@ -76,6 +81,9 @@ function Invoke-SpringExample {
         Write-Step "Record mode (second time)"
         & .\gradlew.bat stableMockRecord $gradleArgs
         if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
+        
+        # Wait for afterEach callbacks to complete, files to be flushed, and ports to be released
+        Start-Sleep -Seconds 10
         
         Write-Step "Playback mode"
         & .\gradlew.bat stableMockPlayback $gradleArgs
@@ -137,6 +145,7 @@ function Test-StableMockCleanup {
 
 function Invoke-All {
     Write-Host "`n=== Running Complete Workflow ===" -ForegroundColor Green
+    Invoke-Test
     Invoke-Build
     Invoke-Publish
     Invoke-SpringExample
@@ -146,13 +155,15 @@ function Invoke-All {
 # Main execution
 switch ($Target.ToLower()) {
     "all" { Invoke-All }
+    "test" { Invoke-Test }
     "build" { Invoke-Build }
     "publish" { Invoke-Publish }
     "spring-example" { Invoke-SpringExample }
     default {
         Write-Host "Unknown target: $Target" -ForegroundColor Red
         Write-Host "`nAvailable targets:" -ForegroundColor Yellow
-        Write-Host "  all              - Build, publish, and test Spring Boot example"
+        Write-Host "  all              - Run tests, build, publish, and test Spring Boot example"
+        Write-Host "  test             - Run unit tests"
         Write-Host "  build            - Build StableMock library (skip tests)"
         Write-Host "  publish          - Publish to Maven Local (skip tests)"
         Write-Host "  spring-example   - Run Spring Boot example tests"

@@ -1,20 +1,18 @@
 package com.stablemock.core.analysis;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 /**
- * Detects dynamic fields in JSON request bodies by comparing multiple requests.
- * Identifies fields whose values change across different executions.
+ * Orchestrates dynamic field detection across multiple request formats.
+ * Routes requests to specialized detectors (JSON, XML) based on content type.
+ * This class acts as a coordinator, delegating actual detection logic to format-specific detectors.
  */
 public final class DynamicFieldDetector {
 
     private static final Logger logger = LoggerFactory.getLogger(DynamicFieldDetector.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private DynamicFieldDetector() {
         // utility class
@@ -58,21 +56,82 @@ public final class DynamicFieldDetector {
                 continue;
             }
 
-            // Analyze JSON bodies
-            List<JsonNode> jsonBodies = new ArrayList<>();
+            // Separate requests by format (JSON vs XML)
+            List<RequestSnapshot> jsonRequests = new ArrayList<>();
+            List<RequestSnapshot> xmlRequests = new ArrayList<>();
+
             for (RequestSnapshot request : endpointRequests) {
-                try {
-                    if (request.getBody() != null && !request.getBody().trim().isEmpty()) {
-                        JsonNode node = objectMapper.readTree(request.getBody());
-                        jsonBodies.add(node);
+                if (request.getBody() == null || request.getBody().trim().isEmpty()) {
+                    continue;
+                }
+
+                // Determine format: check Content-Type first, then body content
+                boolean isXml = false;
+                boolean isJson = false;
+                
+                if (request.getContentType() != null) {
+                    isXml = XmlBodyParser.isXmlContentType(request.getContentType());
+                    isJson = JsonBodyParser.isJsonContentType(request.getContentType());
+                }
+                
+                // Fallback: check body content if Content-Type not available or ambiguous
+                if (!isXml && !isJson) {
+                    // Try to detect from body content
+                    boolean bodyIsXml = XmlBodyParser.isXml(request.getBody());
+                    boolean bodyIsJson = JsonBodyParser.isJson(request.getBody());
+                    
+                    // If both detect, prefer Content-Type if available, otherwise prefer JSON
+                    if (bodyIsXml && bodyIsJson) {
+                        // Ambiguous - default to JSON for backward compatibility
+                        isJson = true;
+                    } else if (bodyIsXml) {
+                        isXml = true;
+                    } else if (bodyIsJson) {
+                        isJson = true;
                     }
-                } catch (Exception e) {
-                    logger.debug("Failed to parse JSON body: {}", e.getMessage());
+                    // If neither detected and no Content-Type, default to JSON for backward compatibility
+                    // (old behavior assumed JSON)
+                    if (!isXml && !isJson && request.getContentType() == null) {
+                        isJson = true;
+                    }
+                }
+
+                if (isXml) {
+                    xmlRequests.add(request);
+                } else if (isJson) {
+                    jsonRequests.add(request);
+                }
+                // If neither XML nor JSON detected, skip (could be form data, binary, etc.)
+            }
+
+            // Analyze JSON requests
+            if (jsonRequests.size() >= 2) {
+                List<String> jsonBodyStrings = new ArrayList<>();
+                for (RequestSnapshot request : jsonRequests) {
+                    jsonBodyStrings.add(request.getBody());
+                }
+                List<com.fasterxml.jackson.databind.JsonNode> jsonBodies = JsonBodyParser.parseAllJsonBodies(jsonBodyStrings);
+                
+                // Filter out null nodes (failed parses)
+                List<com.fasterxml.jackson.databind.JsonNode> validJsonBodies = new ArrayList<>();
+                for (com.fasterxml.jackson.databind.JsonNode node : jsonBodies) {
+                    if (node != null) {
+                        validJsonBodies.add(node);
+                    }
+                }
+                
+                if (validJsonBodies.size() >= 2) {
+                    JsonFieldDetector.detectDynamicFieldsInJson(validJsonBodies, result);
                 }
             }
 
-            if (jsonBodies.size() >= 2) {
-                detectDynamicFieldsInJson(jsonBodies, "", result);
+            // Analyze XML requests
+            if (xmlRequests.size() >= 2) {
+                List<String> xmlBodies = new ArrayList<>();
+                for (RequestSnapshot request : xmlRequests) {
+                    xmlBodies.add(request.getBody());
+                }
+                XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
             }
         }
 
@@ -91,118 +150,5 @@ public final class DynamicFieldDetector {
         }
 
         return groups;
-    }
-
-    /**
-     * Recursively detects dynamic fields in JSON by comparing values across
-     * multiple bodies.
-     */
-    private static void detectDynamicFieldsInJson(List<JsonNode> nodes, String pathPrefix,
-            DetectionResult result) {
-        if (nodes.isEmpty()) {
-            return;
-        }
-
-        JsonNode first = nodes.get(0);
-
-        if (first.isObject()) {
-            // Get all field names from all objects
-            Set<String> allFieldNames = new LinkedHashSet<>();
-            for (JsonNode node : nodes) {
-                if (node.isObject()) {
-                    node.fieldNames().forEachRemaining(allFieldNames::add);
-                }
-            }
-
-            // Analyze each field
-            for (String fieldName : allFieldNames) {
-                List<JsonNode> fieldValues = new ArrayList<>();
-                for (JsonNode node : nodes) {
-                    if (node.isObject() && node.has(fieldName)) {
-                        fieldValues.add(node.get(fieldName));
-                    }
-                }
-
-                if (fieldValues.size() >= 2) {
-                    String currentPath = pathPrefix.isEmpty() ? fieldName : pathPrefix + "." + fieldName;
-
-                    // Check if all values are the same
-                    boolean allSame = true;
-                    String firstValue = fieldValues.get(0).toString();
-                    for (int i = 1; i < fieldValues.size(); i++) {
-                        if (!firstValue.equals(fieldValues.get(i).toString())) {
-                            allSame = false;
-                            break;
-                        }
-                    }
-
-                    if (!allSame) {
-                        // This field has changing values - it's dynamic!
-                        List<String> sampleValues = new ArrayList<>();
-                        for (JsonNode value : fieldValues) {
-                            if (value.isTextual()) {
-                                sampleValues.add(value.asText());
-                            } else {
-                                sampleValues.add(value.toString());
-                            }
-                        }
-
-                        // Limit sample values to first 3
-                        if (sampleValues.size() > 3) {
-                            sampleValues = sampleValues.subList(0, 3);
-                        }
-
-                        String confidence = calculateConfidence(fieldValues.size());
-                        String jsonPath = "json:" + currentPath;
-
-                        result.addDynamicField(new DetectionResult.DynamicField(
-                                jsonPath, confidence, sampleValues));
-                        result.addIgnorePattern(jsonPath);
-
-                        logger.info("Detected dynamic field: {} (confidence: {}, samples: {})",
-                                jsonPath, confidence, sampleValues.size());
-                    } else if (fieldValues.get(0).isObject() || fieldValues.get(0).isArray()) {
-                        // Recurse into nested objects/arrays
-                        detectDynamicFieldsInJson(fieldValues, currentPath, result);
-                    }
-                }
-            }
-        } else if (first.isArray()) {
-            // For arrays, we compare elements at the same index
-            int minSize = Integer.MAX_VALUE;
-            for (JsonNode node : nodes) {
-                if (node.isArray()) {
-                    minSize = Math.min(minSize, node.size());
-                }
-            }
-
-            // Analyze common indices
-            for (int i = 0; i < minSize; i++) {
-                List<JsonNode> elementsAtIndex = new ArrayList<>();
-                for (JsonNode node : nodes) {
-                    if (node.isArray() && node.size() > i) {
-                        elementsAtIndex.add(node.get(i));
-                    }
-                }
-
-                if (elementsAtIndex.size() >= 2) {
-                    String currentPath = pathPrefix + "[" + i + "]";
-                    detectDynamicFieldsInJson(elementsAtIndex, currentPath, result);
-                }
-            }
-        }
-    }
-
-    /**
-     * Calculates confidence level based on sample size.
-     */
-    private static String calculateConfidence(int sampleSize) {
-        if (sampleSize >= 5) {
-            return "HIGH";
-        } else if (sampleSize >= 3) {
-            return "MEDIUM";
-        } else {
-            return "LOW";
-        }
     }
 }

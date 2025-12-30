@@ -22,8 +22,13 @@ import static org.junit.jupiter.api.Assertions.*;
  * jsonplaceholder host
  * 5. Tests hit controller -> service -> Feign client -> WireMock
  */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @U(urls = { "https://jsonplaceholder.typicode.com" })
+@SpringBootTest(
+        webEnvironment = WebEnvironment.RANDOM_PORT,
+        properties = {
+                "spring.main.lazy-initialization=true",
+                "stablemock.testClass=SpringBootIntegrationTest"
+        })
 class SpringBootIntegrationTest {
 
     @Autowired
@@ -45,8 +50,12 @@ class SpringBootIntegrationTest {
             // System property is global and gets overwritten in parallel execution
             String baseUrl = getThreadLocalBaseUrl();
             if (baseUrl == null || baseUrl.isEmpty()) {
-                // Fallback to system property only if ThreadLocal not set
-                baseUrl = System.getProperty("stablemock.baseUrl");
+                // Fallback to class-scoped system property (stable in parallel)
+                baseUrl = System.getProperty("stablemock.baseUrl.SpringBootIntegrationTest");
+                if (baseUrl == null || baseUrl.isEmpty()) {
+                    // Last-resort fallback to global system property
+                    baseUrl = System.getProperty("stablemock.baseUrl");
+                }
             }
             return baseUrl != null && !baseUrl.isEmpty()
                     ? baseUrl

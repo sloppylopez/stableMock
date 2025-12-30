@@ -15,21 +15,24 @@ public class RequestSnapshot {
     private final String url;
     private final String method;
     private final String body;
+    private final String contentType;
 
     @JsonCreator
     public RequestSnapshot(
             @JsonProperty("timestamp") String timestamp,
             @JsonProperty("url") String url,
             @JsonProperty("method") String method,
-            @JsonProperty("body") String body) {
+            @JsonProperty("body") String body,
+            @JsonProperty("contentType") String contentType) {
         this.timestamp = timestamp;
         this.url = url;
         this.method = method;
         this.body = body;
+        this.contentType = contentType; // May be null for backward compatibility
     }
 
-    public RequestSnapshot(String url, String method, String body) {
-        this(Instant.now().toString(), url, method, body);
+    public RequestSnapshot(String url, String method, String body, String contentType) {
+        this(Instant.now().toString(), url, method, body, contentType);
     }
 
     public String getTimestamp() {
@@ -48,6 +51,10 @@ public class RequestSnapshot {
         return body;
     }
 
+    public String getContentType() {
+        return contentType;
+    }
+
     @Override
     public String toString() {
         return "RequestSnapshot{" +
@@ -55,6 +62,7 @@ public class RequestSnapshot {
                 ", url='" + url + '\'' +
                 ", method='" + method + '\'' +
                 ", bodyLength=" + (body != null ? body.length() : 0) +
+                ", contentType='" + contentType + '\'' +
                 '}';
     }
 }
