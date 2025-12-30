@@ -167,6 +167,15 @@ public final class ExtensionContextManager {
             return store.get("existingRequestCount", Integer.class);
         }
 
+        public void putExistingRequestCounts(List<Integer> counts) {
+            store.put("existingRequestCounts", counts);
+        }
+
+        @SuppressWarnings("unchecked")
+        public List<Integer> getExistingRequestCounts() {
+            return store.get("existingRequestCounts", List.class);
+        }
+
         public void putAnnotationInfos(List<WireMockServerManager.AnnotationInfo> infos) {
             store.put("annotationInfos", infos);
         }
@@ -185,4 +194,3 @@ public final class ExtensionContextManager {
         }
     }
 }
-

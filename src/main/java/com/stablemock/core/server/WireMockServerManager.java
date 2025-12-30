@@ -38,6 +38,9 @@ public final class WireMockServerManager {
         if (targetUrls.isEmpty()) {
             throw new IllegalArgumentException("At least one targetUrl must be provided for recording mode");
         }
+        if (targetUrls.size() > 1) {
+            logger.warn("Multiple target URLs provided for recording; using only the first: {}", targetUrls.get(0));
+        }
 
         if (!mappingsDir.exists() && !mappingsDir.mkdirs()) {
             throw new RuntimeException("Failed to create mappings directory: " + mappingsDir.getAbsolutePath());
@@ -191,7 +194,9 @@ public final class WireMockServerManager {
                 logger.info("Applying {} ignore patterns to stub files for {}", 
                         ignorePatterns.size(), 
                         testMethodName != null ? testClassName + "." + testMethodName : testClassName);
-                applyIgnorePatternsToStubFiles(mappingsDir, ignorePatterns);
+                File playbackMappingsDir = preparePlaybackMappings(mappingsDir);
+                applyIgnorePatternsToStubFiles(playbackMappingsDir, ignorePatterns);
+                mappingsDir = playbackMappingsDir;
             }
         }
 
@@ -324,6 +329,52 @@ public final class WireMockServerManager {
         } catch (Exception e) {
             logger.warn("Failed to apply ignore patterns to stub files: {}", e.getMessage());
         }
+    }
+
+    private static File preparePlaybackMappings(File mappingsDir) {
+        try {
+            java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory("stablemock-playback-");
+            copyDirectory(mappingsDir.toPath(), tempDir);
+            registerTempDirectoryCleanup(tempDir);
+            return tempDir.toFile();
+        } catch (Exception e) {
+            logger.warn("Failed to create temporary playback mappings directory; using original mappings. {}", e.getMessage());
+            return mappingsDir;
+        }
+    }
+
+    private static void copyDirectory(java.nio.file.Path source, java.nio.file.Path target) throws java.io.IOException {
+        try (java.util.stream.Stream<java.nio.file.Path> paths = java.nio.file.Files.walk(source)) {
+            paths.forEach(path -> {
+                java.nio.file.Path dest = target.resolve(source.relativize(path));
+                try {
+                    if (java.nio.file.Files.isDirectory(path)) {
+                        java.nio.file.Files.createDirectories(dest);
+                    } else {
+                        java.nio.file.Files.copy(path, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                } catch (java.io.IOException e) {
+                    throw new java.io.UncheckedIOException(e);
+                }
+            });
+        }
+    }
+
+    private static void registerTempDirectoryCleanup(java.nio.file.Path tempDir) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try (java.util.stream.Stream<java.nio.file.Path> paths = java.nio.file.Files.walk(tempDir)) {
+                paths.sorted(java.util.Comparator.reverseOrder())
+                        .forEach(path -> {
+                            try {
+                                java.nio.file.Files.deleteIfExists(path);
+                            } catch (java.io.IOException e) {
+                                logger.debug("Failed to delete temp path {}: {}", path, e.getMessage());
+                            }
+                        });
+            } catch (java.io.IOException e) {
+                logger.debug("Failed to clean up temp playback mappings {}: {}", tempDir, e.getMessage());
+            }
+        }, "stablemock-playback-cleanup"));
     }
     
     /**
@@ -525,4 +576,3 @@ public final class WireMockServerManager {
         return PortFinder.findFreePort();
     }
 }
-
