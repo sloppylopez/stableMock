@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @U(urls = { "https://jsonplaceholder.typicode.com" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-class DynamicFieldDetectionTest {
+class DynamicFieldDetectionTest extends BaseStableMockTest {
 
     private static final Logger logger = LoggerFactory.getLogger(DynamicFieldDetectionTest.class);
 
@@ -38,30 +38,9 @@ class DynamicFieldDetectionTest {
      */
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("app.thirdparty.url", () -> {
-            String baseUrl = getThreadLocalBaseUrl();
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl.DynamicFieldDetectionTest");
-                if (baseUrl == null || baseUrl.isEmpty()) {
-                    baseUrl = System.getProperty("stablemock.baseUrl");
-                }
-            }
-            return baseUrl != null && !baseUrl.isEmpty()
-                    ? baseUrl
-                    : "https://jsonplaceholder.typicode.com";
-        });
-
+        registerPropertyWithFallback(registry, "app.thirdparty.url", "DynamicFieldDetectionTest",
+                "https://jsonplaceholder.typicode.com");
         registry.add("app.postmanecho.url", () -> "https://postman-echo.com");
-    }
-
-    private static String getThreadLocalBaseUrl() {
-        try {
-            Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl");
-            return (String) method.invoke(null);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     @Test

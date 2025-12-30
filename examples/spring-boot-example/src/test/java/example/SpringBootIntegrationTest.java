@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @U(urls = { "https://jsonplaceholder.typicode.com" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-class SpringBootIntegrationTest {
+class SpringBootIntegrationTest extends BaseStableMockTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -38,37 +38,9 @@ class SpringBootIntegrationTest {
      */
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        // Map stablemock.baseUrl to app.thirdparty.url so the service uses WireMock
-        registry.add("app.thirdparty.url", () -> {
-            // ALWAYS read from ThreadLocal first (set by StableMockExtension in
-            // beforeAll/beforeEach)
-            // System property is global and gets overwritten in parallel execution
-            String baseUrl = getThreadLocalBaseUrl();
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                // Fallback to class-scoped system property (stable in parallel)
-                baseUrl = System.getProperty("stablemock.baseUrl.SpringBootIntegrationTest");
-                if (baseUrl == null || baseUrl.isEmpty()) {
-                    // Last-resort fallback to global system property
-                    baseUrl = System.getProperty("stablemock.baseUrl");
-                }
-            }
-            return baseUrl != null && !baseUrl.isEmpty()
-                    ? baseUrl
-                    : "https://jsonplaceholder.typicode.com";
-        });
-        
-        // app.postmanecho.url is required for PostmanEchoClient (no default value)
+        registerPropertyWithFallback(registry, "app.thirdparty.url", "SpringBootIntegrationTest",
+                "https://jsonplaceholder.typicode.com");
         registry.add("app.postmanecho.url", () -> "https://postman-echo.com");
-    }
-
-    private static String getThreadLocalBaseUrl() {
-        try {
-            Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl");
-            return (String) method.invoke(null);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     @Test

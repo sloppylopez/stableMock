@@ -26,48 +26,17 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @U(urls = { "https://postman-echo.com" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-class XmlDynamicFieldDetectionTest {
+class XmlDynamicFieldDetectionTest extends BaseStableMockTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("app.thirdparty.url", () -> {
-            String baseUrl = getThreadLocalBaseUrl();
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl.XmlDynamicFieldDetectionTest");
-                if (baseUrl == null || baseUrl.isEmpty()) {
-                    baseUrl = System.getProperty("stablemock.baseUrl");
-                }
-            }
-            return baseUrl != null && !baseUrl.isEmpty()
-                    ? baseUrl
-                    : "https://jsonplaceholder.typicode.com";
-        });
-
-        registry.add("app.postmanecho.url", () -> {
-            String baseUrl = getThreadLocalBaseUrl();
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl.XmlDynamicFieldDetectionTest");
-                if (baseUrl == null || baseUrl.isEmpty()) {
-                    baseUrl = System.getProperty("stablemock.baseUrl");
-                }
-            }
-            return baseUrl != null && !baseUrl.isEmpty()
-                    ? baseUrl
-                    : "https://postman-echo.com";
-        });
-    }
-
-    private static String getThreadLocalBaseUrl() {
-        try {
-            Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl");
-            return (String) method.invoke(null);
-        } catch (Exception e) {
-            return null;
-        }
+        registerPropertyWithFallback(registry, "app.thirdparty.url", "XmlDynamicFieldDetectionTest",
+                "https://jsonplaceholder.typicode.com");
+        registerPropertyWithFallback(registry, "app.postmanecho.url", "XmlDynamicFieldDetectionTest",
+                "https://postman-echo.com");
     }
 
     @Test
