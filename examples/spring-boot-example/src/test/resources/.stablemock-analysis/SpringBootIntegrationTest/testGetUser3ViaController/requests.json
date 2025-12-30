@@ -1,60 +1,60 @@
 [ {
-  "timestamp" : "2025-12-30T22:08:50.668010700Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-30T22:08:50.668010700Z",
+  "timestamp" : "2025-12-30T23:19:23.180542500Z",
   "url" : "/users/2",
   "method" : "GET",
   "body" : "",
   "contentType" : null
 }, {
-  "timestamp" : "2025-12-30T22:10:53.506069400Z",
+  "timestamp" : "2025-12-30T23:19:23.182048300Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-30T23:28:41.893261100Z",
   "url" : "/posts",
   "method" : "POST",
   "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}",
   "contentType" : "text/plain;charset=UTF-8"
 }, {
-  "timestamp" : "2025-12-30T22:10:53.518058800Z",
+  "timestamp" : "2025-12-30T23:28:41.903973900Z",
   "url" : "/users/3",
   "method" : "GET",
   "body" : "",
   "contentType" : null
 }, {
-  "timestamp" : "2025-12-30T22:10:53.528308700Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-30T22:10:53.537339300Z",
+  "timestamp" : "2025-12-30T23:28:41.904978700Z",
   "url" : "/users/2",
   "method" : "GET",
   "body" : "",
   "contentType" : null
 }, {
-  "timestamp" : "2025-12-30T22:11:13.079707Z",
+  "timestamp" : "2025-12-30T23:28:41.912017700Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-30T23:29:07.647576700Z",
   "url" : "/posts",
   "method" : "POST",
   "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}",
   "contentType" : "text/plain;charset=UTF-8"
 }, {
-  "timestamp" : "2025-12-30T22:11:13.099885900Z",
-  "url" : "/users/2",
+  "timestamp" : "2025-12-30T23:29:07.661181100Z",
+  "url" : "/users/3",
   "method" : "GET",
   "body" : "",
   "contentType" : null
 }, {
-  "timestamp" : "2025-12-30T22:11:13.100402Z",
+  "timestamp" : "2025-12-30T23:29:07.662085200Z",
   "url" : "/users/1",
   "method" : "GET",
   "body" : "",
   "contentType" : null
 }, {
-  "timestamp" : "2025-12-30T22:11:13.101916300Z",
-  "url" : "/users/3",
+  "timestamp" : "2025-12-30T23:29:07.663086700Z",
+  "url" : "/users/2",
   "method" : "GET",
   "body" : "",
   "contentType" : null
