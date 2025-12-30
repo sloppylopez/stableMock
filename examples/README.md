@@ -11,7 +11,7 @@ This directory contains runnable example projects demonstrating StableMock integ
 - Integrating StableMock with Spring Boot tests
 - Using Feign clients with dynamic URI parameters
 - Services reading URLs from `application.properties`
-- Automatic proxy URL injection via system properties
+- **Automatic property registration** - `@U` annotation with `properties` parameter automatically configures `@DynamicPropertySource`
 - Complete Spring Boot application with controller, service, and tests
 - Parallel test execution with isolated WireMock instances
 - **Automatic dynamic field detection** - StableMock detects changing fields (timestamps, IDs) automatically

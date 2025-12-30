@@ -105,16 +105,23 @@ This is the default URL used in production. In tests, it's overridden via the sy
 ### 4. Test with @U Annotation
 
 ```java
+@U(urls = { "https://jsonplaceholder.typicode.com" },
+   properties = { "app.thirdparty.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@TestInstance(TestInstance.Lifecycle.PER_METHOD)
-@U(urls = { "https://jsonplaceholder.typicode.com" })
-public class SpringBootIntegrationTest {
+class SpringBootIntegrationTest extends BaseStableMockTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
 
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        autoRegisterProperties(registry, SpringBootIntegrationTest.class);
+        // Additional properties not in @U annotation
+        registry.add("app.postmanecho.url", () -> "https://postman-echo.com");
+    }
+
     @Test
-    public void testGetUserViaController(int port) {
+    void testGetUserViaController() {
         String response = restTemplate.getForObject("/api/users/1", String.class);
         assertNotNull(response);
         assertTrue(response.contains("\"id\":1") || response.contains("\"id\": 1"));
@@ -124,8 +131,9 @@ public class SpringBootIntegrationTest {
 
 **Key Points**:
 - `@U` annotation triggers StableMock extension
-- `@TestInstance(TestInstance.Lifecycle.PER_METHOD)` ensures Spring context is created per test method
-- `int port` parameter is injected by StableMock extension (even if unused)
+- `properties` parameter maps URLs to Spring property names (eliminates manual registration)
+- `autoRegisterProperties()` automatically registers properties from `@U` annotation
+- For multiple URLs, use indexed properties: `properties = { "app.api1.url", "app.api2.url" }`
 
 ## How It Works
 
@@ -329,15 +337,36 @@ Each test class gets its own WireMock instance, so parallel execution works corr
 4. **Parallel execution**: Multiple test classes can run simultaneously, each with its own WireMock instance
 5. **No @DynamicPropertySource needed**: We bypass Spring's property resolution timing issue by using system properties directly
 
-## Why Not @DynamicPropertySource?
+## Using @DynamicPropertySource with StableMock
 
-`@DynamicPropertySource` runs **before** Spring context initialization, but StableMock's `beforeEach()` runs **after** Spring context initialization. This timing mismatch means:
+`@DynamicPropertySource` is **required** when using StableMock with Spring Boot because:
 
-- `@DynamicPropertySource` supplier evaluates → `stablemock.baseUrl` is null → uses default URL
-- Spring context initializes → Feign client created with default URL
-- `beforeEach()` runs → `stablemock.baseUrl` is set (too late!)
+1. **WireMock ports are DYNAMIC** - Random free port chosen at runtime via `findFreePort()`
+2. **Tests run in PARALLEL** - Each test thread gets its own port
+3. **Port is only known after WireMock starts** - In `beforeAll`/`beforeEach`, after Spring context loads
 
-By checking the system property directly in the service method (not during bean creation), we avoid this timing issue.
+**The Solution**: `@DynamicPropertySource` suppliers are evaluated **lazily** (when Spring needs the value), so they can read the ThreadLocal value set by StableMock after WireMock starts.
+
+### Automatic Property Registration
+
+The `@U` annotation now supports a `properties` parameter that automatically maps URLs to Spring property names:
+
+```java
+@U(urls = { "https://api1.com", "https://api2.com" },
+   properties = { "app.api1.url", "app.api2.url" })
+@SpringBootTest
+class MyTest extends BaseStableMockTest {
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        autoRegisterProperties(registry, MyTest.class);
+    }
+}
+```
+
+This eliminates the need to manually register each property. The `autoRegisterProperties()` method:
+- Reads `@U` annotations from the test class
+- Maps URLs to property names (first URL → first property, etc.)
+- Registers properties with the standard fallback chain (ThreadLocal → system properties → defaults)
 
 ## Additional Test Examples
 
@@ -355,9 +384,15 @@ Tests demonstrating **automatic dynamic field detection** - StableMock's most po
 
 **Example:**
 ```java
-@SpringBootTest
-@U(urls = { "https://jsonplaceholder.typicode.com" })
-class DynamicFieldDetectionTest {
+@U(urls = { "https://jsonplaceholder.typicode.com" },
+   properties = { "app.thirdparty.url" })
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+class DynamicFieldDetectionTest extends BaseStableMockTest {
+    
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        autoRegisterProperties(registry, DynamicFieldDetectionTest.class);
+    }
     
     @Test
     void testDetectChangingFields() {
@@ -402,7 +437,8 @@ cat src/test/resources/.stablemock-analysis/DynamicFieldDetectionTest/testDetect
 
 **Manual ignore patterns** (if needed):
 ```java
-@U(urls = { "https://api.example.com" }, 
+@U(urls = { "https://api.example.com" },
+   properties = { "app.api.url" },
    ignore = { "json:timestamp", "json:requestId" })
 ```
 Manual patterns work alongside auto-detection - both are applied.

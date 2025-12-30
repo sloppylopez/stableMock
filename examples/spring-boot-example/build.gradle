@@ -16,7 +16,6 @@ configurations.all {
 }
 
 ext {
-    snapshot_testing_version = '3.2.0'
     springCloudVersion = '2024.0.0'
 }
 
@@ -47,10 +46,6 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.9.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
-    
-    // Snapshot Testing
-    testImplementation "io.github.origin-energy:java-snapshot-testing-junit5:${snapshot_testing_version}"
-    testImplementation "io.github.origin-energy:java-snapshot-testing-plugin-jackson:${snapshot_testing_version}"
 }
 
 test {

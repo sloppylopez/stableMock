@@ -53,16 +53,6 @@ public class ThirdPartyService {
                 title, body, userId);
         return jsonPlaceholderClient.createPost(requestBody);
     }
-    
-    private String getThreadLocalBaseUrl() {
-        try {
-            Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl");
-            return (String) method.invoke(null);
-        } catch (Exception e) {
-            return null;
-        }
-    }
 }
 
 
