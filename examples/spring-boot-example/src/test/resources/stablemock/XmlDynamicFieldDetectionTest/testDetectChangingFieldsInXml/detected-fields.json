@@ -1,28 +1,28 @@
 {
   "testClass" : "XmlDynamicFieldDetectionTest",
   "testMethod" : "testDetectChangingFieldsInXml",
-  "detectedAt" : "2025-12-30T14:50:37.789617527Z",
+  "detectedAt" : "2025-12-30T15:29:05.018685300Z",
   "analyzed_requests_count" : 10,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='user']/@*[local-name()='sessionId']",
     "confidence" : "HIGH",
-    "sample_values" : [ "33662f58-ac0d-4d93-ac5f-d5f4d8929be4", "2d63661f-1096-49ef-bbe6-23266321f0d6", "7578d1ea-d614-4baa-9c52-5dffe23397b0" ]
+    "sample_values" : [ "7e4536f4-91ec-4353-adb7-770817ae04a4", "4408eea8-c953-4e33-8da9-6e39d1e4f4e2", "7d5b1506-8d72-4dbe-9a39-add7b89ff3e2" ]
   }, {
     "field_path" : "xml://*[local-name()='header']/@*[local-name()='id']",
     "confidence" : "HIGH",
-    "sample_values" : [ "33662f58-ac0d-4d93-ac5f-d5f4d8929be4", "2d63661f-1096-49ef-bbe6-23266321f0d6", "7578d1ea-d614-4baa-9c52-5dffe23397b0" ]
+    "sample_values" : [ "7e4536f4-91ec-4353-adb7-770817ae04a4", "4408eea8-c953-4e33-8da9-6e39d1e4f4e2", "7d5b1506-8d72-4dbe-9a39-add7b89ff3e2" ]
   }, {
     "field_path" : "xml://*[local-name()='header']/@*[local-name()='version']",
     "confidence" : "HIGH",
-    "sample_values" : [ "1.1765498470620", "1.1765498468560", "1.1767106014128" ]
+    "sample_values" : [ "1.1767107817096", "1.1767107816858", "1.1767108249626" ]
   }, {
     "field_path" : "xml://*[local-name()='requestId']",
     "confidence" : "HIGH",
-    "sample_values" : [ "26e3d336-0bbd-4021-8ae2-53320ed259a2", "68ce84df-9ed9-4de1-b130-9adf00ed10cc", "4aa81f02-4355-4d9f-9d24-a1995910d3ad" ]
+    "sample_values" : [ "0b82558c-7730-485b-82fa-34f054b35196", "2996a391-fc9e-401e-a2c6-e42b7f823041", "220194eb-cc21-4e6f-9952-ba8d0dd437c6" ]
   }, {
     "field_path" : "xml://*[local-name()='timestamp']",
     "confidence" : "HIGH",
-    "sample_values" : [ "2025-12-12T00:14:30.620726660Z", "2025-12-12T00:14:28.559984516Z", "2025-12-30T14:46:54.127935900Z" ]
+    "sample_values" : [ "2025-12-30T15:16:57.096166700Z", "2025-12-30T15:16:56.858124200Z", "2025-12-30T15:24:09.626033900Z" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='requestId']", "xml://*[local-name()='timestamp']" ]
 }

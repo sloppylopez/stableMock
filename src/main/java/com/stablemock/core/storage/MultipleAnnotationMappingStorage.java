@@ -46,9 +46,12 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
             // For class-level servers, we track existingRequestCount from the primary server
             // But for multiple servers, we need to track per-server. For now, use 0 as we're getting all events from this server
             int serverExistingRequestCount = (annotationInfo.index == 0) ? existingRequestCount : 0;
+            // WireMock returns serve events in REVERSE chronological order (newest first)
+            // So we need to get elements from the START of the list, not the end
+            int newEventsCount = allServeEvents.size() - serverExistingRequestCount;
             List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> testMethodServeEvents = 
-                allServeEvents.size() > serverExistingRequestCount 
-                    ? allServeEvents.subList(serverExistingRequestCount, allServeEvents.size())
+                newEventsCount > 0 
+                    ? allServeEvents.subList(0, newEventsCount)
                     : new java.util.ArrayList<>();
             
             if (testMethodServeEvents.isEmpty()) {

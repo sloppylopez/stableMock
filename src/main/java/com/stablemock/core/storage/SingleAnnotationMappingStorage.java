@@ -86,8 +86,11 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         logger.info("=== RECORDING: Total serve events in server: {}, existing count: {} ===", 
             allServeEvents.size(), existingRequestCount);
         
+        // WireMock returns serve events in REVERSE chronological order (newest first)
+        // So we need to get elements from the START of the list, not the end
+        int newEventsCount = allServeEvents.size() - existingRequestCount;
         List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> testMethodServeEvents = 
-            allServeEvents.subList(existingRequestCount, allServeEvents.size());
+            newEventsCount > 0 ? allServeEvents.subList(0, newEventsCount) : new java.util.ArrayList<>();
         
         if (testMethodServeEvents.isEmpty()) {
             logger.warn("No serve events for this test method (existing: {}, total: {})", 
