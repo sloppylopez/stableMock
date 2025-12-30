@@ -5,6 +5,23 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Set Java 21.0.6 to match user's requirement
+# Always override JAVA_HOME to use Java 21 for this script (ignore existing JAVA_HOME)
+$java21Path = "C:\Users\sergi\.jdks\corretto-21.0.6"
+if (Test-Path $java21Path) {
+    $oldJavaHome = $env:JAVA_HOME
+    $env:JAVA_HOME = $java21Path
+    Write-Host "Using Java 21: $env:JAVA_HOME" -ForegroundColor Green
+    if ($oldJavaHome -and $oldJavaHome -ne $java21Path) {
+        Write-Host "  (Overrode previous JAVA_HOME: $oldJavaHome)" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "WARNING: Java 21 not found at $java21Path" -ForegroundColor Yellow
+    $currentJava = java -version 2>&1 | Select-Object -First 1
+    Write-Host "Current Java: $currentJava" -ForegroundColor Yellow
+    Write-Host "Will use system default Java" -ForegroundColor Yellow
+}
+
 # Set CI mode to match pipeline behavior (sequential execution, no daemon)
 $env:CI = "true"
 

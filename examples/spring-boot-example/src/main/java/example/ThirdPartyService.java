@@ -12,6 +12,7 @@ public class ThirdPartyService {
 
     private final JsonPlaceholderClient jsonPlaceholderClient;
     private final PostmanEchoClient postmanEchoClient;
+    private final GraphQLClient graphQLClient;
     private final Environment environment;
     
     @Value("${app.thirdparty.url}")
@@ -21,9 +22,11 @@ public class ThirdPartyService {
     public ThirdPartyService(
             JsonPlaceholderClient jsonPlaceholderClient,
             PostmanEchoClient postmanEchoClient,
+            GraphQLClient graphQLClient,
             Environment environment) {
         this.jsonPlaceholderClient = jsonPlaceholderClient;
         this.postmanEchoClient = postmanEchoClient;
+        this.graphQLClient = graphQLClient;
         this.environment = environment;
     }
 
@@ -54,14 +57,10 @@ public class ThirdPartyService {
         return jsonPlaceholderClient.createPost(requestBody);
     }
     
-    private String getThreadLocalBaseUrl() {
-        try {
-            Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl");
-            return (String) method.invoke(null);
-        } catch (Exception e) {
-            return null;
-        }
+    public String executeGraphQL(String requestBody) {
+        // FeignClient uses the URL from app.graphql.url property
+        // This is set by @DynamicPropertySource in tests to point to WireMock
+        return graphQLClient.executeQuery(requestBody);
     }
 }
 

@@ -41,5 +41,11 @@ public class UserController {
         String response = thirdPartyService.postXmlToPostmanEcho(xmlBody);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping(value = "/graphql", consumes = "application/json")
+    public ResponseEntity<String> executeGraphQL(@RequestBody String requestBody) {
+        String response = thirdPartyService.executeGraphQL(requestBody);
+        return ResponseEntity.ok(response);
+    }
 }
 

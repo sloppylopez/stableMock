@@ -2,7 +2,15 @@ package com.stablemock.core.storage;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.recording.RecordSpecBuilder;
+import com.github.tomakehurst.wiremock.matching.ContentPattern;
+import com.github.tomakehurst.wiremock.matching.EqualToJsonPattern;
+import com.github.tomakehurst.wiremock.matching.EqualToPattern;
+import com.github.tomakehurst.wiremock.matching.EqualToXmlPattern;
+import com.github.tomakehurst.wiremock.matching.UrlPattern;
+import com.github.tomakehurst.wiremock.http.RequestMethod;
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,131 +112,169 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             logger.info("  ServeEvent[{}]: {} {}", i, se.getRequest().getMethod().getName(), se.getRequest().getUrl());
         }
 
-        // Use snapshotRecord and match leniently by method + normalized URL path
-        RecordSpecBuilder builder = new RecordSpecBuilder()
-                .forTarget(targetUrl)
-                .makeStubsPersistent(true)
-                .extractTextBodiesOver(255);
-
-        com.github.tomakehurst.wiremock.recording.SnapshotRecordResult result = wireMockServer.snapshotRecord(builder.build());
-        List<StubMapping> allMappings = result.getStubMappings();
-        
-        logger.info("=== RECORDING: snapshotRecord created {} mapping(s), matching to {} serve event(s) ===", 
-            allMappings.size(), testMethodServeEvents.size());
-        
-        // Build normalized signatures from serve events
-        // Normalize paths but preserve leading slash (WireMock expects it)
-        // Use List<Integer> to handle duplicate signatures (same request made multiple times)
-        java.util.Map<String, java.util.List<Integer>> serveEventSignatures = new java.util.HashMap<>();
+        // Match mappings to serve events by signature AND body content (when needed)
+        // First, check if we have multiple serve events with the same signature but different bodies
+        // If so, we need to use body matching to distinguish them
+        java.util.Map<String, java.util.List<Integer>> serveEventsBySignature = new java.util.HashMap<>();
         for (int i = 0; i < testMethodServeEvents.size(); i++) {
             com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(i);
-            String method = se.getRequest().getMethod().getName();
-            String url = se.getRequest().getUrl();
-            String path = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
-            // Normalize: ensure leading slash, remove trailing slash
-            if (!path.startsWith("/")) {
-                path = "/" + path;
-            }
-            path = path.replaceAll("/+$", "");
-            String signature = method.toUpperCase() + ":" + path;
-            serveEventSignatures.computeIfAbsent(signature, k -> new java.util.ArrayList<>()).add(i);
+            String seMethod = se.getRequest().getMethod().getName();
+            String sePath = normalizePath(se.getRequest().getUrl());
+            String seSignature = seMethod.toUpperCase() + ":" + sePath;
+            serveEventsBySignature.computeIfAbsent(seSignature, k -> new java.util.ArrayList<>()).add(i);
         }
         
-        // Match mappings to serve events by signature
-        List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
-        java.util.Set<Integer> matchedServeEventIndices = new java.util.HashSet<>();
-        // Track which serve event index we're matching for each signature
-        java.util.Map<String, Integer> signatureMatchIndex = new java.util.HashMap<>();
-        
-        logger.info("=== RECORDING: Looking for signatures: {} ===", serveEventSignatures.keySet());
-        
-        for (int mIdx = 0; mIdx < allMappings.size(); mIdx++) {
-            StubMapping mapping = allMappings.get(mIdx);
-            String mappingMethod = mapping.getRequest().getMethod() != null 
-                ? mapping.getRequest().getMethod().getName() : "";
-            String mappingUrl = mapping.getRequest().getUrl() != null 
-                ? mapping.getRequest().getUrl() 
-                : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
-            String mappingPath = mappingUrl.contains("?") ? mappingUrl.substring(0, mappingUrl.indexOf("?")) : mappingUrl;
-            // Normalize: ensure leading slash, remove trailing slash (same as serve events)
-            if (!mappingPath.startsWith("/")) {
-                mappingPath = "/" + mappingPath;
-            }
-            mappingPath = mappingPath.replaceAll("/+$", "");
-            String mappingSignature = mappingMethod.toUpperCase() + ":" + mappingPath;
-            
-            logger.info("  Mapping[{}]: signature='{}' ({} {})", mIdx, mappingSignature, mappingMethod, mappingUrl);
-            
-            if (serveEventSignatures.containsKey(mappingSignature)) {
-                java.util.List<Integer> seIndices = serveEventSignatures.get(mappingSignature);
-                // Get the next unmatched serve event index for this signature
-                int matchIndex = signatureMatchIndex.getOrDefault(mappingSignature, 0);
-                if (matchIndex < seIndices.size()) {
-                    Integer seIdx = seIndices.get(matchIndex);
-                    if (!matchedServeEventIndices.contains(seIdx)) {
-                        testMethodMappings.add(mapping);
-                        matchedServeEventIndices.add(seIdx);
-                        signatureMatchIndex.put(mappingSignature, matchIndex + 1);
-                        logger.info("  ✓ Match[M{}->SE{}]: {} {} -> {} {}", 
-                            mIdx, seIdx, mappingMethod, mappingUrl,
-                            testMethodServeEvents.get(seIdx).getRequest().getMethod().getName(),
-                            testMethodServeEvents.get(seIdx).getRequest().getUrl());
-                    } else {
-                        // This serve event was already matched, try next one
-                        boolean foundUnmatched = false;
-                        for (int nextIdx = matchIndex + 1; nextIdx < seIndices.size(); nextIdx++) {
-                            Integer nextSeIdx = seIndices.get(nextIdx);
-                            if (!matchedServeEventIndices.contains(nextSeIdx)) {
-                                testMethodMappings.add(mapping);
-                                matchedServeEventIndices.add(nextSeIdx);
-                                signatureMatchIndex.put(mappingSignature, nextIdx + 1);
-                                logger.info("  ✓ Match[M{}->SE{}]: {} {} -> {} {} (skipped already-matched SE{})", 
-                                    mIdx, nextSeIdx, mappingMethod, mappingUrl,
-                                    testMethodServeEvents.get(nextSeIdx).getRequest().getMethod().getName(),
-                                    testMethodServeEvents.get(nextSeIdx).getRequest().getUrl(), seIdx);
-                                foundUnmatched = true;
-                                break;
-                            }
-                        }
-                        if (!foundUnmatched) {
-                            logger.warn("  ⊗ Skip[M{}->SE{}]: All serve events with this signature already matched", mIdx, seIdx);
+        // Determine if we need body matching: when multiple serve events share the same signature
+        // AND they have different bodies (for POST/PUT/PATCH)
+        boolean needsBodyMatching = false;
+        for (java.util.List<Integer> indices : serveEventsBySignature.values()) {
+            if (indices.size() > 1) {
+                // Multiple serve events with same signature - check if they have different bodies
+                java.util.Set<String> bodies = new java.util.HashSet<>();
+                boolean hasPostPutPatch = false;
+                for (Integer idx : indices) {
+                    com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(idx);
+                    String method = se.getRequest().getMethod().getName();
+                    if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || 
+                        "PATCH".equalsIgnoreCase(method)) {
+                        hasPostPutPatch = true;
+                        String body = se.getRequest().getBodyAsString();
+                        if (body != null && !body.isEmpty()) {
+                            bodies.add(body);
+                        } else {
+                            bodies.add(""); // Empty body
                         }
                     }
-                } else {
-                    logger.warn("  ⊗ Skip[M{}]: No more unmatched serve events for signature '{}'", mIdx, mappingSignature);
                 }
-            } else {
-                logger.info("  ✗ Filter[M{}]: signature '{}' not in serve events (from other test)", mIdx, mappingSignature);
+                // If we have multiple POST/PUT/PATCH requests with the same signature but different bodies,
+                // we need body matching to distinguish them
+                if (hasPostPutPatch && bodies.size() > 1) {
+                    needsBodyMatching = true;
+                    logger.debug("Detected {} serve events with same signature but {} different bodies - enabling body matching", 
+                        indices.size(), bodies.size());
+                    break;
+                }
             }
         }
-        
-        // Check for unmatched serve events
-        int unmatchedCount = 0;
-        for (int i = 0; i < testMethodServeEvents.size(); i++) {
-            if (!matchedServeEventIndices.contains(i)) {
-                unmatchedCount++;
-                com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(i);
-                logger.error("  ✗ NO MATCH for ServeEvent[{}]: {} {} - Mapping will be MISSING!", 
-                    i, se.getRequest().getMethod().getName(), se.getRequest().getUrl());
+
+        List<StubMapping> testMethodMappings = new java.util.ArrayList<>();
+
+        if (needsBodyMatching) {
+            java.util.Set<String> processedKeys = new java.util.HashSet<>();
+            for (int seIdx = 0; seIdx < testMethodServeEvents.size(); seIdx++) {
+                com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(seIdx);
+                String seMethod = se.getRequest().getMethod().getName();
+                String sePath = normalizePath(se.getRequest().getUrl());
+                String seSignature = seMethod.toUpperCase() + ":" + sePath;
+                String seBody = se.getRequest().getBodyAsString();
+                String dedupeKey = seSignature + "::" + (seBody != null ? seBody : "");
+                if (!processedKeys.add(dedupeKey)) {
+                    continue;
+                }
+
+                UrlPattern urlPattern = WireMock.urlPathEqualTo(sePath);
+                RequestPatternBuilder requestPattern = RequestPatternBuilder.newRequestPattern(
+                        RequestMethod.fromString(seMethod), urlPattern);
+                if (seBody != null && !seBody.isEmpty()
+                        && ("POST".equalsIgnoreCase(seMethod)
+                        || "PUT".equalsIgnoreCase(seMethod)
+                        || "PATCH".equalsIgnoreCase(seMethod))) {
+                    requestPattern.withRequestBody(buildBodyPattern(seBody));
+                }
+
+                RecordSpecBuilder builder = new RecordSpecBuilder()
+                        .forTarget(targetUrl)
+                        .makeStubsPersistent(true)
+                        .extractTextBodiesOver(255)
+                        .onlyRequestsMatching(requestPattern);
+
+                com.github.tomakehurst.wiremock.recording.SnapshotRecordResult filteredResult =
+                        wireMockServer.snapshotRecord(builder.build());
+                List<StubMapping> filteredMappings = filteredResult.getStubMappings();
+
+                if (filteredMappings.isEmpty()) {
+                    logger.warn("=== RECORDING WARNING: No mapping created for serve event {} {} (body hash {}) ===",
+                            seMethod, sePath, seBody != null ? seBody.hashCode() : "none");
+                } else {
+                    testMethodMappings.addAll(filteredMappings);
+                    logger.info("  ✓ Mapping recorded for {} {} ({} mapping(s))",
+                            seMethod, sePath, filteredMappings.size());
+                }
+            }
+        } else {
+            // Use snapshotRecord to create mappings, then match to serve events by signature
+            RecordSpecBuilder builder = new RecordSpecBuilder()
+                    .forTarget(targetUrl)
+                    .makeStubsPersistent(true)
+                    .extractTextBodiesOver(255);
+
+            com.github.tomakehurst.wiremock.recording.SnapshotRecordResult result = wireMockServer.snapshotRecord(builder.build());
+            List<StubMapping> allMappings = result.getStubMappings();
+
+            logger.info("=== RECORDING: snapshotRecord created {} mapping(s), matching to {} serve event(s) ===",
+                    allMappings.size(), testMethodServeEvents.size());
+
+            java.util.Set<Integer> matchedServeEventIndices = new java.util.HashSet<>();
+
+            for (int mIdx = 0; mIdx < allMappings.size(); mIdx++) {
+                StubMapping mapping = allMappings.get(mIdx);
+                String mappingMethod = mapping.getRequest().getMethod() != null
+                        ? mapping.getRequest().getMethod().getName() : "";
+                String mappingUrl = mapping.getRequest().getUrl() != null
+                        ? mapping.getRequest().getUrl()
+                        : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
+                String mappingPath = normalizePath(mappingUrl);
+                String mappingSignature = mappingMethod.toUpperCase() + ":" + mappingPath;
+
+                Integer matchedSeIdx = null;
+                for (int seIdx = 0; seIdx < testMethodServeEvents.size(); seIdx++) {
+                    if (matchedServeEventIndices.contains(seIdx)) {
+                        continue;
+                    }
+
+                    com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(seIdx);
+                    String seMethod = se.getRequest().getMethod().getName();
+                    String sePath = normalizePath(se.getRequest().getUrl());
+                    String seSignature = seMethod.toUpperCase() + ":" + sePath;
+
+                    if (!mappingSignature.equals(seSignature)) {
+                        continue;
+                    }
+
+                    matchedSeIdx = seIdx;
+                    break;
+                }
+
+                if (matchedSeIdx != null) {
+                    testMethodMappings.add(mapping);
+                    matchedServeEventIndices.add(matchedSeIdx);
+                    logger.info("  ✓ Match[M{}->SE{}]: {} {} -> {} {}",
+                            mIdx, matchedSeIdx, mappingMethod, mappingUrl,
+                            testMethodServeEvents.get(matchedSeIdx).getRequest().getMethod().getName(),
+                            testMethodServeEvents.get(matchedSeIdx).getRequest().getUrl());
+                } else {
+                    logger.debug("  ⊗ Skip[M{}]: No unmatched serve events found for signature '{}'",
+                            mIdx, mappingSignature);
+                }
             }
         }
-        
-        logger.info("=== RECORDING: Matched {}/{} mapping(s) ===", 
-            testMethodMappings.size(), testMethodServeEvents.size());
-        
-        if (unmatchedCount > 0) {
-            logger.error("=== RECORDING WARNING: {} serve event(s) had no matching mapping! ===", unmatchedCount);
-        }
-        
-        if (testMethodMappings.isEmpty()) {
-            logger.error("=== RECORDING FAILED: No mappings matched! ===");
-            return;
-        }
-        
+
+        logger.info("=== RECORDING: Matched {}/{} mapping(s) ===",
+                testMethodMappings.size(), testMethodServeEvents.size());
+
         if (testMethodMappings.size() < testMethodServeEvents.size()) {
-            logger.error("=== RECORDING WARNING: Only {}/{} mappings matched! {} request(s) will fail in playback ===", 
-                testMethodMappings.size(), testMethodServeEvents.size(), 
-                testMethodServeEvents.size() - testMethodMappings.size());
+            int unmatchedCount = testMethodServeEvents.size() - testMethodMappings.size();
+            logger.warn("=== RECORDING WARNING: Only {}/{} mappings matched! {} request(s) will fail in playback ===",
+                    testMethodMappings.size(), testMethodServeEvents.size(), unmatchedCount);
+            if (needsBodyMatching) {
+                logger.warn("This is likely because snapshotRecord only creates one mapping per signature (method + URL),");
+                logger.warn("not per unique body. Consider using different URLs or methods for tests with different bodies.");
+            }
+        }
+
+        if (testMethodMappings.isEmpty()) {
+            logger.error("=== RECORDING FAILED: No mappings created! ===");
+            return;
         }
 
         // Load existing mappings from the directory BEFORE creating temp server
@@ -671,6 +717,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         logger.info("Completed merging mappings to class-level directory");
     }
 
+
     private static String buildMappingKey(StubMapping mapping) {
         String methodName = mapping.getRequest().getMethod() != null
                 ? mapping.getRequest().getMethod().getName()
@@ -682,6 +729,65 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         if (url == null) {
             url = "";
         }
-        return methodName + ":" + url;
+        String key = methodName + ":" + url;
+        String body = extractMappingBody(mapping);
+        if (body != null && !body.isEmpty()) {
+            key += ":" + body.hashCode();
+        }
+        return key;
+    }
+
+    private static String normalizePath(String url) {
+        if (url == null) {
+            return "/";
+        }
+        String path = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
+        if (!path.startsWith("/")) {
+            path = "/" + path;
+        }
+        return path.replaceAll("/+$", "");
+    }
+
+    private static ContentPattern<?> buildBodyPattern(String body) {
+        if (body == null) {
+            return null;
+        }
+        String trimmed = body.trim();
+        if (!trimmed.isEmpty()) {
+            try {
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(trimmed);
+                return new EqualToJsonPattern(trimmed, true, true);
+            } catch (Exception ignored) {
+                // Not JSON, fall through
+            }
+            if (trimmed.startsWith("<") && trimmed.endsWith(">")) {
+                return new EqualToXmlPattern(trimmed);
+            }
+        }
+        return new EqualToPattern(body);
+    }
+
+    private static String extractMappingBody(StubMapping mapping) {
+        String mappingMethod = mapping.getRequest().getMethod() != null
+                ? mapping.getRequest().getMethod().getName()
+                : "";
+        if (!"POST".equalsIgnoreCase(mappingMethod) && !"PUT".equalsIgnoreCase(mappingMethod)
+                && !"PATCH".equalsIgnoreCase(mappingMethod)) {
+            return null;
+        }
+        if (mapping.getRequest().getBodyPatterns() == null || mapping.getRequest().getBodyPatterns().isEmpty()) {
+            return null;
+        }
+        ContentPattern<?> bodyPattern = mapping.getRequest().getBodyPatterns().get(0);
+        if (bodyPattern instanceof EqualToJsonPattern) {
+            return ((EqualToJsonPattern) bodyPattern).getExpected();
+        }
+        if (bodyPattern instanceof EqualToPattern) {
+            return ((EqualToPattern) bodyPattern).getExpected();
+        }
+        if (bodyPattern instanceof EqualToXmlPattern) {
+            return ((EqualToXmlPattern) bodyPattern).getExpected();
+        }
+        return null;
     }
 }
