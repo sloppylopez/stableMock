@@ -18,6 +18,13 @@ public @interface U {
     String[] urls() default {};
 
     /**
+     * Spring property names to map to these URLs (for automatic @DynamicPropertySource registration).
+     * Must match the order of URLs - first property maps to first URL, second property to second URL, etc.
+     * Example: urls = {"https://api1.com", "https://api2.com"}, properties = {"app.api1.url", "app.api2.url"}
+     */
+    String[] properties() default {};
+
+    /**
      * Fields or patterns to ignore during request matching.
      * Supports JSON fields: "json:timestamp", "json:requestId"
      * Supports GraphQL variables: "gql:variables.cursor", "graphql:variables.timestamp"

@@ -2,6 +2,8 @@ package example;
 
 import com.stablemock.U;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -22,14 +24,12 @@ import static org.junit.jupiter.api.Assertions.*;
  * - RECORD mode: Detects changing fields and saves to detected-fields.json
  * - PLAYBACK mode: Auto-applies detected patterns (without manual annotation)
  */
-@U(urls = { "https://jsonplaceholder.typicode.com" })
-@SpringBootTest(
-        webEnvironment = WebEnvironment.RANDOM_PORT,
-        properties = {
-                "spring.main.lazy-initialization=true",
-                "stablemock.testClass=DynamicFieldDetectionTest"
-        })
-class DynamicFieldDetectionTest {
+@U(urls = { "https://jsonplaceholder.typicode.com" },
+   properties = { "app.thirdparty.url" })
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+class DynamicFieldDetectionTest extends BaseStableMockTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(DynamicFieldDetectionTest.class);
 
     @Autowired
     private JsonPlaceholderClient client;
@@ -39,30 +39,9 @@ class DynamicFieldDetectionTest {
      */
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("app.thirdparty.url", () -> {
-            String baseUrl = getThreadLocalBaseUrl();
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl.DynamicFieldDetectionTest");
-                if (baseUrl == null || baseUrl.isEmpty()) {
-                    baseUrl = System.getProperty("stablemock.baseUrl");
-                }
-            }
-            return baseUrl != null && !baseUrl.isEmpty()
-                    ? baseUrl
-                    : "https://jsonplaceholder.typicode.com";
-        });
-
+        autoRegisterProperties(registry, DynamicFieldDetectionTest.class);
+        // app.postmanecho.url is not mocked, so use real URL
         registry.add("app.postmanecho.url", () -> "https://postman-echo.com");
-    }
-
-    private static String getThreadLocalBaseUrl() {
-        try {
-            Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl");
-            return (String) method.invoke(null);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     @Test
@@ -94,14 +73,14 @@ class DynamicFieldDetectionTest {
             // After the test completes (in afterEach), the detected-fields.json should
             // exist
             // We can't check this here, but we'll verify manually after running the test
-            System.out.println("RECORD mode: Detection analysis will be saved in afterEach()");
+            logger.info("RECORD mode: Detection analysis will be saved in afterEach()");
         } else {
             // In PLAYBACK mode, verify the analysis file exists and was auto-applied
             File analysisFile = new File(
                     "src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/detected-fields.json");
             assertTrue(analysisFile.exists(),
                     "Analysis file should exist after recording: " + analysisFile.getAbsolutePath());
-            System.out.println("PLAYBACK mode: Using auto-detected patterns from " + analysisFile.getAbsolutePath());
+            logger.info("PLAYBACK mode: Using auto-detected patterns from {}", analysisFile.getAbsolutePath());
         }
     }
 

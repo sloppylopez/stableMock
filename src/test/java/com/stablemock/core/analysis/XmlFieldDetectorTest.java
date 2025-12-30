@@ -2,7 +2,6 @@ package com.stablemock.core.analysis;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,7 +20,7 @@ class XmlFieldDetectorTest {
         XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
         
         assertEquals(1, result.getDynamicFields().size());
-        assertTrue(result.getDynamicFields().get(0).getFieldPath().contains("timestamp"));
+        assertTrue(result.getDynamicFields().get(0).fieldPath().contains("timestamp"));
         assertEquals(1, result.getIgnorePatterns().size());
         assertTrue(result.getIgnorePatterns().get(0).startsWith("xml://"));
     }
@@ -68,7 +67,7 @@ class XmlFieldDetectorTest {
         XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
         
         assertEquals(1, result.getDynamicFields().size());
-        assertTrue(result.getDynamicFields().get(0).getFieldPath().contains("timestamp"));
+        assertTrue(result.getDynamicFields().get(0).fieldPath().contains("timestamp"));
     }
 
     @Test
@@ -108,7 +107,7 @@ class XmlFieldDetectorTest {
         // Should detect id as changing between the two valid XML documents
         assertTrue(result.getDynamicFields().size() >= 1);
         boolean foundId = result.getDynamicFields().stream()
-            .anyMatch(f -> f.getFieldPath().contains("id"));
+            .anyMatch(f -> f.fieldPath().contains("id"));
         assertTrue(foundId, "Should detect id field as changing");
     }
 
@@ -127,7 +126,7 @@ class XmlFieldDetectorTest {
         XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
         
         assertEquals(1, result.getDynamicFields().size());
-        assertEquals("HIGH", result.getDynamicFields().get(0).getConfidence());
+        assertEquals("HIGH", result.getDynamicFields().get(0).confidence());
     }
 
     @Test
@@ -145,7 +144,7 @@ class XmlFieldDetectorTest {
         XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
         
         assertEquals(1, result.getDynamicFields().size());
-        assertEquals(3, result.getDynamicFields().get(0).getSampleValues().size());
+        assertEquals(3, result.getDynamicFields().get(0).sampleValues().size());
     }
 
     @Test

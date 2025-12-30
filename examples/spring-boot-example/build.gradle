@@ -61,36 +61,14 @@ test {
 }
 
 tasks.named('stableMockRecord') {
-    // Reuse test sources / classpath
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-
-    // Run recording sequentially in CI to ensure all tests execute and all mappings are recorded
-    // For local development, allow parallel execution for speed
-    // Parallel execution can cause race conditions or missed recordings in CI environments
-    if (System.getenv('CI') != null) {
-        maxParallelForks = 1
-        // Also disable JUnit's internal parallel execution to avoid Spring context cache races
-        systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
-    } else {
-        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
-    }
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 }
 
 tasks.named('stableMockPlayback') {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-
-    // Run playback sequentially in CI to avoid race conditions during merge
-    // When multiple test classes run in parallel, they all try to merge at the same time
-    // which can cause file system sync issues or incomplete merges
-    // For local development, allow parallel execution for speed
-    if (System.getenv('CI') != null) {
-        maxParallelForks = 1
-        // Also disable JUnit's internal parallel execution to avoid Spring context cache races
-        systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
-    } else {
-        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
-    }
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 }
 

@@ -1,5 +1,6 @@
 package com.stablemock.core.analysis;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +80,6 @@ public final class DynamicFieldDetector {
                     // Try to detect from body content
                     boolean bodyIsXml = XmlBodyParser.isXml(request.getBody());
                     boolean bodyIsJson = JsonBodyParser.isJson(request.getBody());
-                    //TODO if we are able to distinguish between json and xml here, why do we use a try catch in the other code block annotated with a TODO?
                     // If both detect, prefer Content-Type if available, otherwise prefer JSON
                     if (bodyIsXml && bodyIsJson) {
                         // Ambiguous - default to JSON for backward compatibility
@@ -110,11 +110,11 @@ public final class DynamicFieldDetector {
                 for (RequestSnapshot request : jsonRequests) {
                     jsonBodyStrings.add(request.getBody());
                 }
-                List<com.fasterxml.jackson.databind.JsonNode> jsonBodies = JsonBodyParser.parseAllJsonBodies(jsonBodyStrings);
+                List<JsonNode> jsonBodies = JsonBodyParser.parseAllJsonBodies(jsonBodyStrings);
                 
                 // Filter out null nodes (failed parses)
-                List<com.fasterxml.jackson.databind.JsonNode> validJsonBodies = new ArrayList<>();
-                for (com.fasterxml.jackson.databind.JsonNode node : jsonBodies) {
+                List<JsonNode> validJsonBodies = new ArrayList<>();
+                for (JsonNode node : jsonBodies) {
                     if (node != null) {
                         validJsonBodies.add(node);
                     }

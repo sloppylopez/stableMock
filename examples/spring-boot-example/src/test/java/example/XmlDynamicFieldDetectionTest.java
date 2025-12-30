@@ -24,55 +24,19 @@ import static org.junit.jupiter.api.Assertions.*;
  * - PLAYBACK mode: auto-applies detected ignore patterns by injecting ${xmlunit.ignore} placeholders
  *   into the recorded request-body matchers so future requests with different dynamic values still match.
  */
-@U(urls = { "https://postman-echo.com" })
-@SpringBootTest(
-        webEnvironment = WebEnvironment.RANDOM_PORT,
-        properties = {
-                "spring.main.lazy-initialization=true",
-                "stablemock.testClass=XmlDynamicFieldDetectionTest"
-        })
-class XmlDynamicFieldDetectionTest {
+@U(urls = { "https://postman-echo.com" },
+   properties = { "app.postmanecho.url" })
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+class XmlDynamicFieldDetectionTest extends BaseStableMockTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("app.thirdparty.url", () -> {
-            String baseUrl = getThreadLocalBaseUrl();
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl.XmlDynamicFieldDetectionTest");
-                if (baseUrl == null || baseUrl.isEmpty()) {
-                    baseUrl = System.getProperty("stablemock.baseUrl");
-                }
-            }
-            return baseUrl != null && !baseUrl.isEmpty()
-                    ? baseUrl
-                    : "https://jsonplaceholder.typicode.com";
-        });
-
-        registry.add("app.postmanecho.url", () -> {
-            String baseUrl = getThreadLocalBaseUrl();
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl.XmlDynamicFieldDetectionTest");
-                if (baseUrl == null || baseUrl.isEmpty()) {
-                    baseUrl = System.getProperty("stablemock.baseUrl");
-                }
-            }
-            return baseUrl != null && !baseUrl.isEmpty()
-                    ? baseUrl
-                    : "https://postman-echo.com";
-        });
-    }
-
-    private static String getThreadLocalBaseUrl() {
-        try {
-            Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl");
-            return (String) method.invoke(null);
-        } catch (Exception e) {
-            return null;
-        }
+        autoRegisterProperties(registry, XmlDynamicFieldDetectionTest.class);
+        // app.thirdparty.url is not mocked, so use real URL
+        registry.add("app.thirdparty.url", () -> "https://jsonplaceholder.typicode.com");
     }
 
     @Test

@@ -18,7 +18,7 @@ public class DetectionResult {
     private final List<String> ignorePatterns;
 
     public DetectionResult(String testClassName, String testMethodName,
-            int analyzedRequestsCount) {
+                           int analyzedRequestsCount) {
         this.testClassName = testClassName;
         this.testMethodName = testMethodName;
         this.detectedAt = java.time.Instant.now().toString();
@@ -62,27 +62,6 @@ public class DetectionResult {
     /**
      * Represents a single dynamic field that was detected.
      */
-    public static class DynamicField {
-        private final String fieldPath;
-        private final String confidence;
-        private final List<String> sampleValues;
-
-        public DynamicField(String fieldPath, String confidence, List<String> sampleValues) {
-            this.fieldPath = fieldPath;
-            this.confidence = confidence;
-            this.sampleValues = sampleValues;
-        }
-
-        public String getFieldPath() {
-            return fieldPath;
-        }
-
-        public String getConfidence() {
-            return confidence;
-        }
-
-        public List<String> getSampleValues() {
-            return sampleValues;
-        }
+    public record DynamicField(String fieldPath, String confidence, List<String> sampleValues) {
     }
 }

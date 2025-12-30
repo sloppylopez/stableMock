@@ -71,7 +71,7 @@ public final class DynamicFieldAnalysisOrchestrator {
         // Process each annotation separately if multiple annotations/URLs exist
         if (annotationInfos != null && !annotationInfos.isEmpty()) {
             for (WireMockServerManager.AnnotationInfo annotationInfo : annotationInfos) {
-                int annotationIndex = annotationInfo.index;
+                int annotationIndex = annotationInfo.index();
 
                 logger.debug("Analyzing annotation {} for method {}",
                         annotationIndex, testMethodName);

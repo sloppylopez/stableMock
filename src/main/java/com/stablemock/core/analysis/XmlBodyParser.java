@@ -2,10 +2,7 @@ package com.stablemock.core.analysis;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.*;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -116,7 +113,7 @@ public final class XmlBodyParser {
 
         // Extract attributes
         if (element.hasAttributes()) {
-            org.w3c.dom.NamedNodeMap attributes = element.getAttributes();
+            NamedNodeMap attributes = element.getAttributes();
             for (int i = 0; i < attributes.getLength(); i++) {
                 Node attr = attributes.item(i);
                 if (attr.getNodeType() == Node.ATTRIBUTE_NODE) {

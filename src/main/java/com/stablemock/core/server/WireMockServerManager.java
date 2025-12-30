@@ -1,6 +1,7 @@
 package com.stablemock.core.server;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.stablemock.core.config.PortFinder;
 import org.slf4j.Logger;
@@ -61,40 +62,22 @@ public final class WireMockServerManager {
 
         String primaryUrl = targetUrls.get(0);
         server.stubFor(
-                com.github.tomakehurst.wiremock.client.WireMock.any(
-                                com.github.tomakehurst.wiremock.client.WireMock.anyUrl())
-                        .willReturn(
-                                com.github.tomakehurst.wiremock.client.WireMock.aResponse()
-                                        .proxiedFrom(primaryUrl)));
+                WireMock.any(WireMock.anyUrl())
+                        .willReturn(WireMock.aResponse()
+                                .proxiedFrom(primaryUrl)));
 
         logger.info("Recording mode on port {}, proxying to {}", port, primaryUrl);
         return server;
     }
 
-    public static class AnnotationInfo {
-        public final int index;
-        public final String[] urls;
-
-        public AnnotationInfo(int index, String[] urls) {
-            this.index = index;
-            this.urls = urls;
-        }
-    }
-    
-    public static WireMockServer startPlayback(int port, File mappingsDir, 
-            File testResourcesDir, String testClassName, String testMethodName) {
-        return startPlayback(port, mappingsDir, testResourcesDir, testClassName, testMethodName, null);
+    public record AnnotationInfo(int index, String[] urls) {
     }
     
     public static WireMockServer startPlayback(int port, File mappingsDir, 
             File testResourcesDir, String testClassName, String testMethodName, 
             List<String> annotationIgnorePatterns) {
-        String startMsg = "=== Starting WireMock playback on port " + port + " ===";
-        System.out.println(startMsg);
-        logger.info(startMsg);
-        String loadMsg = "Loading mappings from: " + mappingsDir.getAbsolutePath();
-        System.out.println(loadMsg);
-        logger.info(loadMsg);
+        logger.info("=== Starting WireMock playback on port {} ===", port);
+        logger.info("Loading mappings from: {}", mappingsDir.getAbsolutePath());
         
         if (!mappingsDir.exists() && !mappingsDir.mkdirs()) {
             logger.error("Mappings directory does not exist: {}", mappingsDir.getAbsolutePath());
@@ -103,9 +86,7 @@ public final class WireMockServerManager {
             if (mappingsSubDir.exists()) {
                 File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
                 if (mappingFiles != null) {
-                    String foundMsg = "Found " + mappingFiles.length + " mapping file(s) in " + mappingsSubDir.getAbsolutePath();
-                    System.out.println(foundMsg);
-                    logger.info(foundMsg);
+                    logger.info("Found {} mapping file(s) in {}", mappingFiles.length, mappingsSubDir.getAbsolutePath());
                     int postCount = 0;
                     int getCount = 0;
                     // Sort files for consistent ordering and better debugging
@@ -125,9 +106,7 @@ public final class WireMockServerManager {
                                     url = requestNode.get("urlPath").asText();
                                 }
                                 String mappingName = mappingJson.has("name") ? mappingJson.get("name").asText() : "unnamed";
-                                String mappingInfo = "  Loaded: " + method + " " + url + " (name: " + mappingName + ", file: " + mappingFile.getName() + ")";
-                                System.out.println(mappingInfo);
-                                logger.info(mappingInfo);
+                                logger.info("  Loaded: {} {} (name: {}, file: {})", method, url, mappingName, mappingFile.getName());
                                 
                                 // Log if this is GET /users/2 for debugging
                                 if ("GET".equalsIgnoreCase(method) && "/users/2".equals(url)) {
@@ -144,24 +123,19 @@ public final class WireMockServerManager {
                             logger.error("Failed to parse mapping file {}: {}", mappingFile.getName(), e.getMessage());
                         }
                     }
-                    String breakdownMsg = "Mappings breakdown: " + getCount + " GET, " + postCount + " POST, " + (mappingFiles.length - getCount - postCount) + " other";
-                    System.out.println(breakdownMsg);
-                    logger.info(breakdownMsg);
-                    if (postCount == 0) {
-                        String warnMsg = "WARNING: No POST mappings found! POST requests will fail.";
-                        System.err.println(warnMsg);
-                        logger.warn(warnMsg);
-                    }
-                    //TODO what is this???
-                    if (getCount < 3) {
-                        String warnMsg = "WARNING: Expected at least 3 GET mappings but found only " + getCount;
-                        System.err.println(warnMsg);
-                        logger.warn(warnMsg);
+                    logger.info("Mappings breakdown: {} GET, {} POST, {} other", getCount, postCount, mappingFiles.length - getCount - postCount);
+                    if (postCount == 0 && getCount == 0) {
+                        logger.warn("No mappings found! All requests will fail.");
+                    } else {
+                        if (postCount == 0) {
+                            logger.warn("No POST mappings found! POST requests may fail.");
+                        }
+                        if (getCount == 0) {
+                            logger.warn("No GET mappings found! GET requests may fail.");
+                        }
                     }
                 } else {
-                    String warnMsg = "No mapping files found in " + mappingsSubDir.getAbsolutePath();
-                    System.err.println("WARNING: " + warnMsg);
-                    logger.warn(warnMsg);
+                    logger.warn("No mapping files found in {}", mappingsSubDir.getAbsolutePath());
                 }
             } else {
                 logger.warn("Mappings subdirectory does not exist: {}", mappingsSubDir.getAbsolutePath());
@@ -301,19 +275,16 @@ public final class WireMockServerManager {
                                     if (matcherNode != null && matcherNode.isTextual()) {
                                         String expectedBody = matcherNode.asText();
                                         
-                                        // Try to parse as JSON - if it's valid JSON, use json-unit.ignore placeholders
-                                        try {
-                                            com.fasterxml.jackson.databind.ObjectMapper testMapper = 
-                                                    new com.fasterxml.jackson.databind.ObjectMapper();
-                                            testMapper.readTree(expectedBody);
-                                            
-                                            // It's valid JSON, replace ignored fields with ${json-unit.ignore} placeholders
+                                        // Use helper methods for format detection (faster than try-catch)
+                                        boolean isJson = com.stablemock.core.analysis.JsonBodyParser.isJson(expectedBody);
+                                        boolean isXml = com.stablemock.core.analysis.XmlBodyParser.isXml(expectedBody);
+                                        
+                                        if (isJson) {
+                                            // It's JSON, replace ignored fields with ${json-unit.ignore} placeholders
                                             String normalizedJson = normalizeJsonStringWithPlaceholders(expectedBody, ignorePatterns);
                                             
-                                            // Convert equalTo to equalToJson for WireMock 3 compatibility, even if normalization didn't change anything
-                                            // This ensures proper JSON matching behavior
+                                            // Convert equalTo to equalToJson for WireMock 3 compatibility
                                             if (matcherKey.equals("equalTo") || !normalizedJson.equals(expectedBody)) {
-                                                // Remove the old matcher and add equalToJson
                                                 patternObj.remove(matcherKey);
                                                 patternObj.put("equalToJson", normalizedJson);
                                                 patternObj.put("ignoreArrayOrder", false);
@@ -321,31 +292,21 @@ public final class WireMockServerManager {
                                                 modified = true;
                                                 logger.debug("Changed {} to equalToJson with json-unit.ignore placeholders", matcherKey);
                                             }
-                                        } catch (Exception e) {
-                                            //TODO is it really required to use a catch logic to identify xml from json?
-                                            // Not valid JSON, try XML
-                                            try {
-                                                // Check if it's XML by looking for XML structure
-                                                if (expectedBody.trim().startsWith("<") && expectedBody.trim().endsWith(">")) {
-                                                    // It's XML, replace ignored elements/attributes with ${xmlunit.ignore}
-                                                    String normalizedXml = normalizeXmlStringWithPlaceholders(expectedBody, ignorePatterns);
-                                                    
-                                                    // Convert equalTo to equalToXml for WireMock 3 compatibility, even if normalization didn't change anything
-                                                    if (matcherKey.equals("equalTo") || !normalizedXml.equals(expectedBody)) {
-                                                        // Remove the old matcher and add equalToXml with placeholder support
-                                                        patternObj.remove(matcherKey);
-                                                        patternObj.put("equalToXml", normalizedXml);
-                                                        patternObj.put("enablePlaceholders", true);
-                                                        patternObj.put("ignoreWhitespace", true);
-                                                        modified = true;
-                                                        logger.debug("Changed {} to equalToXml with xmlunit.ignore placeholders", matcherKey);
-                                                    }
-                                                }
-                                            } catch (Exception xmlEx) {
-                                                // Not XML either, skip
-                                                logger.debug("Skipping non-JSON/XML body pattern: {}", e.getMessage());
+                                        } else if (isXml) {
+                                            // It's XML, replace ignored elements/attributes with ${xmlunit.ignore}
+                                            String normalizedXml = normalizeXmlStringWithPlaceholders(expectedBody, ignorePatterns);
+                                            
+                                            // Convert equalTo to equalToXml for WireMock 3 compatibility
+                                            if (matcherKey.equals("equalTo") || !normalizedXml.equals(expectedBody)) {
+                                                patternObj.remove(matcherKey);
+                                                patternObj.put("equalToXml", normalizedXml);
+                                                patternObj.put("enablePlaceholders", true);
+                                                patternObj.put("ignoreWhitespace", true);
+                                                modified = true;
+                                                logger.debug("Changed {} to equalToXml with xmlunit.ignore placeholders", matcherKey);
                                             }
                                         }
+                                        // If neither JSON nor XML, skip silently
                                     }
                                 }
                             }

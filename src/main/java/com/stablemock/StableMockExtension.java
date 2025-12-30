@@ -142,17 +142,12 @@ public class StableMockExtension
             if (isRecordMode) {
                 server = WireMockServerManager.startRecording(port, baseMappingsDir, allUrls);
             } else {
-                String mergeMsg = "=== PLAYBACK MODE: Merging test method mappings for " + testClassName + " ===";
-                System.out.println(mergeMsg);
-                logger.info(mergeMsg);
+                logger.info("=== PLAYBACK MODE: Merging test method mappings for {} ===", testClassName);
                 try {
                     MappingStorage.mergePerTestMethodMappings(baseMappingsDir);
-                    System.out.println("=== Merge completed successfully for " + testClassName + " ===");
                     logger.info("=== Merge completed successfully for {} ===", testClassName);
                 } catch (Exception e) {
-                    String errorMsg = "=== ERROR: Merge failed for " + testClassName + ": " + e.getMessage() + " ===";
-                    System.err.println(errorMsg);
-                    logger.error(errorMsg, e);
+                    logger.error("=== ERROR: Merge failed for {}: {} ===", testClassName, e.getMessage(), e);
                     throw new RuntimeException("Failed to merge test method mappings for " + testClassName, e);
                 }
                 
@@ -314,11 +309,11 @@ public class StableMockExtension
 
             for (int i = 0; i < annotationInfos.size(); i++) {
                 WireMockServerManager.AnnotationInfo info = annotationInfos.get(i);
-                if (info.urls.length > 0) {
+                if (info.urls().length > 0) {
                     int port = WireMockServerManager.findFreePort();
                     File annotationMappingsDir = new File(mappingsDir, "annotation_" + i);
                     WireMockServer server = WireMockServerManager.startRecording(port, annotationMappingsDir,
-                            Arrays.asList(info.urls));
+                            Arrays.asList(info.urls()));
                     servers.add(server);
                     ports.add(port);
                 }
@@ -329,7 +324,7 @@ public class StableMockExtension
             methodStore.putPort(ports.get(0));
             methodStore.putMode(mode);
             methodStore.putMappingsDir(mappingsDir);
-            methodStore.putTargetUrl(annotationInfos.get(0).urls[0]);
+            methodStore.putTargetUrl(annotationInfos.get(0).urls()[0]);
             methodStore.putUseClassLevelServer(false);
 
             String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(0);

@@ -19,58 +19,17 @@ import static org.junit.jupiter.api.Assertions.*;
  * 2. Requests are recorded for URLs in both annotations
  * 3. Mappings are saved separately per annotation
  */
-@U(urls = { "https://jsonplaceholder.typicode.com", "https://postman-echo.com" })
-@SpringBootTest(
-        webEnvironment = WebEnvironment.RANDOM_PORT,
-        properties = {
-                "spring.main.lazy-initialization=true",
-                "stablemock.testClass=MultipleAnnotationTest"
-        })
-class MultipleAnnotationTest {
+@U(urls = { "https://jsonplaceholder.typicode.com", "https://postman-echo.com" },
+   properties = { "app.thirdparty.url", "app.postmanecho.url" })
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+class MultipleAnnotationTest extends BaseStableMockTest {
 
     @Autowired
     private TestRestTemplate  restTemplate;
 
-    private static String getThreadLocalBaseUrlByIndex(int index) {
-        try {
-            Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl", int.class);
-            return (String) method.invoke(null, index);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     @DynamicPropertySource
     static void registerMockUrls(DynamicPropertyRegistry registry) {
-        // Prefer thread-local values (safe for parallel execution).
-        // Fallback to system properties for backwards-compat.
-        
-        registry.add("app.thirdparty.url", () -> {
-            String wireMockUrl = getThreadLocalBaseUrlByIndex(0);
-            if (wireMockUrl == null || wireMockUrl.isEmpty()) {
-                wireMockUrl = System.getProperty("stablemock.baseUrl.MultipleAnnotationTest.0");
-                if (wireMockUrl == null || wireMockUrl.isEmpty()) {
-                    wireMockUrl = System.getProperty("stablemock.baseUrl.0");
-                }
-            }
-            return (wireMockUrl != null && !wireMockUrl.isEmpty())
-                    ? wireMockUrl
-                    : "https://jsonplaceholder.typicode.com";
-        });
-        
-        registry.add("app.postmanecho.url", () -> {
-            String wireMockUrl = getThreadLocalBaseUrlByIndex(1);
-            if (wireMockUrl == null || wireMockUrl.isEmpty()) {
-                wireMockUrl = System.getProperty("stablemock.baseUrl.MultipleAnnotationTest.1");
-                if (wireMockUrl == null || wireMockUrl.isEmpty()) {
-                    wireMockUrl = System.getProperty("stablemock.baseUrl.1");
-                }
-            }
-            return (wireMockUrl != null && !wireMockUrl.isEmpty())
-                    ? wireMockUrl
-                    : "https://postman-echo.com";
-        });
+        autoRegisterProperties(registry, MultipleAnnotationTest.class);
     }
 
     @Test
