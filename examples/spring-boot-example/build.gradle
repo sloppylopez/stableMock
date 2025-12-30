@@ -70,6 +70,8 @@ tasks.named('stableMockRecord') {
     // Parallel execution can cause race conditions or missed recordings in CI environments
     if (System.getenv('CI') != null) {
         maxParallelForks = 1
+        // Also disable JUnit's internal parallel execution to avoid Spring context cache races
+        systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
     } else {
         maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
     }
@@ -85,6 +87,8 @@ tasks.named('stableMockPlayback') {
     // For local development, allow parallel execution for speed
     if (System.getenv('CI') != null) {
         maxParallelForks = 1
+        // Also disable JUnit's internal parallel execution to avoid Spring context cache races
+        systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
     } else {
         maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
     }
