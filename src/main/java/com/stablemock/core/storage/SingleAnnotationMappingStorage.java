@@ -161,41 +161,72 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             
             if (serveEventSignatures.containsKey(mappingSignature)) {
                 java.util.List<Integer> seIndices = serveEventSignatures.get(mappingSignature);
-                // Get the next unmatched serve event index for this signature
-                int matchIndex = signatureMatchIndex.getOrDefault(mappingSignature, 0);
-                if (matchIndex < seIndices.size()) {
-                    Integer seIdx = seIndices.get(matchIndex);
-                    if (!matchedServeEventIndices.contains(seIdx)) {
-                        testMethodMappings.add(mapping);
-                        matchedServeEventIndices.add(seIdx);
-                        signatureMatchIndex.put(mappingSignature, matchIndex + 1);
-                        logger.info("  ✓ Match[M{}->SE{}]: {} {} -> {} {}", 
-                            mIdx, seIdx, mappingMethod, mappingUrl,
-                            testMethodServeEvents.get(seIdx).getRequest().getMethod().getName(),
-                            testMethodServeEvents.get(seIdx).getRequest().getUrl());
-                    } else {
-                        // This serve event was already matched, try next one
-                        boolean foundUnmatched = false;
-                        for (int nextIdx = matchIndex + 1; nextIdx < seIndices.size(); nextIdx++) {
-                            Integer nextSeIdx = seIndices.get(nextIdx);
-                            if (!matchedServeEventIndices.contains(nextSeIdx)) {
-                                testMethodMappings.add(mapping);
-                                matchedServeEventIndices.add(nextSeIdx);
-                                signatureMatchIndex.put(mappingSignature, nextIdx + 1);
-                                logger.info("  ✓ Match[M{}->SE{}]: {} {} -> {} {} (skipped already-matched SE{})", 
-                                    mIdx, nextSeIdx, mappingMethod, mappingUrl,
-                                    testMethodServeEvents.get(nextSeIdx).getRequest().getMethod().getName(),
-                                    testMethodServeEvents.get(nextSeIdx).getRequest().getUrl(), seIdx);
-                                foundUnmatched = true;
-                                break;
-                            }
-                        }
-                        if (!foundUnmatched) {
-                            logger.warn("  ⊗ Skip[M{}->SE{}]: All serve events with this signature already matched", mIdx, seIdx);
+                
+                // For POST/PUT/PATCH requests, also match by body content to distinguish between different requests
+                String mappingBody = null;
+                if ("POST".equalsIgnoreCase(mappingMethod) || "PUT".equalsIgnoreCase(mappingMethod) || 
+                    "PATCH".equalsIgnoreCase(mappingMethod)) {
+                    if (mapping.getRequest().getBodyPatterns() != null && !mapping.getRequest().getBodyPatterns().isEmpty()) {
+                        com.github.tomakehurst.wiremock.matching.ContentPattern<?> bodyPattern = 
+                            mapping.getRequest().getBodyPatterns().get(0);
+                        if (bodyPattern instanceof com.github.tomakehurst.wiremock.matching.EqualToJsonPattern) {
+                            mappingBody = ((com.github.tomakehurst.wiremock.matching.EqualToJsonPattern) bodyPattern).getExpected();
+                        } else if (bodyPattern instanceof com.github.tomakehurst.wiremock.matching.EqualToPattern) {
+                            mappingBody = ((com.github.tomakehurst.wiremock.matching.EqualToPattern) bodyPattern).getExpected();
                         }
                     }
+                }
+                
+                // Find matching serve event by signature and (if POST/PUT/PATCH) body content
+                Integer matchedSeIdx = null;
+                int matchIndex = signatureMatchIndex.getOrDefault(mappingSignature, 0);
+                
+                for (int i = matchIndex; i < seIndices.size(); i++) {
+                    Integer seIdx = seIndices.get(i);
+                    if (matchedServeEventIndices.contains(seIdx)) {
+                        continue; // Already matched
+                    }
+                    
+                    // If we have body content, compare it
+                    if (mappingBody != null) {
+                        String seBody = testMethodServeEvents.get(seIdx).getRequest().getBodyAsString();
+                        if (seBody != null) {
+                            // Normalize JSON for comparison (remove whitespace differences)
+                            try {
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = 
+                                    new com.fasterxml.jackson.databind.ObjectMapper();
+                                com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(mappingBody);
+                                com.fasterxml.jackson.databind.JsonNode seJson = mapper.readTree(seBody);
+                                if (!mappingJson.equals(seJson)) {
+                                    continue; // Body doesn't match, try next serve event
+                                }
+                            } catch (Exception e) {
+                                // If JSON parsing fails, do string comparison
+                                if (!mappingBody.equals(seBody)) {
+                                    continue;
+                                }
+                            }
+                        } else {
+                            continue; // Serve event has no body but mapping expects one
+                        }
+                    }
+                    
+                    // Match found!
+                    matchedSeIdx = seIdx;
+                    signatureMatchIndex.put(mappingSignature, i + 1);
+                    break;
+                }
+                
+                if (matchedSeIdx != null) {
+                    testMethodMappings.add(mapping);
+                    matchedServeEventIndices.add(matchedSeIdx);
+                    logger.info("  ✓ Match[M{}->SE{}]: {} {} -> {} {}", 
+                        mIdx, matchedSeIdx, mappingMethod, mappingUrl,
+                        testMethodServeEvents.get(matchedSeIdx).getRequest().getMethod().getName(),
+                        testMethodServeEvents.get(matchedSeIdx).getRequest().getUrl());
                 } else {
-                    logger.warn("  ⊗ Skip[M{}]: No more unmatched serve events for signature '{}'", mIdx, mappingSignature);
+                    logger.warn("  ⊗ Skip[M{}]: No unmatched serve events found for signature '{}'{}", 
+                        mIdx, mappingSignature, mappingBody != null ? " with matching body" : "");
                 }
             } else {
                 logger.info("  ✗ Filter[M{}]: signature '{}' not in serve events (from other test)", mIdx, mappingSignature);

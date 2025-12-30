@@ -531,7 +531,23 @@ public final class WireMockServerManager {
                     new com.fasterxml.jackson.databind.ObjectMapper();
             com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(json);
             
+            // Filter ignore patterns to only those that actually exist in the JSON
+            // This prevents adding fields that don't exist (e.g., "variables" when the request doesn't have it)
+            List<String> applicablePatterns = new java.util.ArrayList<>();
             for (String pattern : ignorePatterns) {
+                if (pattern.startsWith("json:")) {
+                    String jsonPath = pattern.substring(5);
+                    if (fieldExistsInJson(jsonNode, jsonPath)) {
+                        applicablePatterns.add(pattern);
+                    } else {
+                        logger.debug("Skipping ignore pattern '{}' - field does not exist in JSON", pattern);
+                    }
+                } else {
+                    applicablePatterns.add(pattern); // Non-JSON patterns (XML, etc.) are always applicable
+                }
+            }
+            
+            for (String pattern : applicablePatterns) {
                 if (pattern.startsWith("json:")) {
                     String jsonPath = pattern.substring(5);
                     replaceJsonPathWithPlaceholder(jsonNode, jsonPath);
@@ -542,6 +558,28 @@ public final class WireMockServerManager {
         } catch (Exception e) {
             logger.debug("Failed to normalize JSON: {}", e.getMessage());
             return json;
+        }
+    }
+    
+    /**
+     * Checks if a JSON path exists in the JSON node.
+     * Supports simple field names (e.g., "variables") and nested paths (e.g., "variables.code").
+     */
+    private static boolean fieldExistsInJson(com.fasterxml.jackson.databind.JsonNode node, String path) {
+        if (node == null || !node.isObject()) {
+            return false;
+        }
+        
+        if (path.contains(".")) {
+            String[] parts = path.split("\\.", 2);
+            String field = parts[0];
+            String remaining = parts[1];
+            if (node.has(field)) {
+                return fieldExistsInJson(node.get(field), remaining);
+            }
+            return false;
+        } else {
+            return node.has(path);
         }
     }
     
