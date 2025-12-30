@@ -38,6 +38,7 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
     public static void saveMappingsForTestMethodMultipleAnnotations(WireMockServer wireMockServer,
                                                                     File testMethodMappingsDir, File baseMappingsDir,
                                                                     List<WireMockServerManager.AnnotationInfo> annotationInfos, int existingRequestCount,
+                                                                    List<Integer> existingRequestCounts,
                                                                     List<WireMockServer> allServers) throws IOException {
 
         // Get mappings from each server separately
@@ -54,7 +55,7 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
             }
 
             // Get serve events from this specific server
-            List<ServeEvent> testMethodServeEvents = getServeEvents(existingRequestCount, annotationInfo, annotationServer);
+            List<ServeEvent> testMethodServeEvents = getServeEvents(existingRequestCount, existingRequestCounts, annotationInfo, annotationServer);
 
             if (testMethodServeEvents.isEmpty()) {
                 continue;
@@ -219,11 +220,17 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
         return annotationFilesSubDir;
     }
 
-    private static @NotNull List<ServeEvent> getServeEvents(int existingRequestCount, WireMockServerManager.AnnotationInfo annotationInfo, WireMockServer annotationServer) {
+    private static @NotNull List<ServeEvent> getServeEvents(int existingRequestCount,
+                                                            List<Integer> existingRequestCounts,
+                                                            WireMockServerManager.AnnotationInfo annotationInfo,
+                                                            WireMockServer annotationServer) {
         List<ServeEvent> allServeEvents = annotationServer.getAllServeEvents();
         // For class-level servers, we track existingRequestCount from the primary server
-        // But for multiple servers, we need to track per-server. For now, use 0 as we're getting all events from this server
+        // But for multiple servers, we need to track per-server when available
         int serverExistingRequestCount = (annotationInfo.index() == 0) ? existingRequestCount : 0;
+        if (existingRequestCounts != null && annotationInfo.index() < existingRequestCounts.size()) {
+            serverExistingRequestCount = existingRequestCounts.get(annotationInfo.index());
+        }
         // WireMock returns serve events in REVERSE chronological order (newest first)
         // So we need to get elements from the START of the list, not the end
         int newEventsCount = allServeEvents.size() - serverExistingRequestCount;
@@ -377,4 +384,3 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
         logger.info("Completed merging mappings for url_{}", urlIndex);
     }
 }
-

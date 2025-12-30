@@ -35,6 +35,7 @@ public final class DynamicFieldAnalysisOrchestrator {
      * 
      * @param server               WireMock server with recorded interactions
      * @param existingRequestCount Number of requests before this test execution
+     * @param existingRequestCounts Per-server existing request counts for multi-URL tests
      * @param testResourcesDir     Test resources directory (e.g.,
      *                             src/test/resources)
      * @param testClassName        Test class name
@@ -46,6 +47,7 @@ public final class DynamicFieldAnalysisOrchestrator {
     public static void analyzeAndPersist(
             WireMockServer server,
             Integer existingRequestCount,
+            List<Integer> existingRequestCounts,
             File testResourcesDir,
             String testClassName,
             String testMethodName,
@@ -86,8 +88,12 @@ public final class DynamicFieldAnalysisOrchestrator {
                         WireMockServer annotationServer = allServers.get(annotationIndex);
                         if (annotationServer != null) {
                             annotationServeEvents = annotationServer.getAllServeEvents();
-                            // For multiple servers, only track existingRequestCount for the first server
-                            annotationExistingRequestCount = (annotationIndex == 0) ? existingRequestCount : 0;
+                            // For multiple servers, use per-server existing request counts when available
+                            if (existingRequestCounts != null && annotationIndex < existingRequestCounts.size()) {
+                                annotationExistingRequestCount = existingRequestCounts.get(annotationIndex);
+                            } else {
+                                annotationExistingRequestCount = (annotationIndex == 0) ? existingRequestCount : 0;
+                            }
                         }
                     }
                     

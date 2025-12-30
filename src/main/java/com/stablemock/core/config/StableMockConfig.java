@@ -12,6 +12,7 @@ public final class StableMockConfig {
     public static final String DEFAULT_MODE = MODE_PLAYBACK;
     public static final String BASE_URL_PROPERTY = "stablemock.baseUrl";
     public static final String PORT_PROPERTY = "stablemock.port";
+    public static final String GLOBAL_PROPERTIES_PROPERTY = "stablemock.globalProperties";
     
     private StableMockConfig() {
         // utility class
@@ -28,5 +29,8 @@ public final class StableMockConfig {
     public static boolean isPlaybackMode() {
         return MODE_PLAYBACK.equalsIgnoreCase(getMode());
     }
-}
 
+    public static boolean useGlobalProperties() {
+        return Boolean.parseBoolean(System.getProperty(GLOBAL_PROPERTIES_PROPERTY, "true"));
+    }
+}

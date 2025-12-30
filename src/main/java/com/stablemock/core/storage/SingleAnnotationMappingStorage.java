@@ -283,11 +283,11 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         // Use LinkedHashMap for O(1) lookup while preserving insertion order
         java.util.Map<String, StubMapping> mappingsByKey = new java.util.LinkedHashMap<>();
         for (StubMapping mapping : existingMappings) {
-            String key = mapping.getRequest().getMethod().getName() + ":" + mapping.getRequest().getUrl();
+            String key = buildMappingKey(mapping);
             mappingsByKey.put(key, mapping);
         }
         for (StubMapping mapping : testMethodMappings) {
-            String key = mapping.getRequest().getMethod().getName() + ":" + mapping.getRequest().getUrl();
+            String key = buildMappingKey(mapping);
             mappingsByKey.put(key, mapping); // New mappings overwrite existing (take precedence)
         }
         List<StubMapping> mergedMappings = new java.util.ArrayList<>(mappingsByKey.values());
@@ -670,5 +670,18 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         logger.info("Completed merging mappings to class-level directory");
     }
-}
 
+    private static String buildMappingKey(StubMapping mapping) {
+        String methodName = mapping.getRequest().getMethod() != null
+                ? mapping.getRequest().getMethod().getName()
+                : "";
+        String url = mapping.getRequest().getUrl();
+        if (url == null || url.isEmpty()) {
+            url = mapping.getRequest().getUrlPath();
+        }
+        if (url == null) {
+            url = "";
+        }
+        return methodName + ":" + url;
+    }
+}
