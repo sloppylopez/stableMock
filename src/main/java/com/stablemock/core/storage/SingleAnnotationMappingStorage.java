@@ -240,157 +240,28 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
 
         // Load existing mappings from the directory BEFORE creating temp server
         // (WireMock's saveMappings() will overwrite, so we need to preserve them first)
-        // WSL file system issue: Files may exist but not be visible in directory listings
-        // Solution: Use both directory listing AND direct file access attempts
         List<StubMapping> existingMappings = new java.util.ArrayList<>();
         logger.info("=== RECORDING: Checking for existing mappings in: {} ===", testMethodMappingsSubDir.getAbsolutePath());
         
         java.nio.file.Path mappingsPath = testMethodMappingsSubDir.toPath();
         if (java.nio.file.Files.exists(mappingsPath) && java.nio.file.Files.isDirectory(mappingsPath)) {
-            // Strategy: Try multiple approaches to find files in WSL
-            List<java.nio.file.Path> existingFilesList = new java.util.ArrayList<>();
-            java.util.Set<String> foundFileNames = new java.util.HashSet<>();
-            
-            for (int retry = 0; retry < 8; retry++) {
-                // Approach 1: Use Files.list() - most reliable for WSL
-                try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.list(mappingsPath)) {
-                    stream.filter(path -> {
-                        String fileName = path.getFileName().toString().toLowerCase();
-                        return java.nio.file.Files.isRegularFile(path) && fileName.endsWith(".json");
-                    }).forEach(path -> {
-                        String fileName = path.getFileName().toString();
-                        if (!foundFileNames.contains(fileName)) {
-                            existingFilesList.add(path);
-                            foundFileNames.add(fileName);
-                        }
-                    });
-                } catch (Exception e) {
-                    logger.debug("Files.list() failed on retry {}: {}", retry, e.getMessage());
-                }
-                
-                // Approach 2: Try File.listFiles() as fallback (sometimes works when Files.list() doesn't)
-                if (existingFilesList.isEmpty() && retry >= 2) {
-                    try {
-                        File[] allFiles = testMethodMappingsSubDir.listFiles();
-                        if (allFiles != null) {
-                            for (File file : allFiles) {
-                                if (file.isFile() && file.getName().toLowerCase().endsWith(".json")) {
-                                    String fileName = file.getName();
-                                    if (!foundFileNames.contains(fileName)) {
-                                        existingFilesList.add(file.toPath());
-                                        foundFileNames.add(fileName);
-                                    }
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        logger.debug("File.listFiles() failed on retry {}: {}", retry, e.getMessage());
-                    }
-                }
-                
-                logger.info("  JSON files found (retry {}): {} (combined methods)", retry, existingFilesList.size());
-                if (existingFilesList.size() > 0) {
-                    break; // Found files, exit retry loop
-                }
-                
-                // Wait before retrying with increasing delays
-                if (retry < 7) {
-                    try {
-                        // Force sync attempt for WSL
-                        if (retry >= 3) {
-                            try {
-                                java.nio.file.Files.getFileStore(mappingsPath).getAttribute("basic:isReadOnly");
-                            } catch (Exception e) {
-                                // Ignore
-                            }
-                        }
-                        Thread.sleep(250 * (retry + 1)); // 250ms, 500ms, 750ms, 1000ms, 1250ms, 1500ms, 1750ms
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                }
-            }
-            
-            if (existingFilesList.size() > 0) {
-                logger.info("=== RECORDING: Found {} existing mapping file(s) to merge ===", existingFilesList.size());
+            File[] jsonFiles = testMethodMappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            if (jsonFiles != null && jsonFiles.length > 0) {
+                logger.info("=== RECORDING: Found {} existing mapping file(s) to merge ===", jsonFiles.length);
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                for (java.nio.file.Path mappingFilePath : existingFilesList) {
+                for (File mappingFile : jsonFiles) {
                     try {
-                        File mappingFile = mappingFilePath.toFile();
                         StubMapping existingMapping = StubMapping.buildFrom(mapper.readTree(mappingFile).toString());
                         existingMappings.add(existingMapping);
                         logger.info("  Loaded existing mapping: {} ({} {})", mappingFile.getName(),
                             existingMapping.getRequest().getMethod().getName(),
                             existingMapping.getRequest().getUrl());
                     } catch (Exception e) {
-                        logger.warn("Failed to load existing mapping from {}: {}", mappingFilePath.getFileName(), e.getMessage(), e);
+                        logger.warn("Failed to load existing mapping from {}: {}", mappingFile.getName(), e.getMessage());
                     }
                 }
             } else {
-                // WSL file system issue: Files exist but aren't visible in directory listing
-                // Don't lose existing mappings - check if directory has any files at all
-                try {
-                    long fileCount = java.nio.file.Files.list(mappingsPath)
-                        .filter(p -> java.nio.file.Files.isRegularFile(p))
-                        .count();
-                    if (fileCount > 0) {
-                        logger.warn("WSL file system issue detected: Directory has {} file(s) but JSON filter found 0. " +
-                            "Existing mappings may be lost. Consider running on native Linux or Windows.", fileCount);
-                        // Try one more time with a longer delay
-                        Thread.sleep(1000);
-                        try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.list(mappingsPath)) {
-                            stream.filter(path -> {
-                                String fileName = path.getFileName().toString().toLowerCase();
-                                return java.nio.file.Files.isRegularFile(path) && fileName.endsWith(".json");
-                            }).forEach(path -> {
-                                if (!foundFileNames.contains(path.getFileName().toString())) {
-                                    existingFilesList.add(path);
-                                    foundFileNames.add(path.getFileName().toString());
-                                }
-                            });
-                        }
-                        if (existingFilesList.size() > 0) {
-                            logger.info("Found {} files after extended wait", existingFilesList.size());
-                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                            for (java.nio.file.Path mappingFilePath : existingFilesList) {
-                                try {
-                                    File mappingFile = mappingFilePath.toFile();
-                                    StubMapping existingMapping = StubMapping.buildFrom(mapper.readTree(mappingFile).toString());
-                                    existingMappings.add(existingMapping);
-                                } catch (Exception e) {
-                                    logger.warn("Failed to load: {}", mappingFilePath.getFileName());
-                                }
-                            }
-                        }
-                    } else {
-                        logger.info("No existing mapping files found in {} (directory is empty)", mappingsPath);
-                    }
-                } catch (Exception e) {
-                    logger.debug("Could not check file count: {}", e.getMessage());
-                }
-            }
-            
-            // Critical check: If directory exists and has files but we couldn't load them,
-            // this is a WSL file system issue - don't proceed as we'll lose data
-            if (existingMappings.isEmpty() && java.nio.file.Files.exists(mappingsPath)) {
-                try {
-                    long totalFiles = java.nio.file.Files.list(mappingsPath)
-                        .filter(p -> java.nio.file.Files.isRegularFile(p))
-                        .count();
-                    if (totalFiles > 0) {
-                        logger.error("CRITICAL WSL FILE SYSTEM ISSUE: Directory has {} file(s) but we couldn't load any JSON mappings. " +
-                            "Proceeding would lose existing mappings. Aborting to prevent data loss.", totalFiles);
-                        throw new IOException("Cannot load existing mappings due to WSL file system sync issue. " +
-                            "Directory has " + totalFiles + " files but JSON filter found 0. " +
-                            "This is a known WSL issue with Windows-mounted drives. " +
-                            "Solution: Increase delay in Makefile/build script, or run on native Linux/Windows.");
-                    }
-                } catch (IOException e) {
-                    throw e; // Re-throw our error
-                } catch (Exception e) {
-                    logger.debug("Could not verify file count: {}", e.getMessage());
-                }
+                logger.info("No existing mapping files found in {}", mappingsPath);
             }
         } else {
             logger.info("Test method mappings directory does not exist yet: {}", mappingsPath);
@@ -716,7 +587,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                             File destFile = new File(classFilesDir, bodyFile.getName());
                             java.nio.file.Files.copy(bodyFile.toPath(), destFile.toPath(), 
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                        } catch (Exception e) {
+                        } catch (Exception ignored) {
                             // Ignore individual file copy failures
                         }
                     }
