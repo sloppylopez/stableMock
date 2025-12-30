@@ -3,6 +3,7 @@ package example;
 import org.springframework.test.context.DynamicPropertyRegistry;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 
 /**
  * Base class for Spring Boot tests using StableMock.
@@ -31,7 +32,7 @@ public abstract class BaseStableMockTest {
     protected static String getThreadLocalBaseUrl() {
         try {
             Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl");
+            Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl");
             return (String) method.invoke(null);
         } catch (Exception e) {
             return null;
@@ -45,7 +46,7 @@ public abstract class BaseStableMockTest {
     protected static String getThreadLocalBaseUrlByIndex(int index) {
         try {
             Class<?> wireMockContextClass = Class.forName("com.stablemock.WireMockContext");
-            java.lang.reflect.Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl", int.class);
+            Method method = wireMockContextClass.getMethod("getThreadLocalBaseUrl", int.class);
             return (String) method.invoke(null, index);
         } catch (Exception e) {
             return null;
