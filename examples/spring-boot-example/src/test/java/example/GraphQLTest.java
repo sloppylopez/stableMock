@@ -79,10 +79,9 @@ class GraphQLTest extends BaseStableMockTest {
     }
 
     @Test
-    void testGraphQLQueryWithDynamicVariables() {
-        // GraphQL query with variables that change between runs (to test variable ignoring)
-        // Note: GraphQL variable ignoring (gql:variables.fieldName) is documented but not yet implemented
-        // For now, this test verifies basic GraphQL recording/replay works
+    void testGraphQLQueryWithGB() {
+        // GraphQL query with variables for a different country (GB) to ensure distinct requests
+        // This test verifies that different variable values are recorded and replayed correctly
         String graphqlQuery = """
             {
               "query": "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }",
@@ -100,10 +99,10 @@ class GraphQLTest extends BaseStableMockTest {
                 "Response should contain GraphQL data. Got: " + preview(response.getBody()));
     }
 
-    private ResponseEntity<String> postGraphQL(String path, String graphqlBody) {
+    private ResponseEntity<String> postGraphQL(String path, String requestBody) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> entity = new HttpEntity<>(graphqlBody, headers);
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
         return restTemplate.exchange(path, HttpMethod.POST, entity, String.class);
     }
 

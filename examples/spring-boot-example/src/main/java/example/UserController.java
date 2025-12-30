@@ -43,8 +43,8 @@ public class UserController {
     }
 
     @PostMapping(value = "/graphql", consumes = "application/json")
-    public ResponseEntity<String> executeGraphQL(@RequestBody String graphqlBody) {
-        String response = thirdPartyService.executeGraphQLQuery(graphqlBody);
+    public ResponseEntity<String> executeGraphQL(@RequestBody String requestBody) {
+        String response = thirdPartyService.executeGraphQL(requestBody);
         return ResponseEntity.ok(response);
     }
 }

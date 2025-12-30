@@ -8,5 +8,5 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface GraphQLClient {
     
     @PostMapping(value = "/graphql", consumes = "application/json")
-    String executeQuery(@RequestBody String graphqlBody);
+    String executeQuery(@RequestBody String requestBody);
 }

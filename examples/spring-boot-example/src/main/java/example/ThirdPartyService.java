@@ -57,10 +57,10 @@ public class ThirdPartyService {
         return jsonPlaceholderClient.createPost(requestBody);
     }
     
-    public String executeGraphQLQuery(String graphqlBody) {
+    public String executeGraphQL(String requestBody) {
         // FeignClient uses the URL from app.graphql.url property
         // This is set by @DynamicPropertySource in tests to point to WireMock
-        return graphQLClient.executeQuery(graphqlBody);
+        return graphQLClient.executeQuery(requestBody);
     }
 }
 
