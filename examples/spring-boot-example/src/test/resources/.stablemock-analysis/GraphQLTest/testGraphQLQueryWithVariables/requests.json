@@ -1,35 +1,59 @@
 [ {
-  "timestamp" : "2025-12-30T21:14:32.598358500Z",
-  "url" : "/",
+  "timestamp" : "2025-12-30T22:02:20.676787254Z",
+  "url" : "/graphql",
   "method" : "POST",
-  "body" : "{\n  \"query\": \"{ allFilms { films { title releaseDate } } }\"\n}\n",
+  "body" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
   "contentType" : "application/json"
 }, {
-  "timestamp" : "2025-12-30T21:14:32.621377100Z",
-  "url" : "/",
-  "method" : "POST",
-  "body" : "{\n  \"query\": \"query GetPerson($id: ID!) { person(id: $id) { name birthYear } }\",\n  \"variables\": {\n    \"id\": \"1\"\n  }\n}\n",
-  "contentType" : "application/json"
-}, {
-  "timestamp" : "2025-12-30T21:14:32.621884300Z",
-  "url" : "/",
-  "method" : "POST",
-  "body" : "{\n  \"query\": \"query GetFilm($id: ID!) { film(id: $id) { title releaseDate } }\",\n  \"variables\": {\n    \"id\": \"1\"\n  }\n}\n",
-  "contentType" : "application/json"
-}, {
-  "timestamp" : "2025-12-30T21:16:08.999167300Z",
+  "timestamp" : "2025-12-30T22:03:14.845988838Z",
   "url" : "/graphql",
   "method" : "POST",
   "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
   "contentType" : "application/json"
 }, {
-  "timestamp" : "2025-12-30T21:16:09.006669100Z",
+  "timestamp" : "2025-12-30T22:03:14.949499457Z",
   "url" : "/graphql",
   "method" : "POST",
   "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",
   "contentType" : "application/json"
 }, {
-  "timestamp" : "2025-12-30T21:16:09.006669100Z",
+  "timestamp" : "2025-12-30T22:03:14.961959337Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2025-12-30T22:08:30.393013300Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2025-12-30T22:08:30.404023200Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2025-12-30T22:08:30.411419400Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2025-12-30T22:08:50.502903400Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2025-12-30T22:08:50.514474800Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2025-12-30T22:08:50.515474900Z",
   "url" : "/graphql",
   "method" : "POST",
   "body" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",

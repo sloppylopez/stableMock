@@ -147,56 +147,61 @@ public final class WireMockServerManager {
 
 
         // Load detected ignore patterns and modify stub files before loading
-        // For class-level, we try to load patterns from all test methods
+        // For class-level, apply patterns per test method based on mapping file prefixes
         if (testResourcesDir != null && testClassName != null) {
-            List<String> ignorePatterns = new java.util.ArrayList<>();
-            
             if (testMethodName != null) {
-                // Method-level patterns
+                // Method-level: load patterns for this specific method
+                List<String> ignorePatterns = new java.util.ArrayList<>();
                 ignorePatterns.addAll(com.stablemock.core.analysis.AnalysisResultStorage
                         .loadIgnorePatterns(testResourcesDir, testClassName, testMethodName));
+                
+                // Merge with annotation patterns
+                if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
+                    int autoDetectedCount = ignorePatterns.size();
+                    ignorePatterns.removeAll(annotationIgnorePatterns);
+                    ignorePatterns.addAll(annotationIgnorePatterns);
+                    logger.info("Merging ignore patterns: {} auto-detected ({} kept after override) + {} from annotation (annotation patterns have priority)", 
+                            autoDetectedCount,
+                            ignorePatterns.size() - annotationIgnorePatterns.size(), 
+                            annotationIgnorePatterns.size());
+                }
+                
+                if (!ignorePatterns.isEmpty()) {
+                    logger.info("Applying {} ignore patterns to stub files for {}", 
+                            ignorePatterns.size(), testClassName + "." + testMethodName);
+                    File playbackMappingsDir = preparePlaybackMappings(mappingsDir);
+                    applyIgnorePatternsToStubFiles(playbackMappingsDir, ignorePatterns, testMethodName);
+                    mappingsDir = playbackMappingsDir;
+                }
             } else {
-                // Class-level: try to load from all test methods
+                // Class-level: apply patterns per test method based on mapping file prefixes
                 File testClassDir = new File(testResourcesDir, "stablemock/" + testClassName);
                 if (testClassDir.exists() && testClassDir.isDirectory()) {
                     File[] methodDirs = testClassDir.listFiles(File::isDirectory);
                     if (methodDirs != null) {
+                        java.util.Map<String, List<String>> patternsByMethod = new java.util.HashMap<>();
                         for (File methodDir : methodDirs) {
                             if (!methodDir.getName().equals("mappings") && 
                                 !methodDir.getName().equals("__files") &&
                                 !methodDir.getName().startsWith("url_") &&
                                 !methodDir.getName().startsWith("annotation_")) {
+                                String methodName = methodDir.getName();
                                 List<String> methodPatterns = com.stablemock.core.analysis.AnalysisResultStorage
-                                        .loadIgnorePatterns(testResourcesDir, testClassName, methodDir.getName());
-                                ignorePatterns.addAll(methodPatterns);
+                                        .loadIgnorePatterns(testResourcesDir, testClassName, methodName);
+                                if (!methodPatterns.isEmpty()) {
+                                    patternsByMethod.put(methodName, methodPatterns);
+                                }
                             }
+                        }
+                        
+                        if (!patternsByMethod.isEmpty()) {
+                            logger.info("Applying ignore patterns per test method for {}", testClassName);
+                            File playbackMappingsDir = preparePlaybackMappings(mappingsDir);
+                            applyIgnorePatternsToStubFilesPerMethod(playbackMappingsDir, patternsByMethod, annotationIgnorePatterns);
+                            mappingsDir = playbackMappingsDir;
                         }
                     }
                 }
-            }
-            
-            // Merge patterns: annotation patterns override auto-detected ones
-            // Start with auto-detected patterns, then add annotation patterns (removing duplicates)
-            if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
-                int autoDetectedCount = ignorePatterns.size();
-                // Remove any auto-detected patterns that conflict with annotation patterns
-                // (annotation patterns take priority - remove duplicates from auto-detected)
-                ignorePatterns.removeAll(annotationIgnorePatterns);
-                // Add annotation patterns (they override any conflicting auto-detected patterns)
-                ignorePatterns.addAll(annotationIgnorePatterns);
-                logger.info("Merging ignore patterns: {} auto-detected ({} kept after override) + {} from annotation (annotation patterns have priority)", 
-                        autoDetectedCount,
-                        ignorePatterns.size() - annotationIgnorePatterns.size(), 
-                        annotationIgnorePatterns.size());
-            }
-            
-            if (!ignorePatterns.isEmpty()) {
-                logger.info("Applying {} ignore patterns to stub files for {}", 
-                        ignorePatterns.size(), 
-                        testMethodName != null ? testClassName + "." + testMethodName : testClassName);
-                File playbackMappingsDir = preparePlaybackMappings(mappingsDir);
-                applyIgnorePatternsToStubFiles(playbackMappingsDir, ignorePatterns);
-                mappingsDir = playbackMappingsDir;
             }
         }
 
@@ -225,7 +230,7 @@ public final class WireMockServerManager {
      * Using placeholders (instead of removing fields) preserves the structure and works
      * for both JSON and XML formats consistently.
      */
-    private static void applyIgnorePatternsToStubFiles(File mappingsDir, List<String> ignorePatterns) {
+    private static void applyIgnorePatternsToStubFiles(File mappingsDir, List<String> ignorePatterns, String testMethodName) {
         try {
             File mappingsSubDir = new File(mappingsDir, "mappings");
             if (!mappingsSubDir.exists() || !mappingsSubDir.isDirectory()) {
@@ -242,6 +247,11 @@ public final class WireMockServerManager {
             
             for (File mappingFile : mappingFiles) {
                 try {
+                    // For method-level, only apply patterns to mappings from this method
+                    if (testMethodName != null && !mappingFile.getName().startsWith(testMethodName + "_")) {
+                        continue;
+                    }
+                    
                     com.fasterxml.jackson.databind.JsonNode mapping = objectMapper.readTree(mappingFile);
                     com.fasterxml.jackson.databind.node.ObjectNode mappingObj = 
                             (com.fasterxml.jackson.databind.node.ObjectNode) mapping;
@@ -328,6 +338,140 @@ public final class WireMockServerManager {
             }
         } catch (Exception e) {
             logger.warn("Failed to apply ignore patterns to stub files: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Applies ignore patterns per test method based on mapping file prefixes.
+     * Only applies patterns from a specific test method to mappings that belong to that method.
+     */
+    private static void applyIgnorePatternsToStubFilesPerMethod(File mappingsDir, 
+            java.util.Map<String, List<String>> patternsByMethod, 
+            List<String> annotationIgnorePatterns) {
+        try {
+            File mappingsSubDir = new File(mappingsDir, "mappings");
+            if (!mappingsSubDir.exists() || !mappingsSubDir.isDirectory()) {
+                return;
+            }
+            
+            File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            if (mappingFiles == null) {
+                return;
+            }
+            
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = 
+                    new com.fasterxml.jackson.databind.ObjectMapper();
+            
+            for (File mappingFile : mappingFiles) {
+                try {
+                    // Find which test method this mapping belongs to based on filename prefix
+                    String fileName = mappingFile.getName();
+                    String matchingMethod = null;
+                    for (String methodName : patternsByMethod.keySet()) {
+                        if (fileName.startsWith(methodName + "_")) {
+                            matchingMethod = methodName;
+                            break;
+                        }
+                    }
+                    
+                    // Only apply patterns if this mapping belongs to a known test method
+                    if (matchingMethod == null) {
+                        continue;
+                    }
+                    
+                    // Get patterns for this specific test method
+                    List<String> ignorePatterns = new java.util.ArrayList<>(patternsByMethod.get(matchingMethod));
+                    
+                    // Merge with annotation patterns
+                    if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
+                        ignorePatterns.removeAll(annotationIgnorePatterns);
+                        ignorePatterns.addAll(annotationIgnorePatterns);
+                    }
+                    
+                    if (ignorePatterns.isEmpty()) {
+                        continue;
+                    }
+                    
+                    com.fasterxml.jackson.databind.JsonNode mapping = objectMapper.readTree(mappingFile);
+                    com.fasterxml.jackson.databind.node.ObjectNode mappingObj = 
+                            (com.fasterxml.jackson.databind.node.ObjectNode) mapping;
+                    
+                    com.fasterxml.jackson.databind.JsonNode requestNode = mappingObj.get("request");
+                    if (requestNode != null && requestNode.isObject()) {
+                        com.fasterxml.jackson.databind.node.ObjectNode requestObj = 
+                                (com.fasterxml.jackson.databind.node.ObjectNode) requestNode;
+                        
+                        com.fasterxml.jackson.databind.JsonNode bodyPatternsNode = requestObj.get("bodyPatterns");
+                        if (bodyPatternsNode != null && bodyPatternsNode.isArray()) {
+                            boolean modified = false;
+                            for (com.fasterxml.jackson.databind.JsonNode patternNode : bodyPatternsNode) {
+                                if (patternNode.isObject()) {
+                                    com.fasterxml.jackson.databind.node.ObjectNode patternObj = 
+                                            (com.fasterxml.jackson.databind.node.ObjectNode) patternNode;
+                                    
+                                    com.fasterxml.jackson.databind.JsonNode matcherNode = patternObj.get("equalToJson");
+                                    String matcherKey = "equalToJson";
+                                    
+                                    if (matcherNode == null) {
+                                        matcherNode = patternObj.get("equalToXml");
+                                        if (matcherNode != null) {
+                                            matcherKey = "equalToXml";
+                                        }
+                                    }
+                                    
+                                    if (matcherNode == null) {
+                                        matcherNode = patternObj.get("equalTo");
+                                        matcherKey = "equalTo";
+                                    }
+                                    
+                                    if (matcherNode != null && matcherNode.isTextual()) {
+                                        String expectedBody = matcherNode.asText();
+                                        
+                                        boolean isJson = com.stablemock.core.analysis.JsonBodyParser.isJson(expectedBody);
+                                        boolean isXml = com.stablemock.core.analysis.XmlBodyParser.isXml(expectedBody);
+                                        
+                                        if (isJson) {
+                                            String normalizedJson = normalizeJsonStringWithPlaceholders(expectedBody, ignorePatterns);
+                                            
+                                            if (matcherKey.equals("equalTo") || !normalizedJson.equals(expectedBody)) {
+                                                patternObj.remove(matcherKey);
+                                                patternObj.put("equalToJson", normalizedJson);
+                                                patternObj.put("ignoreArrayOrder", false);
+                                                patternObj.put("ignoreExtraElements", true);
+                                                modified = true;
+                                                logger.debug("Modified mapping {} for test method {} with json-unit.ignore placeholders", 
+                                                        mappingFile.getName(), matchingMethod);
+                                            }
+                                        } else if (isXml) {
+                                            String normalizedXml = normalizeXmlStringWithPlaceholders(expectedBody, ignorePatterns);
+                                            
+                                            if (matcherKey.equals("equalTo") || !normalizedXml.equals(expectedBody)) {
+                                                patternObj.remove(matcherKey);
+                                                patternObj.put("equalToXml", normalizedXml);
+                                                patternObj.put("enablePlaceholders", true);
+                                                patternObj.put("ignoreWhitespace", true);
+                                                modified = true;
+                                                logger.debug("Modified mapping {} for test method {} with xmlunit.ignore placeholders", 
+                                                        mappingFile.getName(), matchingMethod);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (modified) {
+                                objectMapper.writerWithDefaultPrettyPrinter().writeValue(mappingFile, mapping);
+                                logger.debug("Applied {} ignore patterns to mapping {} for test method {}", 
+                                        ignorePatterns.size(), mappingFile.getName(), matchingMethod);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to modify stub file {}: {}", mappingFile.getName(), e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to apply ignore patterns per method to stub files: {}", e.getMessage());
         }
     }
 
