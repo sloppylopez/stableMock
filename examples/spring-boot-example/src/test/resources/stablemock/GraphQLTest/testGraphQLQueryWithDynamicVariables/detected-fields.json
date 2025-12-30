@@ -1,7 +1,7 @@
 {
   "testClass" : "GraphQLTest",
   "testMethod" : "testGraphQLQueryWithDynamicVariables",
-  "detectedAt" : "2025-12-30T22:08:50.516475200Z",
+  "detectedAt" : "2025-12-30T22:11:12.819388800Z",
   "analyzed_requests_count" : 10,
   "dynamic_fields" : [ {
     "field_path" : "json:query",
@@ -10,7 +10,7 @@
   }, {
     "field_path" : "json:variables",
     "confidence" : "HIGH",
-    "sample_values" : [ "{\"code\":\"US\"}", "{\"code\":\"GB\"}", "{\"code\":\"GB\"}" ]
+    "sample_values" : [ "{\"code\":\"US\"}", "{\"code\":\"GB\"}", "{\"code\":\"US\"}" ]
   } ],
   "ignore_patterns" : [ "json:query", "json:variables" ]
 }

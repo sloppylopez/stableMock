@@ -1,16 +1,4 @@
 [ {
-  "timestamp" : "2025-12-30T21:40:47.891454814Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2025-12-30T21:52:00.868363800Z",
-  "url" : "/users/1",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
   "timestamp" : "2025-12-30T21:52:31.784182900Z",
   "url" : "/users/1",
   "method" : "GET",
@@ -54,6 +42,18 @@
   "contentType" : null
 }, {
   "timestamp" : "2025-12-30T22:08:50.935448900Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-30T22:10:53.816757300Z",
+  "url" : "/users/1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2025-12-30T22:11:13.486088600Z",
   "url" : "/users/1",
   "method" : "GET",
   "body" : "",
