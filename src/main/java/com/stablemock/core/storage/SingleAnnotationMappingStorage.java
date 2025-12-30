@@ -444,8 +444,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         }
         
         // Use a temporary directory for the temp server to avoid conflicts
-        // Use thread ID + timestamp + random to ensure uniqueness in parallel execution
-        String uniqueId = Thread.currentThread().getId() + "-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 1000000);
+        String uniqueId = java.util.UUID.randomUUID().toString();
         File tempMappingsDir = new java.io.File(java.lang.System.getProperty("java.io.tmpdir"), "stablemock-temp-" + uniqueId);
         File tempMappingsSubDir = new File(tempMappingsDir, "mappings");
         File tempFilesSubDir = new File(tempMappingsDir, "__files");
