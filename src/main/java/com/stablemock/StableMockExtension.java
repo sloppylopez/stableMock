@@ -119,15 +119,19 @@ public class StableMockExtension
                 baseUrls[i] = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
             }
             WireMockContext.setBaseUrls(baseUrls);
-            System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
-            System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(ports.get(0)));
+            if (StableMockConfig.useGlobalProperties()) {
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
+                System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(ports.get(0)));
+            }
             // Class-scoped properties to avoid global races in parallel Spring tests
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
             System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(ports.get(0)));
 
             for (int i = 0; i < ports.size(); i++) {
-                System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
-                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
+                if (StableMockConfig.useGlobalProperties()) {
+                    System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
+                    System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
+                }
                 // Also class-scoped indexed properties for multi-URL tests
                 System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
                 System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
@@ -175,8 +179,10 @@ public class StableMockExtension
             String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(port);
-            System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
-            System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
+            if (StableMockConfig.useGlobalProperties()) {
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
+                System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
+            }
             // Class-scoped properties to avoid global races in parallel Spring tests
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
             System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(port));
@@ -240,6 +246,14 @@ public class StableMockExtension
             File mappingsDir = new File(testResourcesDir, "stablemock/" + testClassName + "/" + testMethodName);
 
             int existingRequestCount = classServer.getAllServeEvents().size();
+            List<Integer> existingRequestCounts = null;
+            List<WireMockServer> classServers = classStore.getServers();
+            if (classServers != null && !classServers.isEmpty()) {
+                existingRequestCounts = new ArrayList<>();
+                for (WireMockServer server : classServers) {
+                    existingRequestCounts.add(server != null ? server.getAllServeEvents().size() : 0);
+                }
+            }
 
             methodStore.putServer(classServer);
             methodStore.putPort(port);
@@ -248,6 +262,9 @@ public class StableMockExtension
             methodStore.putTargetUrl(classStore.getTargetUrl());
             methodStore.putUseClassLevelServer(true);
             methodStore.putExistingRequestCount(existingRequestCount);
+            if (existingRequestCounts != null) {
+                methodStore.putExistingRequestCounts(existingRequestCounts);
+            }
 
             // Refresh class-scoped properties (Spring may have evaluated @DynamicPropertySource early)
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
@@ -280,8 +297,10 @@ public class StableMockExtension
                         String portProp = StableMockConfig.PORT_PROPERTY + "." + i;
                         String urlProp = StableMockConfig.BASE_URL_PROPERTY + "." + i;
                         String urlValue = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
-                        System.setProperty(portProp, String.valueOf(ports.get(i)));
-                        System.setProperty(urlProp, urlValue);
+                        if (StableMockConfig.useGlobalProperties()) {
+                            System.setProperty(portProp, String.valueOf(ports.get(i)));
+                            System.setProperty(urlProp, urlValue);
+                        }
                         System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
                         System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, urlValue);
                     }
@@ -335,12 +354,16 @@ public class StableMockExtension
                 baseUrls[i] = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
             }
             WireMockContext.setBaseUrls(baseUrls);
-            System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
-            System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(ports.get(0)));
+            if (StableMockConfig.useGlobalProperties()) {
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
+                System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(ports.get(0)));
+            }
 
             for (int i = 0; i < ports.size(); i++) {
-                System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
-                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
+                if (StableMockConfig.useGlobalProperties()) {
+                    System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
+                    System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
+                }
             }
         } else {
             int port = WireMockServerManager.findFreePort();
@@ -379,8 +402,10 @@ public class StableMockExtension
             String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
             WireMockContext.setBaseUrl(baseUrl);
             WireMockContext.setPort(port);
-            System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
-            System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
+            if (StableMockConfig.useGlobalProperties()) {
+                System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
+            }
         }
     }
 
@@ -401,6 +426,7 @@ public class StableMockExtension
                     WireMockServer server = classStore.getServer();
                     if (server != null) {
                         Integer existingRequestCount = methodStore.getExistingRequestCount();
+                        List<Integer> existingRequestCounts = methodStore.getExistingRequestCounts();
                         if (existingRequestCount == null) {
                             existingRequestCount = 0;
                         }
@@ -414,15 +440,28 @@ public class StableMockExtension
                         List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> serveEvents = server
                                 .getAllServeEvents();
                         if (annotationInfos != null && annotationInfos.size() > 1) {
-                            if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
-                                List<WireMockServer> allServers = classStore.getServers();
+                            boolean hasNewEvents = !serveEvents.isEmpty() && serveEvents.size() > existingRequestCount;
+                            List<WireMockServer> allServers = classStore.getServers();
+                            if (!hasNewEvents && existingRequestCounts != null && allServers != null) {
+                                int maxIndex = Math.min(allServers.size(), existingRequestCounts.size());
+                                for (int i = 0; i < maxIndex; i++) {
+                                    WireMockServer candidateServer = allServers.get(i);
+                                    if (candidateServer != null
+                                            && candidateServer.getAllServeEvents().size() > existingRequestCounts.get(i)) {
+                                        hasNewEvents = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (hasNewEvents) {
                                 MappingStorage.saveMappingsForTestMethodMultipleAnnotations(server, mappingsDir,
-                                        baseMappingsDir, annotationInfos, existingRequestCount, allServers);
+                                        baseMappingsDir, annotationInfos, existingRequestCount, existingRequestCounts, allServers);
 
                                 // Track requests and run detection for multiple annotations/URLs
                                 // Pass allServers so requests can be tracked per server/URL
                                 performDynamicFieldDetectionWithServers(context, server, existingRequestCount,
-                                        testResourcesDir, testClassName, annotationInfos, allServers);
+                                        existingRequestCounts, testResourcesDir, testClassName, annotationInfos, allServers);
                             }
                         } else {
                             if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
@@ -430,7 +469,7 @@ public class StableMockExtension
                                         existingRequestCount);
 
                                 // Track requests and run detection for single annotation
-                                performDynamicFieldDetection(context, server, existingRequestCount,
+                                performDynamicFieldDetection(context, server, existingRequestCount, null,
                                         testResourcesDir, testClassName, null);
                             }
                         }
@@ -451,19 +490,19 @@ public class StableMockExtension
                             File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
                             // For method-level servers, we only have one server, so pass null
                             MappingStorage.saveMappingsForTestMethodMultipleAnnotations(wireMockServer, mappingsDir,
-                                    baseMappingsDir, annotationInfos, 0, null);
+                                    baseMappingsDir, annotationInfos, 0, null, null);
 
                             // Track requests and run detection for multiple annotations
                             // For method-level, we only have one server, so pass null for allServers
                             performDynamicFieldDetectionWithServers(context, wireMockServer, 0,
-                                    testResourcesDir, testClassName, annotationInfos, null);
+                                    null, testResourcesDir, testClassName, annotationInfos, null);
                         } else {
                             MappingStorage.saveMappings(wireMockServer, mappingsDir, targetUrl);
 
                             // Track requests and run detection for single annotation
                             String testClassName = TestContextResolver.getTestClassName(context);
                             File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-                            performDynamicFieldDetection(context, wireMockServer, 0,
+                            performDynamicFieldDetection(context, wireMockServer, 0, null,
                                     testResourcesDir, testClassName, null);
                         }
                     }
@@ -498,8 +537,10 @@ public class StableMockExtension
                 if (server != null) {
                     server.stop();
                 }
-                System.clearProperty(StableMockConfig.PORT_PROPERTY + "." + i);
-                System.clearProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i);
+                if (StableMockConfig.useGlobalProperties()) {
+                    System.clearProperty(StableMockConfig.PORT_PROPERTY + "." + i);
+                    System.clearProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i);
+                }
             }
             classStore.putServers(null);
             classStore.putPorts(null);
@@ -538,8 +579,10 @@ public class StableMockExtension
             }
         }
 
-        System.clearProperty(StableMockConfig.PORT_PROPERTY);
-        System.clearProperty(StableMockConfig.BASE_URL_PROPERTY);
+        if (StableMockConfig.useGlobalProperties()) {
+            System.clearProperty(StableMockConfig.PORT_PROPERTY);
+            System.clearProperty(StableMockConfig.BASE_URL_PROPERTY);
+        }
         WireMockContext.clear();
     }
 
@@ -556,6 +599,7 @@ public class StableMockExtension
     private void performDynamicFieldDetection(ExtensionContext context,
             WireMockServer server,
             Integer existingRequestCount,
+            List<Integer> existingRequestCounts,
             File testResourcesDir,
             String testClassName,
             List<WireMockServerManager.AnnotationInfo> annotationInfos) {
@@ -566,7 +610,7 @@ public class StableMockExtension
         // Delegate to orchestrator - all logic moved there for better separation of
         // concerns. The orchestrator gets serve events directly from the server.
         DynamicFieldAnalysisOrchestrator.analyzeAndPersist(
-                server, existingRequestCount, testResourcesDir, testClassName, testMethodName, annotationInfos, null);
+                server, existingRequestCount, existingRequestCounts, testResourcesDir, testClassName, testMethodName, annotationInfos, null);
     }
     
     /**
@@ -575,6 +619,7 @@ public class StableMockExtension
     private void performDynamicFieldDetectionWithServers(ExtensionContext context,
             WireMockServer server,
             Integer existingRequestCount,
+            List<Integer> existingRequestCounts,
             File testResourcesDir,
             String testClassName,
             List<WireMockServerManager.AnnotationInfo> annotationInfos,
@@ -585,7 +630,7 @@ public class StableMockExtension
 
         // Delegate to orchestrator with all servers. The orchestrator gets serve events directly from the servers.
         DynamicFieldAnalysisOrchestrator.analyzeAndPersist(
-                server, existingRequestCount, testResourcesDir, testClassName, testMethodName, annotationInfos, allServers);
+                server, existingRequestCount, existingRequestCounts, testResourcesDir, testClassName, testMethodName, annotationInfos, allServers);
     }
 
     @Override

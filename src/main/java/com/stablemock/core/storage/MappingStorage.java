@@ -39,9 +39,10 @@ public final class MappingStorage {
     public static void saveMappingsForTestMethodMultipleAnnotations(WireMockServer wireMockServer, 
             File testMethodMappingsDir, File baseMappingsDir, 
             List<WireMockServerManager.AnnotationInfo> annotationInfos, int existingRequestCount,
+            List<Integer> existingRequestCounts,
             List<WireMockServer> allServers) throws IOException {
         MultipleAnnotationMappingStorage.saveMappingsForTestMethodMultipleAnnotations(wireMockServer, 
-                testMethodMappingsDir, baseMappingsDir, annotationInfos, existingRequestCount, allServers);
+                testMethodMappingsDir, baseMappingsDir, annotationInfos, existingRequestCount, existingRequestCounts, allServers);
     }
     
     /**
