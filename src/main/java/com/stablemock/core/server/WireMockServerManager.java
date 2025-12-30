@@ -541,7 +541,7 @@ public final class WireMockServerManager {
                     if (fieldExistsInJson(jsonNode, jsonPath)) {
                         applicablePatterns.add(normalizedPattern);
                     } else {
-                        logger.debug("Skipping ignore pattern '{}' - field does not exist in JSON", pattern);
+                        logger.debug("Skipping ignore pattern '{}' - field does not exist in JSON", normalizedPattern);
                     }
                 } else {
                     applicablePatterns.add(normalizedPattern); // Non-JSON patterns (XML, etc.) are always applicable
@@ -728,6 +728,9 @@ public final class WireMockServerManager {
 
     private static List<JsonPathSegment> parseJsonPath(String path) {
         List<JsonPathSegment> segments = new java.util.ArrayList<>();
+        if (path == null || path.isEmpty()) {
+            return segments;
+        }
         String remaining = path;
         while (!remaining.isEmpty()) {
             String segmentToken;
@@ -740,7 +743,10 @@ public final class WireMockServerManager {
                 remaining = "";
             }
 
-            segments.add(parseJsonPathSegment(segmentToken));
+            // Skip empty segments (e.g., consecutive dots or leading/trailing dots)
+            if (!segmentToken.isEmpty()) {
+                segments.add(parseJsonPathSegment(segmentToken));
+            }
         }
         return segments;
     }
@@ -754,7 +760,12 @@ public final class WireMockServerManager {
             String remainder = token.substring(bracketIndex);
             java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\\[(\\d+)]").matcher(remainder);
             while (matcher.find()) {
-                indices.add(Integer.parseInt(matcher.group(1)));
+                String indexText = matcher.group(1);
+                try {
+                    indices.add(Integer.parseInt(indexText));
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid array index in JSON path segment: '" + indexText + "' in token '" + token + "'", e);
+                }
             }
         } else {
             fieldName = token;
@@ -945,7 +956,9 @@ public final class WireMockServerManager {
     }
     
     /**
-     * Extracts element name from XPath pattern like "//*[local-name()='timestamp']"
+     * Extracts all element names from an XPath pattern (for example,
+     * "//*[local-name()='timestamp']/*[local-name()='value']") and returns them
+     * as a list representing the element path.
      */
     private static List<String> extractElementPathFromXPath(String xpath) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(

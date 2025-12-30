@@ -54,7 +54,20 @@ public final class ExtensionContextManager {
 
         @SuppressWarnings("unchecked")
         public List<WireMockServer> getServers() {
-            return store.get("wireMockServers", List.class);
+            Object value = store.get("wireMockServers");
+            if (value == null) {
+                return null;
+            }
+            if (!(value instanceof List<?>)) {
+                throw new ClassCastException("Stored 'wireMockServers' value is not a List: " + value.getClass());
+            }
+            List<?> list = (List<?>) value;
+            for (Object element : list) {
+                if (!(element instanceof WireMockServer)) {
+                    throw new ClassCastException("Stored 'wireMockServers' list contains non-WireMockServer element: " + element);
+                }
+            }
+            return (List<WireMockServer>) list;
         }
 
         public void putPorts(List<Integer> ports) {
@@ -63,7 +76,20 @@ public final class ExtensionContextManager {
 
         @SuppressWarnings("unchecked")
         public List<Integer> getPorts() {
-            return store.get("ports", List.class);
+            Object value = store.get("ports");
+            if (value == null) {
+                return null;
+            }
+            if (!(value instanceof List<?>)) {
+                throw new ClassCastException("Stored 'ports' value is not a List: " + value.getClass());
+            }
+            List<?> list = (List<?>) value;
+            for (Object element : list) {
+                if (!(element instanceof Integer)) {
+                    throw new ClassCastException("Stored 'ports' list contains non-Integer element: " + element);
+                }
+            }
+            return (List<Integer>) list;
         }
 
         public void putTargetUrl(String targetUrl) {
@@ -199,7 +225,20 @@ public final class ExtensionContextManager {
 
         @SuppressWarnings("unchecked")
         public List<WireMockServer> getServers() {
-            return store.get("wireMockServers", List.class);
+            Object value = store.get("wireMockServers");
+            if (value == null) {
+                return null;
+            }
+            if (!(value instanceof List<?>)) {
+                throw new ClassCastException("Stored 'wireMockServers' value is not a List: " + value.getClass());
+            }
+            List<?> list = (List<?>) value;
+            for (Object element : list) {
+                if (!(element instanceof WireMockServer)) {
+                    throw new ClassCastException("Stored 'wireMockServers' list contains non-WireMockServer element: " + element);
+                }
+            }
+            return (List<WireMockServer>) list;
         }
 
         public void putPorts(List<Integer> ports) {
@@ -208,7 +247,20 @@ public final class ExtensionContextManager {
 
         @SuppressWarnings("unchecked")
         public List<Integer> getPorts() {
-            return store.get("ports", List.class);
+            Object value = store.get("ports");
+            if (value == null) {
+                return null;
+            }
+            if (!(value instanceof List<?>)) {
+                throw new ClassCastException("Stored 'ports' value is not a List: " + value.getClass());
+            }
+            List<?> list = (List<?>) value;
+            for (Object element : list) {
+                if (!(element instanceof Integer)) {
+                    throw new ClassCastException("Stored 'ports' list contains non-Integer element: " + element);
+                }
+            }
+            return (List<Integer>) list;
         }
     }
 }
