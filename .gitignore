@@ -63,3 +63,8 @@ $RECYCLE.BIN/
 # Virtual machine crash logs
 hs_err_pid*
 replay_pid*
+
+# Node.js (not used in this project, but ignore if accidentally created)
+package-lock.json
+package.json
+node_modules/
