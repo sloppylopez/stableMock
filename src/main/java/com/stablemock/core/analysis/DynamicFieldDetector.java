@@ -145,10 +145,18 @@ public final class DynamicFieldDetector {
         Map<String, List<RequestSnapshot>> groups = new LinkedHashMap<>();
 
         for (RequestSnapshot request : requests) {
-            String key = request.getMethod() + " " + request.getUrl();
+            String key = request.getMethod() + " " + normalizeUrl(request.getUrl());
             groups.computeIfAbsent(key, k -> new ArrayList<>()).add(request);
         }
 
         return groups;
+    }
+
+    private static String normalizeUrl(String url) {
+        if (url == null) {
+            return "";
+        }
+        int queryIndex = url.indexOf('?');
+        return queryIndex >= 0 ? url.substring(0, queryIndex) : url;
     }
 }

@@ -84,12 +84,11 @@ public final class XmlFieldDetector {
                         String[] parts = path.split("@");
                         String elementPath = parts[0];
                         String attrName = parts[1];
-                        String[] elementParts = elementPath.split("/");
-                        String lastElement = elementParts[elementParts.length - 1];
-                        xpathPattern = "//*[local-name()='" + lastElement + "']/@*[local-name()='" + attrName + "']";
+                        xpathPattern = buildElementPathXPath(elementPath)
+                                + "/@*[local-name()='" + attrName + "']";
                     } else {
-                        // Element: Use local-name() to handle namespaces
-                        xpathPattern = "//*[local-name()='" + extractElementName(path) + "']";
+                        // Element: use full path to avoid over-broad matches
+                        xpathPattern = buildElementPathXPath(path);
                     }
                     String xmlPath = "xml:" + xpathPattern;
 
@@ -111,16 +110,23 @@ public final class XmlFieldDetector {
      * @param path The element path
      * @return The last element name in the path
      */
-    private static String extractElementName(String path) {
+    private static String buildElementPathXPath(String path) {
         if (path == null || path.isEmpty()) {
-            return "";
+            return "//*";
         }
-        int lastSlash = path.lastIndexOf('/');
-        if (lastSlash >= 0 && lastSlash < path.length() - 1) {
-            return path.substring(lastSlash + 1);
+        String[] elementParts = path.split("/");
+        StringBuilder xpath = new StringBuilder();
+        for (String part : elementParts) {
+            if (part.isEmpty()) {
+                continue;
+            }
+            if (xpath.length() == 0) {
+                xpath.append("//*[local-name()='").append(part).append("']");
+            } else {
+                xpath.append("/*[local-name()='").append(part).append("']");
+            }
         }
-        return path;
+        return xpath.length() == 0 ? "//*" : xpath.toString();
     }
 
 }
-
