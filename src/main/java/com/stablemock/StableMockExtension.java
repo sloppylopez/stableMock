@@ -341,6 +341,8 @@ public class StableMockExtension
             methodStore.putAnnotationInfos(annotationInfos);
             methodStore.putServer(servers.get(0));
             methodStore.putPort(ports.get(0));
+            methodStore.putServers(servers);
+            methodStore.putPorts(ports);
             methodStore.putMode(mode);
             methodStore.putMappingsDir(mappingsDir);
             methodStore.putTargetUrl(annotationInfos.get(0).urls()[0]);
@@ -480,37 +482,46 @@ public class StableMockExtension
                 File mappingsDir = methodStore.getMappingsDir();
                 String targetUrl = methodStore.getTargetUrl();
 
-                if (wireMockServer != null) {
-                    if (StableMockConfig.isRecordMode()) {
-                        List<WireMockServerManager.AnnotationInfo> annotationInfos = methodStore
-                                .getAnnotationInfos();
-                        if (annotationInfos != null && annotationInfos.size() > 1) {
-                            String testClassName = TestContextResolver.getTestClassName(context);
-                            File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-                            File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
-                            // For method-level servers, we only have one server, so pass null
-                            MappingStorage.saveMappingsForTestMethodMultipleAnnotations(wireMockServer, mappingsDir,
-                                    baseMappingsDir, annotationInfos, 0, null, null);
+            if (wireMockServer != null) {
+                if (StableMockConfig.isRecordMode()) {
+                    List<WireMockServerManager.AnnotationInfo> annotationInfos = methodStore
+                            .getAnnotationInfos();
+                    if (annotationInfos != null && annotationInfos.size() > 1) {
+                        String testClassName = TestContextResolver.getTestClassName(context);
+                        File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
+                        File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+                        List<WireMockServer> allServers = methodStore.getServers();
+                        // For method-level servers, use all servers when available
+                        MappingStorage.saveMappingsForTestMethodMultipleAnnotations(wireMockServer, mappingsDir,
+                                baseMappingsDir, annotationInfos, 0, null, allServers);
 
-                            // Track requests and run detection for multiple annotations
-                            // For method-level, we only have one server, so pass null for allServers
-                            performDynamicFieldDetectionWithServers(context, wireMockServer, 0,
-                                    null, testResourcesDir, testClassName, annotationInfos, null);
-                        } else {
-                            MappingStorage.saveMappings(wireMockServer, mappingsDir, targetUrl);
+                        // Track requests and run detection for multiple annotations
+                        performDynamicFieldDetectionWithServers(context, wireMockServer, 0,
+                                null, testResourcesDir, testClassName, annotationInfos, allServers);
+                    } else {
+                        MappingStorage.saveMappings(wireMockServer, mappingsDir, targetUrl);
 
                             // Track requests and run detection for single annotation
                             String testClassName = TestContextResolver.getTestClassName(context);
                             File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
                             performDynamicFieldDetection(context, wireMockServer, 0, null,
                                     testResourcesDir, testClassName, null);
+                    }
+                }
+                List<WireMockServer> allServers = methodStore.getServers();
+                if (allServers != null && !allServers.isEmpty()) {
+                    for (WireMockServer server : allServers) {
+                        if (server != null) {
+                            server.stop();
                         }
                     }
+                } else {
                     wireMockServer.stop();
-                    // Give the server a moment to release the port
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
+                }
+                // Give the server a moment to release the port
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
                 }

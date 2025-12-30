@@ -48,6 +48,24 @@ public final class ExtensionContextManager {
             return store.get("mode", String.class);
         }
 
+        public void putServers(List<WireMockServer> servers) {
+            store.put("wireMockServers", servers);
+        }
+
+        @SuppressWarnings("unchecked")
+        public List<WireMockServer> getServers() {
+            return store.get("wireMockServers", List.class);
+        }
+
+        public void putPorts(List<Integer> ports) {
+            store.put("ports", ports);
+        }
+
+        @SuppressWarnings("unchecked")
+        public List<Integer> getPorts() {
+            return store.get("ports", List.class);
+        }
+
         public void putTargetUrl(String targetUrl) {
             store.put("targetUrl", targetUrl);
         }

@@ -535,15 +535,16 @@ public final class WireMockServerManager {
             // This prevents adding fields that don't exist (e.g., "variables" when the request doesn't have it)
             List<String> applicablePatterns = new java.util.ArrayList<>();
             for (String pattern : ignorePatterns) {
-                if (pattern.startsWith("json:")) {
-                    String jsonPath = pattern.substring(5);
+                String normalizedPattern = normalizeGraphQlPattern(pattern);
+                if (normalizedPattern.startsWith("json:")) {
+                    String jsonPath = normalizedPattern.substring(5);
                     if (fieldExistsInJson(jsonNode, jsonPath)) {
-                        applicablePatterns.add(pattern);
+                        applicablePatterns.add(normalizedPattern);
                     } else {
                         logger.debug("Skipping ignore pattern '{}' - field does not exist in JSON", pattern);
                     }
                 } else {
-                    applicablePatterns.add(pattern); // Non-JSON patterns (XML, etc.) are always applicable
+                    applicablePatterns.add(normalizedPattern); // Non-JSON patterns (XML, etc.) are always applicable
                 }
             }
             
@@ -566,21 +567,7 @@ public final class WireMockServerManager {
      * Supports simple field names (e.g., "variables") and nested paths (e.g., "variables.code").
      */
     private static boolean fieldExistsInJson(com.fasterxml.jackson.databind.JsonNode node, String path) {
-        if (node == null || !node.isObject()) {
-            return false;
-        }
-        
-        if (path.contains(".")) {
-            String[] parts = path.split("\\.", 2);
-            String field = parts[0];
-            String remaining = parts[1];
-            if (node.has(field)) {
-                return fieldExistsInJson(node.get(field), remaining);
-            }
-            return false;
-        } else {
-            return node.has(path);
-        }
+        return getJsonNodeAtPath(node, path) != null;
     }
     
     /**
@@ -630,26 +617,171 @@ public final class WireMockServerManager {
      * Replaces a JSON field value with ${json-unit.ignore} placeholder.
      */
     private static void replaceJsonPathWithPlaceholder(com.fasterxml.jackson.databind.JsonNode node, String path) {
-        if (node == null || !node.isObject()) {
+        setJsonNodePlaceholder(node, path);
+    }
+
+    private static void setJsonNodePlaceholder(com.fasterxml.jackson.databind.JsonNode root, String path) {
+        if (root == null || path == null || path.isEmpty()) {
             return;
         }
-        
-        if (path.contains(".")) {
-            String[] parts = path.split("\\.", 2);
-            String field = parts[0];
-            String remaining = parts[1];
-            
-            if (node.has(field)) {
-                replaceJsonPathWithPlaceholder(node.get(field), remaining);
+
+        List<JsonPathSegment> segments = parseJsonPath(path);
+        if (segments.isEmpty()) {
+            return;
+        }
+
+        com.fasterxml.jackson.databind.JsonNode current = root;
+        for (int i = 0; i < segments.size() - 1; i++) {
+            current = getChildNode(current, segments.get(i));
+            if (current == null) {
+                return;
+            }
+        }
+
+        JsonPathSegment lastSegment = segments.get(segments.size() - 1);
+        applyPlaceholderAtSegment(current, lastSegment);
+    }
+
+    private static com.fasterxml.jackson.databind.JsonNode getJsonNodeAtPath(com.fasterxml.jackson.databind.JsonNode root, String path) {
+        if (root == null || path == null || path.isEmpty()) {
+            return null;
+        }
+
+        List<JsonPathSegment> segments = parseJsonPath(path);
+        com.fasterxml.jackson.databind.JsonNode current = root;
+        for (JsonPathSegment segment : segments) {
+            current = getChildNode(current, segment);
+            if (current == null) {
+                return null;
+            }
+        }
+        return current;
+    }
+
+    private static com.fasterxml.jackson.databind.JsonNode getChildNode(com.fasterxml.jackson.databind.JsonNode current, JsonPathSegment segment) {
+        com.fasterxml.jackson.databind.JsonNode node = current;
+        if (segment.fieldName != null) {
+            if (node == null || !node.isObject()) {
+                return null;
+            }
+            node = node.get(segment.fieldName);
+        }
+        if (node == null) {
+            return null;
+        }
+        for (Integer index : segment.arrayIndices) {
+            if (!node.isArray() || index < 0 || index >= node.size()) {
+                return null;
+            }
+            node = node.get(index);
+            if (node == null) {
+                return null;
+            }
+        }
+        return node;
+    }
+
+    private static void applyPlaceholderAtSegment(com.fasterxml.jackson.databind.JsonNode current, JsonPathSegment segment) {
+        if (segment.fieldName != null) {
+            if (!current.isObject()) {
+                return;
+            }
+            com.fasterxml.jackson.databind.node.ObjectNode objectNode =
+                    (com.fasterxml.jackson.databind.node.ObjectNode) current;
+            if (!objectNode.has(segment.fieldName)) {
+                return;
+            }
+            com.fasterxml.jackson.databind.JsonNode child = objectNode.get(segment.fieldName);
+            if (segment.arrayIndices.isEmpty()) {
+                objectNode.put(segment.fieldName, "${json-unit.ignore}");
+                return;
+            }
+            com.fasterxml.jackson.databind.JsonNode target = child;
+            for (int i = 0; i < segment.arrayIndices.size() - 1; i++) {
+                int index = segment.arrayIndices.get(i);
+                if (!target.isArray() || index < 0 || index >= target.size()) {
+                    return;
+                }
+                target = target.get(index);
+            }
+            int lastIndex = segment.arrayIndices.get(segment.arrayIndices.size() - 1);
+            if (target != null && target.isArray() && lastIndex >= 0 && lastIndex < target.size()) {
+                ((com.fasterxml.jackson.databind.node.ArrayNode) target).set(lastIndex,
+                        com.fasterxml.jackson.databind.node.TextNode.valueOf("${json-unit.ignore}"));
             }
         } else {
-            if (node.isObject()) {
-                com.fasterxml.jackson.databind.node.ObjectNode objectNode = 
-                        (com.fasterxml.jackson.databind.node.ObjectNode) node;
-                if (objectNode.has(path)) {
-                    objectNode.put(path, "${json-unit.ignore}");
+            com.fasterxml.jackson.databind.JsonNode target = current;
+            for (int i = 0; i < segment.arrayIndices.size() - 1; i++) {
+                int index = segment.arrayIndices.get(i);
+                if (!target.isArray() || index < 0 || index >= target.size()) {
+                    return;
                 }
+                target = target.get(index);
             }
+            int lastIndex = segment.arrayIndices.get(segment.arrayIndices.size() - 1);
+            if (target != null && target.isArray() && lastIndex >= 0 && lastIndex < target.size()) {
+                ((com.fasterxml.jackson.databind.node.ArrayNode) target).set(lastIndex,
+                        com.fasterxml.jackson.databind.node.TextNode.valueOf("${json-unit.ignore}"));
+            }
+        }
+    }
+
+    private static List<JsonPathSegment> parseJsonPath(String path) {
+        List<JsonPathSegment> segments = new java.util.ArrayList<>();
+        String remaining = path;
+        while (!remaining.isEmpty()) {
+            String segmentToken;
+            int dotIndex = remaining.indexOf('.');
+            if (dotIndex >= 0) {
+                segmentToken = remaining.substring(0, dotIndex);
+                remaining = remaining.substring(dotIndex + 1);
+            } else {
+                segmentToken = remaining;
+                remaining = "";
+            }
+
+            segments.add(parseJsonPathSegment(segmentToken));
+        }
+        return segments;
+    }
+
+    private static JsonPathSegment parseJsonPathSegment(String token) {
+        String fieldName = null;
+        List<Integer> indices = new java.util.ArrayList<>();
+        int bracketIndex = token.indexOf('[');
+        if (bracketIndex >= 0) {
+            fieldName = bracketIndex == 0 ? null : token.substring(0, bracketIndex);
+            String remainder = token.substring(bracketIndex);
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("\\[(\\d+)]").matcher(remainder);
+            while (matcher.find()) {
+                indices.add(Integer.parseInt(matcher.group(1)));
+            }
+        } else {
+            fieldName = token;
+        }
+        return new JsonPathSegment(fieldName, indices);
+    }
+
+    private static String normalizeGraphQlPattern(String pattern) {
+        if (pattern == null) {
+            return null;
+        }
+        if (pattern.startsWith("gql:")) {
+            return "json:" + pattern.substring(4);
+        }
+        if (pattern.startsWith("graphql:")) {
+            return "json:" + pattern.substring(8);
+        }
+        return pattern;
+    }
+
+    private static class JsonPathSegment {
+        private final String fieldName;
+        private final List<Integer> arrayIndices;
+
+        private JsonPathSegment(String fieldName, List<Integer> arrayIndices) {
+            this.fieldName = fieldName;
+            this.arrayIndices = arrayIndices;
         }
     }
     
@@ -664,17 +796,17 @@ public final class WireMockServerManager {
                 if (parts.length == 2) {
                     String elementPattern = parts[0];
                     String attrPattern = parts[1];
-                    String elementName = extractElementNameFromXPath(elementPattern);
+                    List<String> elementPath = extractElementPathFromXPath(elementPattern);
                     String attrName = extractAttributeNameFromXPath(attrPattern);
-                    if (elementName != null && attrName != null) {
-                        setXmlAttributesToPlaceholder(doc, elementName, attrName);
+                    if (!elementPath.isEmpty() && attrName != null) {
+                        setXmlAttributesToPlaceholderByPath(doc, elementPath, attrName);
                     }
                 }
             } else {
                 // Element pattern: //*[local-name()='element']
-                String elementName = extractElementNameFromXPath(xpathPattern);
-                if (elementName != null) {
-                    setXmlElementsToPlaceholder(doc, elementName);
+                List<String> elementPath = extractElementPathFromXPath(xpathPattern);
+                if (!elementPath.isEmpty()) {
+                    setXmlElementsToPlaceholderByPath(doc, elementPath);
                 }
             }
         }
@@ -708,6 +840,23 @@ public final class WireMockServerManager {
             }
         }
     }
+
+    private static void setXmlElementsToPlaceholderByPath(Document doc, List<String> elementPath) {
+        if (elementPath.isEmpty()) {
+            return;
+        }
+        NodeList elements = doc.getElementsByTagName("*");
+        for (int i = 0; i < elements.getLength(); i++) {
+            Node node = elements.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+                String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
+                if (localName.equals(elementPath.get(0))) {
+                    applyElementPathPlaceholder(element, elementPath, 1);
+                }
+            }
+        }
+    }
     
     /**
      * Sets matching attributes to ${xmlunit.ignore}.
@@ -725,19 +874,88 @@ public final class WireMockServerManager {
             }
         }
     }
+
+    private static void setXmlAttributesToPlaceholderByPath(Document doc, List<String> elementPath, String attrName) {
+        if (elementPath.isEmpty()) {
+            return;
+        }
+        NodeList elements = doc.getElementsByTagName("*");
+        for (int i = 0; i < elements.getLength(); i++) {
+            Node node = elements.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+                String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
+                if (localName.equals(elementPath.get(0))) {
+                    applyElementPathAttributePlaceholder(element, elementPath, 1, attrName);
+                }
+            }
+        }
+    }
+
+    private static void applyElementPathPlaceholder(Element element, List<String> elementPath, int index) {
+        if (index == elementPath.size()) {
+            NodeList children = element.getChildNodes();
+            boolean hasElementChildren = false;
+            for (int j = 0; j < children.getLength(); j++) {
+                if (children.item(j).getNodeType() == Node.ELEMENT_NODE) {
+                    hasElementChildren = true;
+                    break;
+                }
+            }
+            if (!hasElementChildren) {
+                element.setTextContent("${xmlunit.ignore}");
+            }
+            return;
+        }
+
+        NodeList children = element.getChildNodes();
+        String expectedName = elementPath.get(index);
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element child = (Element) node;
+                String localName = child.getLocalName() != null ? child.getLocalName() : child.getNodeName();
+                if (localName.equals(expectedName)) {
+                    applyElementPathPlaceholder(child, elementPath, index + 1);
+                }
+            }
+        }
+    }
+
+    private static void applyElementPathAttributePlaceholder(Element element, List<String> elementPath, int index, String attrName) {
+        if (index == elementPath.size()) {
+            if (element.hasAttribute(attrName)) {
+                element.setAttribute(attrName, "${xmlunit.ignore}");
+            }
+            return;
+        }
+
+        NodeList children = element.getChildNodes();
+        String expectedName = elementPath.get(index);
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element child = (Element) node;
+                String localName = child.getLocalName() != null ? child.getLocalName() : child.getNodeName();
+                if (localName.equals(expectedName)) {
+                    applyElementPathAttributePlaceholder(child, elementPath, index + 1, attrName);
+                }
+            }
+        }
+    }
     
     /**
      * Extracts element name from XPath pattern like "//*[local-name()='timestamp']"
      */
-    private static String extractElementNameFromXPath(String xpath) {
-        // Simple extraction for patterns like //*[local-name()='name']
+    private static List<String> extractElementPathFromXPath(String xpath) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
                 "local-name\\(\\)=['\"]([^'\"]+)['\"]");
         java.util.regex.Matcher matcher = pattern.matcher(xpath);
-        if (matcher.find()) {
-            return matcher.group(1);
+        List<String> elements = new java.util.ArrayList<>();
+        while (matcher.find()) {
+            elements.add(matcher.group(1));
         }
-        return null;
+        return elements;
     }
     
     /**
