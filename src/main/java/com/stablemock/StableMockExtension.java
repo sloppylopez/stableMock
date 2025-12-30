@@ -142,17 +142,12 @@ public class StableMockExtension
             if (isRecordMode) {
                 server = WireMockServerManager.startRecording(port, baseMappingsDir, allUrls);
             } else {
-                String mergeMsg = "=== PLAYBACK MODE: Merging test method mappings for " + testClassName + " ===";
-                System.out.println(mergeMsg);
-                logger.info(mergeMsg);
+                logger.info("=== PLAYBACK MODE: Merging test method mappings for {} ===", testClassName);
                 try {
                     MappingStorage.mergePerTestMethodMappings(baseMappingsDir);
-                    System.out.println("=== Merge completed successfully for " + testClassName + " ===");
                     logger.info("=== Merge completed successfully for {} ===", testClassName);
                 } catch (Exception e) {
-                    String errorMsg = "=== ERROR: Merge failed for " + testClassName + ": " + e.getMessage() + " ===";
-                    System.err.println(errorMsg);
-                    logger.error(errorMsg, e);
+                    logger.error("=== ERROR: Merge failed for {}: {} ===", testClassName, e.getMessage(), e);
                     throw new RuntimeException("Failed to merge test method mappings for " + testClassName, e);
                 }
                 

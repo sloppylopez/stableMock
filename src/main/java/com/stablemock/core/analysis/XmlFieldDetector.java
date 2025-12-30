@@ -75,7 +75,7 @@ public final class XmlFieldDetector {
                         sampleValues.add(values.get(i));
                     }
 
-                    String confidence = calculateConfidence(values.size());
+                    String confidence = ConfidenceCalculator.calculateConfidence(values.size());
                     // Generate XPath pattern for WireMock XML matching
                     // Handle both elements and attributes
                     String xpathPattern;
@@ -122,17 +122,5 @@ public final class XmlFieldDetector {
         return path;
     }
 
-    /**
-     * Calculates confidence level based on sample size.
-     */
-    private static String calculateConfidence(int sampleSize) {
-        if (sampleSize >= 5) {
-            return "HIGH";
-        } else if (sampleSize >= 3) {
-            return "MEDIUM";
-        } else {
-            return "LOW";
-        }
-    }
 }
 

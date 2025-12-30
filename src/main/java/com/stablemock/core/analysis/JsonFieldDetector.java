@@ -106,7 +106,7 @@ public final class JsonFieldDetector {
                             sampleValues = sampleValues.subList(0, 3);
                         }
 
-                        String confidence = calculateConfidence(fieldValues.size());
+                        String confidence = ConfidenceCalculator.calculateConfidence(fieldValues.size());
                         String jsonPath = "json:" + currentPath;
 
                         result.addDynamicField(new DetectionResult.DynamicField(
@@ -147,17 +147,5 @@ public final class JsonFieldDetector {
         }
     }
 
-    /**
-     * Calculates confidence level based on sample size.
-     */
-    private static String calculateConfidence(int sampleSize) {
-        if (sampleSize >= 5) {
-            return "HIGH";
-        } else if (sampleSize >= 3) {
-            return "MEDIUM";
-        } else {
-            return "LOW";
-        }
-    }
 }
 

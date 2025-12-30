@@ -5,6 +5,7 @@ import com.stablemock.core.server.WireMockServerManager;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.File;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
@@ -64,39 +65,31 @@ public final class ExtensionContextManager {
             store.remove("port");
         }
         
-        public void putAnnotationInfos(java.util.List<WireMockServerManager.AnnotationInfo> infos) {
+        public void putAnnotationInfos(List<WireMockServerManager.AnnotationInfo> infos) {
             store.put("annotationInfos", infos);
         }
         
         @SuppressWarnings("unchecked")
-        public java.util.List<WireMockServerManager.AnnotationInfo> getAnnotationInfos() {
-            return store.get("annotationInfos", java.util.List.class);
+        public List<WireMockServerManager.AnnotationInfo> getAnnotationInfos() {
+            return store.get("annotationInfos", List.class);
         }
         
-        public void putServers(java.util.List<WireMockServer> servers) {
+        public void putServers(List<WireMockServer> servers) {
             store.put("wireMockServers", servers);
         }
         
         @SuppressWarnings("unchecked")
-        public java.util.List<WireMockServer> getServers() {
-            return store.get("wireMockServers", java.util.List.class);
+        public List<WireMockServer> getServers() {
+            return store.get("wireMockServers", List.class);
         }
         
-        public void putPorts(java.util.List<Integer> ports) {
+        public void putPorts(List<Integer> ports) {
             store.put("ports", ports);
         }
         
         @SuppressWarnings("unchecked")
-        public java.util.List<Integer> getPorts() {
-            return store.get("ports", java.util.List.class);
-        }
-
-        public ReentrantLock getClassLock() {
-            return store.get("classLock", ReentrantLock.class);
-        }
-
-        public void putClassLock(ReentrantLock lock) {
-            store.put("classLock", lock);
+        public List<Integer> getPorts() {
+            return store.get("ports", List.class);
         }
 
         /**
@@ -175,13 +168,13 @@ public final class ExtensionContextManager {
             return store.get("existingRequestCount", Integer.class);
         }
         
-        public void putAnnotationInfos(java.util.List<WireMockServerManager.AnnotationInfo> infos) {
+        public void putAnnotationInfos(List<WireMockServerManager.AnnotationInfo> infos) {
             store.put("annotationInfos", infos);
         }
         
         @SuppressWarnings("unchecked")
-        public java.util.List<WireMockServerManager.AnnotationInfo> getAnnotationInfos() {
-            return store.get("annotationInfos", java.util.List.class);
+        public List<WireMockServerManager.AnnotationInfo> getAnnotationInfos() {
+            return store.get("annotationInfos", List.class);
         }
 
         public void putClassLock(ReentrantLock lock) {

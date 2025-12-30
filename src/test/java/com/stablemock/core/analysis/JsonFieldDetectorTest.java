@@ -31,7 +31,7 @@ class JsonFieldDetectorTest {
         JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
         
         assertEquals(1, result.getDynamicFields().size());
-        assertEquals("json:timestamp", result.getDynamicFields().get(0).getFieldPath());
+        assertEquals("json:timestamp", result.getDynamicFields().get(0).fieldPath());
         assertEquals(1, result.getIgnorePatterns().size());
         assertTrue(result.getIgnorePatterns().contains("json:timestamp"));
     }
@@ -82,7 +82,7 @@ class JsonFieldDetectorTest {
         // Recursion only happens when values are same, so we get "user" not "user.timestamp"
         assertTrue(result.getDynamicFields().size() >= 1);
         var fieldPaths = result.getDynamicFields().stream()
-            .map(f -> f.getFieldPath())
+            .map(f -> f.fieldPath())
             .toList();
         // The detector marks "user" as dynamic since the whole object differs
         assertTrue(fieldPaths.contains("json:user"),
@@ -104,7 +104,7 @@ class JsonFieldDetectorTest {
         // Arrays are compared as whole values, so if elements differ, the array itself is marked
         assertTrue(result.getDynamicFields().size() >= 1);
         var fieldPaths = result.getDynamicFields().stream()
-            .map(f -> f.getFieldPath())
+            .map(f -> f.fieldPath())
             .toList();
         // The detector marks items as dynamic since the arrays differ
         assertTrue(fieldPaths.contains("json:items"),
@@ -145,7 +145,7 @@ class JsonFieldDetectorTest {
         JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
         
         assertEquals(1, result.getDynamicFields().size());
-        assertEquals("json:id", result.getDynamicFields().get(0).getFieldPath());
+        assertEquals("json:id", result.getDynamicFields().get(0).fieldPath());
     }
 
     @Test
@@ -163,7 +163,7 @@ class JsonFieldDetectorTest {
         JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
         
         assertEquals(1, result.getDynamicFields().size());
-        assertEquals("HIGH", result.getDynamicFields().get(0).getConfidence());
+        assertEquals("HIGH", result.getDynamicFields().get(0).confidence());
     }
 
     @Test
@@ -181,7 +181,7 @@ class JsonFieldDetectorTest {
         JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
         
         assertEquals(1, result.getDynamicFields().size());
-        assertEquals(3, result.getDynamicFields().get(0).getSampleValues().size());
+        assertEquals(3, result.getDynamicFields().get(0).sampleValues().size());
     }
 }
 
