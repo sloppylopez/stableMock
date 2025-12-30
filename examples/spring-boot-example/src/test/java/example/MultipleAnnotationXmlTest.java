@@ -25,7 +25,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * - RECORD: both XML calls are recorded, and mappings are saved separately per annotation index.
  * - PLAYBACK: both calls match the recorded stubs.
  */
-@U(urls = { "https://jsonplaceholder.typicode.com", "https://postman-echo.com" })
+@U(urls = { "https://jsonplaceholder.typicode.com", "https://postman-echo.com" },
+   properties = { "app.thirdparty.url", "app.postmanecho.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class MultipleAnnotationXmlTest extends BaseStableMockTest {
 
@@ -34,10 +35,7 @@ class MultipleAnnotationXmlTest extends BaseStableMockTest {
 
     @DynamicPropertySource
     static void registerMockUrls(DynamicPropertyRegistry registry) {
-        registerPropertyWithFallbackByIndex(registry, "app.thirdparty.url", "MultipleAnnotationXmlTest", 0,
-                "https://jsonplaceholder.typicode.com");
-        registerPropertyWithFallbackByIndex(registry, "app.postmanecho.url", "MultipleAnnotationXmlTest", 1,
-                "https://postman-echo.com");
+        autoRegisterProperties(registry, MultipleAnnotationXmlTest.class);
     }
 
     @Test

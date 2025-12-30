@@ -24,7 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * - PLAYBACK mode: auto-applies detected ignore patterns by injecting ${xmlunit.ignore} placeholders
  *   into the recorded request-body matchers so future requests with different dynamic values still match.
  */
-@U(urls = { "https://postman-echo.com" })
+@U(urls = { "https://postman-echo.com" },
+   properties = { "app.postmanecho.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class XmlDynamicFieldDetectionTest extends BaseStableMockTest {
 
@@ -33,10 +34,9 @@ class XmlDynamicFieldDetectionTest extends BaseStableMockTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registerPropertyWithFallback(registry, "app.thirdparty.url", "XmlDynamicFieldDetectionTest",
-                "https://jsonplaceholder.typicode.com");
-        registerPropertyWithFallback(registry, "app.postmanecho.url", "XmlDynamicFieldDetectionTest",
-                "https://postman-echo.com");
+        autoRegisterProperties(registry, XmlDynamicFieldDetectionTest.class);
+        // app.thirdparty.url is not mocked, so use real URL
+        registry.add("app.thirdparty.url", () -> "https://jsonplaceholder.typicode.com");
     }
 
     @Test

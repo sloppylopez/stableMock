@@ -19,7 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * 2. Requests are recorded for URLs in both annotations
  * 3. Mappings are saved separately per annotation
  */
-@U(urls = { "https://jsonplaceholder.typicode.com", "https://postman-echo.com" })
+@U(urls = { "https://jsonplaceholder.typicode.com", "https://postman-echo.com" },
+   properties = { "app.thirdparty.url", "app.postmanecho.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class MultipleAnnotationTest extends BaseStableMockTest {
 
@@ -28,10 +29,7 @@ class MultipleAnnotationTest extends BaseStableMockTest {
 
     @DynamicPropertySource
     static void registerMockUrls(DynamicPropertyRegistry registry) {
-        registerPropertyWithFallbackByIndex(registry, "app.thirdparty.url", "MultipleAnnotationTest", 0,
-                "https://jsonplaceholder.typicode.com");
-        registerPropertyWithFallbackByIndex(registry, "app.postmanecho.url", "MultipleAnnotationTest", 1,
-                "https://postman-echo.com");
+        autoRegisterProperties(registry, MultipleAnnotationTest.class);
     }
 
     @Test

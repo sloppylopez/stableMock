@@ -2,6 +2,8 @@ package example;
 
 import org.springframework.test.context.DynamicPropertyRegistry;
 
+import java.lang.annotation.Annotation;
+
 /**
  * Base class for Spring Boot tests using StableMock.
  * Provides common functionality for configuring dynamic properties that read from WireMockContext.
@@ -128,5 +130,89 @@ public abstract class BaseStableMockTest {
             // Spring will use application.properties value if we return null/empty
             return wireMockUrl != null && !wireMockUrl.isEmpty() ? wireMockUrl : defaultUrl;
         });
+    }
+
+    /**
+     * Automatically registers dynamic properties based on @U annotations on the test class.
+     * This method reads the annotations and maps URLs to property names, eliminating the need
+     * to manually register each property in @DynamicPropertySource.
+     * 
+     * Usage:
+     * <pre>
+     * {@code
+     * @U(urls = {"https://api1.com", "https://api2.com"}, 
+     *    properties = {"app.api1.url", "app.api2.url"})
+     * @SpringBootTest
+     * class MyTest extends BaseStableMockTest {
+     *     @DynamicPropertySource
+     *     static void configureProperties(DynamicPropertyRegistry registry) {
+     *         autoRegisterProperties(registry, MyTest.class);
+     *     }
+     * }
+     * }
+     * </pre>
+     * 
+     * @param registry The dynamic property registry
+     * @param testClass The test class (pass YourTestClass.class)
+     */
+    protected static void autoRegisterProperties(DynamicPropertyRegistry registry, Class<?> testClass) {
+        try {
+            Class<?> uAnnotationClass = Class.forName("com.stablemock.U");
+            Annotation[] annotations = testClass.getAnnotationsByType((Class<? extends Annotation>) uAnnotationClass);
+            
+            if (annotations.length == 0) {
+                return; // No @U annotations found
+            }
+
+            String testClassName = testClass.getSimpleName();
+            
+            // Collect all URLs and properties from all @U annotations
+            java.util.List<String> allUrls = new java.util.ArrayList<>();
+            java.util.List<String> allProperties = new java.util.ArrayList<>();
+            
+            for (Annotation annotation : annotations) {
+                try {
+                    java.lang.reflect.Method urlsMethod = uAnnotationClass.getMethod("urls");
+                    java.lang.reflect.Method propertiesMethod = uAnnotationClass.getMethod("properties");
+                    
+                    String[] urls = (String[]) urlsMethod.invoke(annotation);
+                    String[] properties = (String[]) propertiesMethod.invoke(annotation);
+                    
+                    if (urls != null) {
+                        for (int i = 0; i < urls.length; i++) {
+                            allUrls.add(urls[i]);
+                            // If properties array is provided and has enough elements, use it
+                            // Otherwise, property name will be null and we'll skip registration
+                            if (properties != null && i < properties.length && properties[i] != null && !properties[i].isEmpty()) {
+                                allProperties.add(properties[i]);
+                            } else {
+                                allProperties.add(null); // Placeholder - will skip this one
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // Skip this annotation if we can't read it
+                }
+            }
+            
+            // Register properties for each URL that has a property name
+            for (int i = 0; i < allUrls.size() && i < allProperties.size(); i++) {
+                String propertyName = allProperties.get(i);
+                String defaultUrl = allUrls.get(i);
+                
+                if (propertyName != null && !propertyName.isEmpty()) {
+                    if (allUrls.size() == 1) {
+                        // Single URL - use single URL method
+                        registerPropertyWithFallback(registry, propertyName, testClassName, defaultUrl);
+                    } else {
+                        // Multiple URLs - use indexed method
+                        registerPropertyWithFallbackByIndex(registry, propertyName, testClassName, i, defaultUrl);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // If reflection fails, silently skip auto-registration
+            // Tests can still manually register properties
+        }
     }
 }

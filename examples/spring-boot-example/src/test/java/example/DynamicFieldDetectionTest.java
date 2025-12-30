@@ -24,7 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * - RECORD mode: Detects changing fields and saves to detected-fields.json
  * - PLAYBACK mode: Auto-applies detected patterns (without manual annotation)
  */
-@U(urls = { "https://jsonplaceholder.typicode.com" })
+@U(urls = { "https://jsonplaceholder.typicode.com" },
+   properties = { "app.thirdparty.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class DynamicFieldDetectionTest extends BaseStableMockTest {
 
@@ -38,8 +39,8 @@ class DynamicFieldDetectionTest extends BaseStableMockTest {
      */
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registerPropertyWithFallback(registry, "app.thirdparty.url", "DynamicFieldDetectionTest",
-                "https://jsonplaceholder.typicode.com");
+        autoRegisterProperties(registry, DynamicFieldDetectionTest.class);
+        // app.postmanecho.url is not mocked, so use real URL
         registry.add("app.postmanecho.url", () -> "https://postman-echo.com");
     }
 

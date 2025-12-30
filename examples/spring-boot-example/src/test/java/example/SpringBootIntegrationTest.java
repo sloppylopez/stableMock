@@ -22,7 +22,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * jsonplaceholder host
  * 5. Tests hit controller -> service -> Feign client -> WireMock
  */
-@U(urls = { "https://jsonplaceholder.typicode.com" })
+@U(urls = { "https://jsonplaceholder.typicode.com" },
+   properties = { "app.thirdparty.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class SpringBootIntegrationTest extends BaseStableMockTest {
 
@@ -38,8 +39,8 @@ class SpringBootIntegrationTest extends BaseStableMockTest {
      */
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registerPropertyWithFallback(registry, "app.thirdparty.url", "SpringBootIntegrationTest",
-                "https://jsonplaceholder.typicode.com");
+        autoRegisterProperties(registry, SpringBootIntegrationTest.class);
+        // app.postmanecho.url is not mocked, so use real URL
         registry.add("app.postmanecho.url", () -> "https://postman-echo.com");
     }
 
