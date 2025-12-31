@@ -16,5 +16,8 @@ public interface JsonPlaceholderClient {
     
     @PostMapping("/posts")
     String createPost(@RequestBody String body);
+    
+    @GetMapping("/posts")
+    String getPosts();
 }
 
