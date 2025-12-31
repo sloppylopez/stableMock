@@ -1,28 +1,28 @@
 {
   "testClass" : "XmlDynamicFieldDetectionTest",
   "testMethod" : "testDetectChangingFieldsInXml",
-  "detectedAt" : "2025-12-30T23:35:03.199141304Z",
+  "detectedAt" : "2025-12-31T00:58:41.444027969Z",
   "analyzed_requests_count" : 10,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']",
     "confidence" : "HIGH",
-    "sample_values" : [ "2b9660fe-d5ac-4fce-bf4f-ddebf9704a7c", "af35b4be-b067-49fb-8410-947ed31bc769", "6a0b8548-802c-4839-8633-af994111f9cf" ]
+    "sample_values" : [ "347507da-4386-4602-8b9d-97b2f33e6b5c", "b4a5fe1f-269c-4ccd-9549-1dc13d4a88f1", "2422cf83-917b-45c9-9d25-8fdd6b30ce93" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']",
     "confidence" : "HIGH",
-    "sample_values" : [ "2b9660fe-d5ac-4fce-bf4f-ddebf9704a7c", "af35b4be-b067-49fb-8410-947ed31bc769", "6a0b8548-802c-4839-8633-af994111f9cf" ]
+    "sample_values" : [ "347507da-4386-4602-8b9d-97b2f33e6b5c", "b4a5fe1f-269c-4ccd-9549-1dc13d4a88f1", "2422cf83-917b-45c9-9d25-8fdd6b30ce93" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']",
     "confidence" : "HIGH",
-    "sample_values" : [ "1.1767137347232", "1.1767137346676", "1.1767137445716" ]
+    "sample_values" : [ "1.1767138462540", "1.1767138461920", "1.1767142553259" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']",
     "confidence" : "HIGH",
-    "sample_values" : [ "51b8496d-fe2b-4cc5-a8cc-1c753253314d", "b69be34f-9951-41be-bf17-0afb0988fab5", "ec1d1e5d-c301-41da-b765-ebca29ef352a" ]
+    "sample_values" : [ "c63374d5-9d41-44d7-8aa9-82b9651ba81d", "58faab50-8aa2-4923-a4cf-0d76ab7cf211", "3b3f9617-c233-46b9-b0e2-17b714d783e0" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']",
     "confidence" : "HIGH",
-    "sample_values" : [ "2025-12-30T23:29:07.232759700Z", "2025-12-30T23:29:06.676965500Z", "2025-12-30T23:30:45.716595908Z" ]
+    "sample_values" : [ "2025-12-30T23:47:42.539904Z", "2025-12-30T23:47:41.919328400Z", "2025-12-31T00:55:53.259441400Z" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']" ]
 }

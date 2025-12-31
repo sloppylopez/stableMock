@@ -63,14 +63,13 @@ When using StableMock with Spring Boot, configure your application to use the dy
 
 ```java
 @SpringBootTest
-@U(urls = { "https://api.thirdparty.com" })
-public class MySpringTest {
+@U(urls = { "https://api.thirdparty.com" },
+   properties = { "app.thirdparty.url" })
+public class MySpringTest extends BaseStableMockTest {
     
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        // Supplier reads system property lazily - evaluated when Spring needs the value
-        registry.add("app.thirdparty.url", () -> 
-            System.getProperty("stablemock.baseUrl", "http://localhost:8080"));
+        autoRegisterProperties(registry, MySpringTest.class);
     }
     
     @Autowired
@@ -90,9 +89,13 @@ public class MySpringTest {
    - `stablemock.port` - The WireMock proxy port
    - `stablemock.baseUrl` - `http://localhost:${stablemock.port}`
 
-2. **@DynamicPropertySource supplier** is evaluated lazily when Spring needs the property value (after StableMock starts)
+2. **`autoRegisterProperties()`** automatically registers properties from `@U` annotations, reading WireMock URLs from ThreadLocal (set after WireMock starts)
 
-3. **Your service** reads `app.thirdparty.url` from Spring properties, which now points to WireMock
+3. **@DynamicPropertySource supplier** is evaluated lazily when Spring needs the property value (after StableMock starts)
+
+4. **Your service** reads `app.thirdparty.url` from Spring properties, which now points to WireMock
+
+**Note:** Extend `BaseStableMockTest` to use `autoRegisterProperties()`, which automatically maps URLs from `@U` annotations to Spring properties. This eliminates the need to manually register each property.
 
 ### Service Configuration Example
 
@@ -142,19 +145,15 @@ The `@U` annotation is `@Repeatable`, allowing you to use multiple annotations o
 
 ```java
 @SpringBootTest
-@U(urls = { "https://api.service1.com" })
-@U(urls = { "https://api.service2.com" })
-public class MyMultiServiceTest {
+@U(urls = { "https://api.service1.com" },
+   properties = { "app.service1.url" })
+@U(urls = { "https://api.service2.com" },
+   properties = { "app.service2.url" })
+public class MyMultiServiceTest extends BaseStableMockTest {
     
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        // First annotation (index 0)
-        registry.add("app.service1.url", () -> 
-            System.getProperty("stablemock.baseUrl.0", "https://api.service1.com"));
-        
-        // Second annotation (index 1)
-        registry.add("app.service2.url", () -> 
-            System.getProperty("stablemock.baseUrl.1", "https://api.service2.com"));
+        autoRegisterProperties(registry, MyMultiServiceTest.class);
     }
     
     @Test
@@ -267,16 +266,16 @@ public class MyTest {
 ```java
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @U(urls = { "https://jsonplaceholder.typicode.com" },
+   properties = { "app.external.api.url" },
    ignore = { "json:timestamp" })
-class UserServiceTest {
+class UserServiceTest extends BaseStableMockTest {
 
     @Autowired
     private UserService userService;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("app.external.api.url", () -> 
-            System.getProperty("stablemock.baseUrl", "https://jsonplaceholder.typicode.com"));
+        autoRegisterProperties(registry, UserServiceTest.class);
     }
 
     @Test

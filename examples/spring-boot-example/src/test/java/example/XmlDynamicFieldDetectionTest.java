@@ -35,8 +35,7 @@ class XmlDynamicFieldDetectionTest extends BaseStableMockTest {
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         autoRegisterProperties(registry, XmlDynamicFieldDetectionTest.class);
-        // app.thirdparty.url is not mocked, so use real URL
-        registry.add("app.thirdparty.url", () -> "https://jsonplaceholder.typicode.com");
+        // app.thirdparty.url is not mocked, so it uses the value from application.properties
     }
 
     @Test
