@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://github.com/sloppylopez/stablemock)
 
-<img src="src/test/resources/images/stableMockLogoTransparent.png" alt="StableMock Logo" width="300" height="300">
+<img src="src/test/resources/images/stablemock-logo-transparent-outline.png" alt="StableMock Logo" width="300" height="300">
 
 ## 🌾 "StableMock: Where Your Tests Find Their Rest"
 
@@ -58,6 +58,23 @@ Tests will use the saved mappings instead of calling the real service.
 ## Spring Boot Integration
 
 When using StableMock with Spring Boot, configure your application to use the dynamic proxy port via `@DynamicPropertySource`.
+
+### The `properties` Attribute
+
+The `@U` annotation includes a `properties` attribute that maps URLs to Spring property names. This is **required when using Spring Boot tests** with `autoRegisterProperties()`.
+
+**How it works:**
+- The `properties` array must match the order of URLs in the `urls` array
+- First property maps to first URL, second property to second URL, etc.
+- When using `autoRegisterProperties()`, these properties are automatically registered with WireMock URLs
+
+**Example:**
+```java
+@U(urls = { "https://api1.com", "https://api2.com" },
+   properties = { "app.api1.url", "app.api2.url" })
+```
+
+**Note:** The `properties` attribute is optional for non-Spring Boot tests, but **required** when using Spring Boot with `autoRegisterProperties()`.
 
 ### Basic Example
 
@@ -124,11 +141,20 @@ In tests, `@DynamicPropertySource` overrides this to point to StableMock's proxy
 You can specify multiple URLs in a single `@U` annotation:
 
 ```java
+@SpringBootTest
 @U(urls = { 
     "https://api.example.com",
     "https://api.another-service.com"
+},
+   properties = {
+    "app.example.url",
+    "app.another-service.url"
 })
-public class MyTest {
+public class MyTest extends BaseStableMockTest {
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        autoRegisterProperties(registry, MyTest.class);
+    }
     // ...
 }
 ```
@@ -138,6 +164,8 @@ When using multiple URLs, StableMock creates separate WireMock servers for each 
 - `stablemock.baseUrl.1` - Second URL's WireMock base URL
 - `stablemock.port.0` - First URL's WireMock port
 - `stablemock.port.1` - Second URL's WireMock port
+
+**Note:** When using Spring Boot, you must provide a `properties` array matching the order of URLs.
 
 ### Multiple @U Annotations
 
@@ -174,8 +202,16 @@ Each annotation gets its own WireMock server instance, allowing you to mock mult
 Enable scenario mode for sequential responses when the same request should return different responses over time (useful for pagination, polling, or retry logic):
 
 ```java
-@U(urls = { "https://api.example.com" }, scenario = true)
-public class PaginationTest {
+@SpringBootTest
+@U(urls = { "https://api.example.com" },
+   properties = { "app.example.url" },
+   scenario = true)
+public class PaginationTest extends BaseStableMockTest {
+    
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        autoRegisterProperties(registry, PaginationTest.class);
+    }
     
     @Test
     void testPagination(int port) {
@@ -205,8 +241,14 @@ StableMock automatically detects changing fields by comparing requests across mu
 **Example:**
 ```java
 @SpringBootTest
-@U(urls = { "https://api.example.com" })
-public class MyTest {
+@U(urls = { "https://api.example.com" },
+   properties = { "app.example.url" })
+public class MyTest extends BaseStableMockTest {
+    
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        autoRegisterProperties(registry, MyTest.class);
+    }
     
     @Test
     void testCreatePost() {
@@ -241,7 +283,9 @@ After running tests multiple times, check `.stablemock-analysis/<TestClass>/<tes
 You can also manually specify fields to ignore using the `ignore` parameter:
 
 ```java
-@U(urls = { "https://api.example.com" }, 
+@SpringBootTest
+@U(urls = { "https://api.example.com" },
+   properties = { "app.example.url" },
    ignore = { 
        "json:timestamp",           // Ignore JSON field
        "json:requestId",            // Ignore nested JSON field
@@ -249,7 +293,11 @@ You can also manually specify fields to ignore using the `ignore` parameter:
        "gql:variables.cursor",      // Ignore GraphQL variable
        "xml://*[local-name()='MessageID']"  // Ignore XML element (XPath)
    })
-public class MyTest {
+public class MyTest extends BaseStableMockTest {
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        autoRegisterProperties(registry, MyTest.class);
+    }
     // ...
 }
 ```
@@ -304,11 +352,6 @@ com.stablemock/
 ├── U.java               # Annotation
 └── WireMockContext.java # Thread-local context
 ```
-
-This structure supports future extensions for:
-- **JSON/XML/GraphQL matching** - Protocol-specific matchers in `core/matching/`
-- **gRPC support** - Additional protocol handlers
-- **Custom storage backends** - Pluggable storage implementations
 
 ## Gradle Plugin Tasks
 
