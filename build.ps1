@@ -149,8 +149,8 @@ function Test-StableMockCleanup {
     
     if ($errors.Count -gt 0) {
         Write-Host "`nERROR: Class-level directories found after tests!" -ForegroundColor Red
-        foreach ($error in $errors) {
-            Write-Host "  - $error" -ForegroundColor Red
+        foreach ($err in $errors) {
+            Write-Host "  - $err" -ForegroundColor Red
         }
         Write-Host "`nThese directories should be cleaned up by StableMock afterAll." -ForegroundColor Red
         throw "Cleanup verification failed - class-level directories still exist"
