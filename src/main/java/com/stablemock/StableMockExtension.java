@@ -467,8 +467,18 @@ public class StableMockExtension
                             }
                         } else {
                             if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
+                                // Check if scenario mode is enabled
+                                U[] annotations = TestContextResolver.findAllUAnnotations(context);
+                                boolean scenario = false;
+                                for (U annotation : annotations) {
+                                    if (annotation.scenario()) {
+                                        scenario = true;
+                                        break;
+                                    }
+                                }
+                                
                                 MappingStorage.saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl,
-                                        existingRequestCount);
+                                        existingRequestCount, scenario);
 
                                 // Track requests and run detection for single annotation
                                 performDynamicFieldDetection(context, server, existingRequestCount, null,

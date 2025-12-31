@@ -62,6 +62,12 @@ public class ThirdPartyService {
         // This is set by @DynamicPropertySource in tests to point to WireMock
         return graphQLClient.executeQuery(requestBody);
     }
+    
+    public String getPosts() {
+        // FeignClient uses the URL from app.thirdparty.url property
+        // This is set by @DynamicPropertySource in tests to point to WireMock
+        return jsonPlaceholderClient.getPosts();
+    }
 }
 
 

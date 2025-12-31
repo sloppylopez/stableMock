@@ -28,9 +28,9 @@ public final class MappingStorage {
      * Saves mappings for a test method with single annotation case.
      */
     public static void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
-            File baseMappingsDir, String targetUrl, int existingRequestCount) throws IOException {
+            File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario) throws IOException {
         SingleAnnotationMappingStorage.saveMappingsForTestMethod(wireMockServer, testMethodMappingsDir, 
-                baseMappingsDir, targetUrl, existingRequestCount);
+                baseMappingsDir, targetUrl, existingRequestCount, scenario);
     }
     
     /**

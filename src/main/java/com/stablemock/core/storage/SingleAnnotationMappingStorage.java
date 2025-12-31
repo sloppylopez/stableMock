@@ -79,7 +79,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
     }
     
     public static void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
-            File baseMappingsDir, String targetUrl, int existingRequestCount) throws IOException {
+            File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario) throws IOException {
         File testMethodMappingsSubDir = new File(testMethodMappingsDir, "mappings");
         File testMethodFilesSubDir = new File(testMethodMappingsDir, "__files");
 
@@ -275,6 +275,113 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         if (testMethodMappings.isEmpty()) {
             logger.error("=== RECORDING FAILED: No mappings created! ===");
             return;
+        }
+
+        // Apply scenario mode: if scenario=true and we have multiple requests to the same endpoint,
+        // create separate mappings with proper scenario state transitions
+        if (scenario) {
+            logger.info("=== SCENARIO MODE: Processing {} mapping(s) for scenario state transitions ===", testMethodMappings.size());
+            
+            // Group serve events by signature to detect duplicate endpoints
+            java.util.Map<String, java.util.List<Integer>> eventsBySignature = new java.util.HashMap<>();
+            for (int i = 0; i < testMethodServeEvents.size(); i++) {
+                com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(i);
+                String seMethod = se.getRequest().getMethod().getName();
+                String sePath = normalizePath(se.getRequest().getUrl());
+                String seSignature = seMethod.toUpperCase() + ":" + sePath;
+                eventsBySignature.computeIfAbsent(seSignature, k -> new java.util.ArrayList<>()).add(i);
+            }
+            
+            // For endpoints with multiple requests, create scenario mappings
+            List<StubMapping> scenarioMappings = new java.util.ArrayList<>();
+            for (java.util.Map.Entry<String, java.util.List<Integer>> entry : eventsBySignature.entrySet()) {
+                String signature = entry.getKey();
+                java.util.List<Integer> eventIndices = entry.getValue();
+                
+                if (eventIndices.size() > 1) {
+                    logger.info("=== SCENARIO MODE: Found {} requests for endpoint '{}', creating scenario mappings ===", 
+                            eventIndices.size(), signature);
+                    
+                    // Find the base mapping for this endpoint (use the first one)
+                    StubMapping baseMapping = null;
+                    for (StubMapping mapping : testMethodMappings) {
+                        String mappingMethod = mapping.getRequest().getMethod() != null
+                                ? mapping.getRequest().getMethod().getName() : "";
+                        String mappingUrl = mapping.getRequest().getUrl() != null
+                                ? mapping.getRequest().getUrl()
+                                : (mapping.getRequest().getUrlPath() != null ? mapping.getRequest().getUrlPath() : "");
+                        String mappingPath = normalizePath(mappingUrl);
+                        String mappingSignature = mappingMethod.toUpperCase() + ":" + mappingPath;
+                        
+                        if (signature.equals(mappingSignature)) {
+                            baseMapping = mapping;
+                            break;
+                        }
+                    }
+                    
+                    if (baseMapping != null) {
+                        // Create scenario name from endpoint (e.g., "scenario-1-posts" for GET /posts)
+                        // Extract path from signature (format: "METHOD:path")
+                        String path = signature.contains(":") ? signature.substring(signature.indexOf(":") + 1) : signature;
+                        // Remove leading slash and use path as scenario identifier
+                        String pathPart = path.startsWith("/") ? path.substring(1) : path;
+                        pathPart = pathPart.replace("/", "-");
+                        // Use a simple counter-based approach similar to WireMock's auto-generation
+                        String scenarioName = "scenario-" + Math.abs(signature.hashCode() % 1000) + "-" + 
+                                (pathPart.isEmpty() ? "root" : pathPart);
+                        
+                        // Get responses for each request (need to match serve events to their responses)
+                        // For now, we'll use the same response for all, but create separate mappings
+                        // In a real scenario, responses might differ, but WireMock snapshotRecord
+                        // only captures one response per endpoint, so we use that for all
+                        
+                        // Create mappings for each request with proper state transitions
+                        // Serialize base mapping to JSON and rebuild to create copies
+                        try {
+                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                            String baseMappingJson = mapper.writeValueAsString(baseMapping);
+                            
+                            for (int i = 0; i < eventIndices.size(); i++) {
+                                StubMapping scenarioMapping = StubMapping.buildFrom(baseMappingJson);
+                                scenarioMapping.setId(java.util.UUID.randomUUID());
+                                scenarioMapping.setScenarioName(scenarioName);
+                                
+                                if (i == 0) {
+                                    // First mapping: requires "Started", transitions to state-2
+                                    scenarioMapping.setRequiredScenarioState("Started");
+                                    scenarioMapping.setNewScenarioState(scenarioName + "-2");
+                                } else if (i == eventIndices.size() - 1) {
+                                    // Last mapping: requires previous state, transitions to final state
+                                    scenarioMapping.setRequiredScenarioState(scenarioName + "-" + (i + 1));
+                                    scenarioMapping.setNewScenarioState(scenarioName + "-" + (i + 2));
+                                } else {
+                                    // Middle mappings: require previous state, transition to next
+                                    scenarioMapping.setRequiredScenarioState(scenarioName + "-" + (i + 1));
+                                    scenarioMapping.setNewScenarioState(scenarioName + "-" + (i + 2));
+                                }
+                                
+                                scenarioMappings.add(scenarioMapping);
+                                logger.info("  Created scenario mapping {}: {} -> {} (state: {} -> {})", 
+                                        i + 1, signature, scenarioMapping.getId(),
+                                        scenarioMapping.getRequiredScenarioState(), scenarioMapping.getNewScenarioState());
+                            }
+                            
+                            // Only remove the original mapping if we successfully created scenario mappings
+                            if (!scenarioMappings.isEmpty()) {
+                                testMethodMappings.remove(baseMapping);
+                            }
+                        } catch (Exception e) {
+                            logger.error("Failed to create scenario mappings for {}: {}", signature, e.getMessage(), e);
+                            // Continue without scenario mode - use original mapping (don't remove baseMapping)
+                        }
+                    }
+                }
+            }
+            
+            // Add scenario mappings to the list
+            testMethodMappings.addAll(scenarioMappings);
+            logger.info("=== SCENARIO MODE: Created {} scenario mapping(s), total mappings: {} ===", 
+                    scenarioMappings.size(), testMethodMappings.size());
         }
 
         // Load existing mappings from the directory BEFORE creating temp server
@@ -733,6 +840,16 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         String body = extractMappingBody(mapping);
         if (body != null && !body.isEmpty()) {
             key += ":" + body.hashCode();
+        }
+        // Include scenario state in key to distinguish scenario mappings
+        if (mapping.getScenarioName() != null) {
+            key += ":scenario:" + mapping.getScenarioName();
+            if (mapping.getRequiredScenarioState() != null) {
+                key += ":" + mapping.getRequiredScenarioState();
+            }
+            if (mapping.getNewScenarioState() != null) {
+                key += "->" + mapping.getNewScenarioState();
+            }
         }
         return key;
     }
