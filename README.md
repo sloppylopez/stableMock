@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://github.com/sloppylopez/stablemock)
 
-<img src="src/test/resources/images/stableMockLogoTransparent.png" alt="StableMock Logo" width="300" height="300">
+<img src="src/test/resources/images/stablemock-logo-transparent-outline.png" alt="StableMock Logo" width="300" height="300">
 
 ## 🌾 "StableMock: Where Your Tests Find Their Rest"
 
