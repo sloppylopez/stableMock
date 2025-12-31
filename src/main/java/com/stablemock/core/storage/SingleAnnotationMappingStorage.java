@@ -78,6 +78,20 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         logger.info("Saved {} mappings to {}", mappings.size(), mappingsSubDir.getAbsolutePath());
     }
     
+    /**
+     * Saves mappings for a specific test method based on newly recorded serve events.
+     *
+     * @param wireMockServer         the WireMock server instance from which to read recorded serve events
+     * @param testMethodMappingsDir  the directory where mappings for this test method should be stored
+     * @param baseMappingsDir         the base directory containing existing mappings for the test class or suite
+     * @param targetUrl               the target URL that was recorded against
+     * @param existingRequestCount    the number of serve events that existed before this test method was executed
+     * @param scenario                if {@code true}, creates WireMock scenario mappings for sequential responses
+     *                                when the same endpoint is called multiple times. When enabled, multiple requests
+     *                                to the same endpoint will be saved as separate mappings with proper scenario
+     *                                state transitions (Started -> state-2 -> state-3 -> ...)
+     * @throws IOException if an I/O error occurs while creating directories or saving mappings
+     */
     public static void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
             File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario) throws IOException {
         File testMethodMappingsSubDir = new File(testMethodMappingsDir, "mappings");

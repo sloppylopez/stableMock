@@ -26,6 +26,17 @@ public final class MappingStorage {
     
     /**
      * Saves mappings for a test method with single annotation case.
+     *
+     * @param wireMockServer        the WireMock server instance from which to read recorded mappings
+     * @param testMethodMappingsDir the directory where the test method specific mappings will be stored
+     * @param baseMappingsDir       the base directory containing existing class-level mappings
+     * @param targetUrl             the target URL that the recorded mappings correspond to
+     * @param existingRequestCount  the number of existing recorded requests for this test method
+     * @param scenario              if {@code true}, creates WireMock scenario mappings for sequential responses when
+     *                              the same endpoint is called multiple times. When enabled, multiple requests
+     *                              to the same endpoint will be saved as separate mappings with proper scenario
+     *                              state transitions (Started -> state-2 -> state-3 -> ...)
+     * @throws IOException if an I/O error occurs while saving mappings
      */
     public static void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
             File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario) throws IOException {

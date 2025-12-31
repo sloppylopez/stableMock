@@ -39,7 +39,7 @@ public class PaginationTest extends BaseStableMockTest {
     }
     
     @Test
-    void testPagination(int port) {
+    void testPagination() {
         // First call - should return first recorded response
         String response1 = thirdPartyService.getPosts();
         assertNotNull(response1, "First call should return a response");
