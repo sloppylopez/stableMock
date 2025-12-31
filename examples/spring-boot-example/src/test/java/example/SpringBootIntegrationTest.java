@@ -40,8 +40,7 @@ class SpringBootIntegrationTest extends BaseStableMockTest {
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         autoRegisterProperties(registry, SpringBootIntegrationTest.class);
-        // app.postmanecho.url is not mocked, so use real URL
-        registry.add("app.postmanecho.url", () -> "https://postman-echo.com");
+        // app.postmanecho.url is not mocked, so it uses the value from application.properties
     }
 
     @Test
