@@ -109,9 +109,8 @@ public final class HtmlReportGenerator {
         if (report.has("generatedAt")) {
             writer.println("        <p class=\"meta\">Generated: " + escapeHtml(report.get("generatedAt").asText()) + "</p>");
         }
-        if (report.has("triggeredBy")) {
-            writer.println("        <p class=\"meta\">Triggered by: " + escapeHtml(report.get("triggeredBy").asText()) + "</p>");
-        }
+        // Note: "triggeredBy" is not displayed as it's misleading - the report contains data from ALL test classes,
+        // not just the one that triggered the report generation
         if (report.has("baseDirectory")) {
             writer.println("        <p class=\"meta\">Base directory: <code>" + escapeHtml(report.get("baseDirectory").asText()) + "</code></p>");
         }
