@@ -78,15 +78,18 @@ class JsonFieldDetectorTest {
         
         JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
         
-        // Current implementation: when nested field changes, whole parent object is marked as dynamic
-        // Recursion only happens when values are same, so we get "user" not "user.timestamp"
+        // Updated implementation: when nested field changes, we recurse into the object
+        // to find the specific nested field that is changing, not the whole parent object
         assertTrue(result.getDynamicFields().size() >= 1);
         var fieldPaths = result.getDynamicFields().stream()
             .map(f -> f.fieldPath())
             .toList();
-        // The detector marks "user" as dynamic since the whole object differs
-        assertTrue(fieldPaths.contains("json:user"),
-            "Should detect user as dynamic when nested field changes. Found: " + fieldPaths);
+        // The detector should find the specific nested field "user.timestamp", not the whole "user" object
+        assertTrue(fieldPaths.contains("json:user.timestamp"),
+            "Should detect user.timestamp as dynamic when nested field changes. Found: " + fieldPaths);
+        // Should NOT mark the whole user object as dynamic
+        assertFalse(fieldPaths.contains("json:user"),
+            "Should NOT mark the whole user object as dynamic. Found: " + fieldPaths);
     }
 
     @Test
@@ -100,15 +103,18 @@ class JsonFieldDetectorTest {
         
         JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
         
-        // Current implementation: when arrays differ, the whole array field is marked as dynamic
-        // Arrays are compared as whole values, so if elements differ, the array itself is marked
+        // Updated implementation: when arrays differ, we recurse into the array elements
+        // to find the specific nested field that is changing, not the whole array
         assertTrue(result.getDynamicFields().size() >= 1);
         var fieldPaths = result.getDynamicFields().stream()
             .map(f -> f.fieldPath())
             .toList();
-        // The detector marks items as dynamic since the arrays differ
-        assertTrue(fieldPaths.contains("json:items"),
-            "Should detect items as dynamic when array elements differ. Found: " + fieldPaths);
+        // The detector should find the specific nested field "items[0].timestamp", not the whole "items" array
+        assertTrue(fieldPaths.contains("json:items[0].timestamp"),
+            "Should detect items[0].timestamp as dynamic when array element field changes. Found: " + fieldPaths);
+        // Should NOT mark the whole items array as dynamic
+        assertFalse(fieldPaths.contains("json:items"),
+            "Should NOT mark the whole items array as dynamic. Found: " + fieldPaths);
     }
 
     @Test

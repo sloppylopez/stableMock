@@ -1,5 +1,5 @@
 {
-  "generatedAt" : "2026-01-01T23:07:16.022766075Z",
+  "generatedAt" : "2026-01-01T23:16:39.159474313Z",
   "baseDirectory" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock",
   "triggeredBy" : "GraphQLTest",
   "testClasses" : [ {
@@ -11,16 +11,16 @@
         "detectedFields" : {
           "testClass" : "DynamicFieldDetectionTest",
           "testMethod" : "testDetectChangingFields",
-          "detectedAt" : "2026-01-01T23:07:13.324248747Z",
+          "detectedAt" : "2026-01-01T23:16:35.396469204Z",
           "analyzed_requests_count" : 2,
           "dynamic_fields" : [ {
             "field_path" : "json:timestamp",
             "confidence" : "LOW",
-            "sample_values" : [ "2026-01-01T23:07:10.696281044Z", "2026-01-01T23:07:08.525707276Z" ]
+            "sample_values" : [ "2026-01-01T23:16:32.629181200Z", "2026-01-01T23:16:30.308697390Z" ]
           }, {
             "field_path" : "json:requestId",
             "confidence" : "LOW",
-            "sample_values" : [ "5b706d97-b6ea-4f38-b2f8-4e5adb457f61", "a9cc612d-433b-44e8-9ecb-c63ced008193" ]
+            "sample_values" : [ "324e2231-de9c-4c5f-a34c-6d1baccf3cee", "335bf2b0-34cd-4a5d-abe8-606959fa9d1b" ]
           } ],
           "ignore_patterns" : [ "json:timestamp", "json:requestId" ]
         },
@@ -33,11 +33,11 @@
           "mutatingFields" : [ {
             "fieldPath" : "json:timestamp",
             "confidence" : "LOW",
-            "sampleValues" : [ "2026-01-01T23:07:10.696281044Z", "2026-01-01T23:07:08.525707276Z" ]
+            "sampleValues" : [ "2026-01-01T23:16:32.629181200Z", "2026-01-01T23:16:30.308697390Z" ]
           }, {
             "fieldPath" : "json:requestId",
             "confidence" : "LOW",
-            "sampleValues" : [ "5b706d97-b6ea-4f38-b2f8-4e5adb457f61", "a9cc612d-433b-44e8-9ecb-c63ced008193" ]
+            "sampleValues" : [ "324e2231-de9c-4c5f-a34c-6d1baccf3cee", "335bf2b0-34cd-4a5d-abe8-606959fa9d1b" ]
           } ]
         } ]
       }
@@ -51,12 +51,12 @@
         "detectedFields" : {
           "testClass" : "GraphQLTest",
           "testMethod" : "testGraphQLMutationWithDynamicFields",
-          "detectedAt" : "2026-01-01T23:07:15.168255072Z",
+          "detectedAt" : "2026-01-01T23:16:38.305580784Z",
           "analyzed_requests_count" : 2,
           "dynamic_fields" : [ {
             "field_path" : "json:variables",
             "confidence" : "LOW",
-            "sample_values" : [ "{\"code\":\"US\",\"timestamp\":\"2026-01-01T23:07:14.482690379Z\",\"requestId\":\"50db8e8c-2e78-4b82-b9db-dd815ff13a56\"}", "{\"code\":\"US\",\"timestamp\":\"2026-01-01T23:07:14.261049935Z\",\"requestId\":\"32bc6bf4-86fc-4d07-84e5-1b924d6dbf30\"}" ]
+            "sample_values" : [ "{\"code\":\"US\",\"timestamp\":\"2026-01-01T23:16:37.645037308Z\",\"requestId\":\"80794c5a-0dd1-4cfd-95da-e0a789940da2\"}", "{\"code\":\"US\",\"timestamp\":\"2026-01-01T23:16:37.381483371Z\",\"requestId\":\"92e6cd95-921b-4829-9533-5d9b470223bf\"}" ]
           } ],
           "ignore_patterns" : [ "json:variables" ]
         },
@@ -69,7 +69,7 @@
           "mutatingFields" : [ {
             "fieldPath" : "json:variables",
             "confidence" : "LOW",
-            "sampleValues" : [ "{\"code\":\"US\",\"timestamp\":\"2026-01-01T23:07:14.482690379Z\",\"requestId\":\"50db8e8c-2e78-4b82-b9db-dd815ff13a56\"}", "{\"code\":\"US\",\"timestamp\":\"2026-01-01T23:07:14.261049935Z\",\"requestId\":\"32bc6bf4-86fc-4d07-84e5-1b924d6dbf30\"}" ]
+            "sampleValues" : [ "{\"code\":\"US\",\"timestamp\":\"2026-01-01T23:16:37.645037308Z\",\"requestId\":\"80794c5a-0dd1-4cfd-95da-e0a789940da2\"}", "{\"code\":\"US\",\"timestamp\":\"2026-01-01T23:16:37.381483371Z\",\"requestId\":\"92e6cd95-921b-4829-9533-5d9b470223bf\"}" ]
           } ]
         } ]
       }
@@ -91,7 +91,7 @@
         "detectedFields" : {
           "testClass" : "GraphQLTest",
           "testMethod" : "testGraphQLQueryWithChangingVariables",
-          "detectedAt" : "2026-01-01T23:07:15.885384564Z",
+          "detectedAt" : "2026-01-01T23:16:39.032596285Z",
           "analyzed_requests_count" : 2,
           "dynamic_fields" : [ {
             "field_path" : "json:variables",
@@ -211,16 +211,16 @@
         "detectedFields" : {
           "testClass" : "NestedJsonDynamicFieldsTest",
           "testMethod" : "testNestedJsonWithDynamicFields",
-          "detectedAt" : "2026-01-01T23:07:13.353183392Z",
+          "detectedAt" : "2026-01-01T23:16:36.467343475Z",
           "analyzed_requests_count" : 2,
           "dynamic_fields" : [ {
             "field_path" : "json:order",
             "confidence" : "LOW",
-            "sample_values" : [ "{\"id\":\"order-123\",\"items\":[{\"productId\":\"prod-1\",\"quantity\":2,\"metadata\":{\"timestamp\":\"2026-01-01T23:07:10.684867298Z\",\"sessionId\":\"2a0c5c9e-87a1-44b8-a911-94786413a158\"}}],\"payment\":{\"transactionId\":\"4ee7f489-d534-4929-8f3d-981fcee1f9ed\",\"timestamp\":\"2026-01-01T23:07:10.684867298Z\"}}", "{\"id\":\"order-123\",\"items\":[{\"productId\":\"prod-1\",\"quantity\":2,\"metadata\":{\"timestamp\":\"2026-01-01T23:07:08.525653273Z\",\"sessionId\":\"2b09b3b8-47a9-44f8-8615-48b0382e7cb4\"}}],\"payment\":{\"transactionId\":\"936d7351-74a9-4db4-8a72-e881af58cfcc\",\"timestamp\":\"2026-01-01T23:07:08.525653273Z\"}}" ]
+            "sample_values" : [ "{\"id\":\"order-123\",\"items\":[{\"productId\":\"prod-1\",\"quantity\":2,\"metadata\":{\"timestamp\":\"2026-01-01T23:16:33.755990497Z\",\"sessionId\":\"f9e8f511-1157-4266-b54d-400d0c091857\"}}],\"payment\":{\"transactionId\":\"b67b940a-e644-4bbe-9d78-1910234f2cb7\",\"timestamp\":\"2026-01-01T23:16:33.755990497Z\"}}", "{\"id\":\"order-123\",\"items\":[{\"productId\":\"prod-1\",\"quantity\":2,\"metadata\":{\"timestamp\":\"2026-01-01T23:16:30.253250794Z\",\"sessionId\":\"16e0a87f-02a1-4fad-983e-7420a02a7b07\"}}],\"payment\":{\"transactionId\":\"fa5b28c0-6846-44f4-b724-ab8da40af076\",\"timestamp\":\"2026-01-01T23:16:30.253250794Z\"}}" ]
           }, {
             "field_path" : "json:requestId",
             "confidence" : "LOW",
-            "sample_values" : [ "720efa9c-42fc-43c4-b3c4-de4551898a76", "d518954b-ba01-4cce-b44a-eadc042a6036" ]
+            "sample_values" : [ "f0530bf9-d399-42b9-8174-bd9663d0a016", "6fd0be1f-cdb5-4903-a18d-18a9d0051c88" ]
           } ],
           "ignore_patterns" : [ "json:order", "json:requestId" ]
         },
@@ -233,11 +233,11 @@
           "mutatingFields" : [ {
             "fieldPath" : "json:order",
             "confidence" : "LOW",
-            "sampleValues" : [ "{\"id\":\"order-123\",\"items\":[{\"productId\":\"prod-1\",\"quantity\":2,\"metadata\":{\"timestamp\":\"2026-01-01T23:07:10.684867298Z\",\"sessionId\":\"2a0c5c9e-87a1-44b8-a911-94786413a158\"}}],\"payment\":{\"transactionId\":\"4ee7f489-d534-4929-8f3d-981fcee1f9ed\",\"timestamp\":\"2026-01-01T23:07:10.684867298Z\"}}", "{\"id\":\"order-123\",\"items\":[{\"productId\":\"prod-1\",\"quantity\":2,\"metadata\":{\"timestamp\":\"2026-01-01T23:07:08.525653273Z\",\"sessionId\":\"2b09b3b8-47a9-44f8-8615-48b0382e7cb4\"}}],\"payment\":{\"transactionId\":\"936d7351-74a9-4db4-8a72-e881af58cfcc\",\"timestamp\":\"2026-01-01T23:07:08.525653273Z\"}}" ]
+            "sampleValues" : [ "{\"id\":\"order-123\",\"items\":[{\"productId\":\"prod-1\",\"quantity\":2,\"metadata\":{\"timestamp\":\"2026-01-01T23:16:33.755990497Z\",\"sessionId\":\"f9e8f511-1157-4266-b54d-400d0c091857\"}}],\"payment\":{\"transactionId\":\"b67b940a-e644-4bbe-9d78-1910234f2cb7\",\"timestamp\":\"2026-01-01T23:16:33.755990497Z\"}}", "{\"id\":\"order-123\",\"items\":[{\"productId\":\"prod-1\",\"quantity\":2,\"metadata\":{\"timestamp\":\"2026-01-01T23:16:30.253250794Z\",\"sessionId\":\"16e0a87f-02a1-4fad-983e-7420a02a7b07\"}}],\"payment\":{\"transactionId\":\"fa5b28c0-6846-44f4-b724-ab8da40af076\",\"timestamp\":\"2026-01-01T23:16:30.253250794Z\"}}" ]
           }, {
             "fieldPath" : "json:requestId",
             "confidence" : "LOW",
-            "sampleValues" : [ "720efa9c-42fc-43c4-b3c4-de4551898a76", "d518954b-ba01-4cce-b44a-eadc042a6036" ]
+            "sampleValues" : [ "f0530bf9-d399-42b9-8174-bd9663d0a016", "6fd0be1f-cdb5-4903-a18d-18a9d0051c88" ]
           } ]
         } ]
       }
@@ -264,12 +264,12 @@
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
-          "url" : "/posts?page=1&limit=10&timestamp=1767308828529&correlationId=8b10e1c6-4134-4fe8-ade5-2c870f5abb6d",
+          "url" : "/posts?page=1&limit=10&timestamp=1767309390255&correlationId=9d80273e-780e-4b48-8603-54adfd4103d6",
           "requestCount" : 1,
           "hasBody" : false
         }, {
           "method" : "GET",
-          "url" : "/posts?page=2&limit=10&timestamp=1767308828580&correlationId=fa3318f0-898a-4c6e-bacd-be82a4c96dd5",
+          "url" : "/posts?page=2&limit=10&timestamp=1767309390305&correlationId=dee6ad24-3a40-4b9d-9f9b-0afbd61c6a14",
           "requestCount" : 1,
           "hasBody" : false
         } ]
@@ -331,28 +331,28 @@
         "detectedFields" : {
           "testClass" : "XmlDynamicFieldDetectionTest",
           "testMethod" : "testDetectChangingFieldsInXml",
-          "detectedAt" : "2026-01-01T23:07:13.953502208Z",
+          "detectedAt" : "2026-01-01T23:16:36.901415215Z",
           "analyzed_requests_count" : 2,
           "dynamic_fields" : [ {
             "field_path" : "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']",
             "confidence" : "LOW",
-            "sample_values" : [ "d24cf0fd-746d-4d28-a174-dd4ccae6db7f", "d22332bb-12fc-4f4e-87dd-80ccac6c3558" ]
+            "sample_values" : [ "b308a6f6-e872-41db-8f9b-810a164ced73", "ebf55879-ee95-4c07-a7de-8039c1a5054e" ]
           }, {
             "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']",
             "confidence" : "LOW",
-            "sample_values" : [ "d24cf0fd-746d-4d28-a174-dd4ccae6db7f", "d22332bb-12fc-4f4e-87dd-80ccac6c3558" ]
+            "sample_values" : [ "b308a6f6-e872-41db-8f9b-810a164ced73", "ebf55879-ee95-4c07-a7de-8039c1a5054e" ]
           }, {
             "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']",
             "confidence" : "LOW",
-            "sample_values" : [ "1.1767308830834", "1.1767308828525" ]
+            "sample_values" : [ "1.1767309393828", "1.1767309390255" ]
           }, {
             "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']",
             "confidence" : "LOW",
-            "sample_values" : [ "9246746a-f540-40bd-9a0d-afe5754c11db", "9775aa5c-b8c9-464c-93ae-1068928590e2" ]
+            "sample_values" : [ "bf9023de-e4c0-4088-a4c4-dd5bca17779b", "2a9d1d74-afd4-4faa-8ebd-2d48e51ad7bc" ]
           }, {
             "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']",
             "confidence" : "LOW",
-            "sample_values" : [ "2026-01-01T23:07:10.834859661Z", "2026-01-01T23:07:08.525491285Z" ]
+            "sample_values" : [ "2026-01-01T23:16:33.828165952Z", "2026-01-01T23:16:30.255000676Z" ]
           } ],
           "ignore_patterns" : [ "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']" ]
         },

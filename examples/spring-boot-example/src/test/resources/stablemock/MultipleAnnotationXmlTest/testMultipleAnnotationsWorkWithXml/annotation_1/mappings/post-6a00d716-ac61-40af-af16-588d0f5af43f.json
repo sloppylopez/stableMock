@@ -1,0 +1,29 @@
+{
+  "id" : "6a00d716-ac61-40af-af16-588d0f5af43f",
+  "name" : "post",
+  "request" : {
+    "url" : "/post",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalToXml" : "<request><id>123</id><message>Hello</message></request>"
+    } ]
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "post-f0de5833-1e43-47db-abf3-385c409e09ba.json",
+    "headers" : {
+      "x-envoy-upstream-service-time" : "5",
+      "Server" : "cloudflare",
+      "CF-RAY" : "9b75b99fae6d9895-MAD",
+      "vary" : "Accept-Encoding",
+      "Set-Cookie" : [ "sails.sid=s%3AjR7DTrxKV1v05SlO1RYFedDGB6jxTjl7.KmdFz3VRUY38HehFRKpIcX%2BLnPIgXtJk%2Fplm1bU7UJQ; Path=/; HttpOnly", "__cf_bm=nfnOoBLAsMVE6R_UFC0s2H975PBIciUCApaUDq1sDP0-1767309393-1.0.1.1-lsGaUuJqevvG5yzdYdUGbyQtXOOG2KeKwXhQefvkdv41N8e6vintkcuiE.JALopUL9Zw6.MvpIsd5horxjDftpD51eoBqfhinm6upHO018M; path=/; expires=Thu, 01-Jan-26 23:46:33 GMT; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None", "_cfuvid=o8Jd7q5AbWRRXAEmn_PDaxNwnQ55gm2e2UJKA7nF6Ns-1767309393960-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None" ],
+      "etag" : "W/\"16e-cUxFquvqWZbXwzBOMYYKIJku79U\"",
+      "cf-cache-status" : "DYNAMIC",
+      "Date" : "Thu, 01 Jan 2026 23:16:33 GMT",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "6a00d716-ac61-40af-af16-588d0f5af43f",
+  "persistent" : true,
+  "insertionIndex" : 0
+}

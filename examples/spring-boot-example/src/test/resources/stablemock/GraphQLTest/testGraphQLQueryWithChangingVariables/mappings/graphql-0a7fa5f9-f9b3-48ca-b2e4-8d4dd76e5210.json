@@ -1,33 +1,33 @@
 {
-  "id" : "76630c1a-0698-44ae-8a74-d1e0c1785907",
+  "id" : "0a7fa5f9-f9b3-48ca-b2e4-8d4dd76e5210",
   "name" : "graphql",
   "request" : {
     "url" : "/graphql",
     "method" : "POST",
     "bodyPatterns" : [ {
-      "equalToJson" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
+      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"CA\"\n  }\n}\n",
       "ignoreArrayOrder" : true,
       "ignoreExtraElements" : true
     } ]
   },
   "response" : {
     "status" : 200,
-    "bodyFileName" : "graphql-a29ac31a-662b-47d8-bff6-c08bb20c79f7.json",
+    "body" : "{\"data\":{\"country\":{\"capital\":\"Ottawa\",\"name\":\"Canada\"}}}",
     "headers" : {
-      "date" : "Tue, 30 Dec 2025 23:39:13 GMT",
-      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=43;refill=3",
+      "date" : "Thu, 01 Jan 2026 22:42:22 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=41;refill=1",
       "vary" : "accept-encoding",
       "stellate-rate-limit-decision" : "pass",
       "access-control-allow-headers" : "*",
       "gcdn-cache" : "HIT",
-      "x-served-by" : "cache-par-lfpb1150035-PAR",
+      "x-served-by" : "cache-par-lfpb1150073-PAR",
       "stellate-rate-limit-budget-required" : "6",
-      "x-cache-hits" : "279",
+      "x-cache-hits" : "17",
       "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
       "access-control-expose-headers" : "*",
       "access-control-allow-origin" : "*",
       "access-control-allow-credentials" : "true",
-      "stellate-rate-limit-budget-remaining" : "43",
+      "stellate-rate-limit-budget-remaining" : "41",
       "access-control-max-age" : "600",
       "x-powered-by" : "Stellate",
       "content-type" : "application/json; charset=utf-8",
@@ -35,10 +35,10 @@
       "cache-control" : "public, s-maxage=2628000, stale-while-revalidate=2628000",
       "alt-svc" : "h3=\":443\"; ma=86400",
       "accept-ranges" : "bytes",
-      "age" : "170877"
+      "age" : "2057"
     }
   },
-  "uuid" : "76630c1a-0698-44ae-8a74-d1e0c1785907",
+  "uuid" : "0a7fa5f9-f9b3-48ca-b2e4-8d4dd76e5210",
   "persistent" : true,
   "insertionIndex" : 0
 }
