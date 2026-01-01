@@ -29,6 +29,8 @@ A JUnit 5 extension that uses WireMock to record and replay HTTP requests and re
 
 ### 1. Add Dependency
 
+**Note:** StableMock is currently in active development and testing. The jar has not been deployed to Maven Central yet. We are ensuring everything works correctly and fixing bugs before the initial release. For now, you'll need to build from source or use a local installation.
+
 ```gradle
 dependencies {
     testImplementation 'com.stablemock:stablemock:1.0-SNAPSHOT'
@@ -364,7 +366,49 @@ com.stablemock/
 
 # Clean recordings
 ./gradlew cleanStableMock
+
+# Generate recording report
+./gradlew generateStableMockReport
 ```
+
+## Recording Report
+
+StableMock automatically generates a comprehensive report after tests run in RECORD mode. The report provides insights into your recorded requests, detected dynamic fields, and generated ignore patterns.
+
+### Automatic Generation
+
+The report is automatically generated after each test run in RECORD mode and saved to:
+- `src/test/resources/stablemock/recording-report.json` - Machine-readable JSON format
+- `src/test/resources/stablemock/recording-report.html` - Human-readable HTML format
+
+### Report Contents
+
+The report includes:
+- **Test Classes & Methods**: All recorded test classes and their methods
+- **Request Information**: HTTP method, URL, request count per endpoint
+- **Detected Dynamic Fields**: Fields automatically detected as changing between test runs
+- **Ignore Patterns**: Generated patterns used to ignore dynamic data
+- **Mutating Fields**: Fields that change values, mapped to specific endpoints
+
+### Manual Generation
+
+You can also generate the report manually using the Gradle task:
+
+```bash
+./gradlew generateStableMockReport
+```
+
+This is useful when you want to regenerate the report without running tests, or to generate reports for existing recordings.
+
+### Viewing the Report
+
+Open `src/test/resources/stablemock/recording-report.html` in your browser to view a formatted, interactive report of all your recordings. The HTML report provides a clear overview of:
+- Which endpoints were recorded
+- How many times each endpoint was called
+- Which fields were detected as dynamic
+- The ignore patterns being used
+
+The JSON report (`recording-report.json`) can be used for programmatic analysis or integration with other tools.
 
 ## System Properties Reference
 
