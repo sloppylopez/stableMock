@@ -19,6 +19,7 @@ public class StableMockPlugin implements Plugin<Project> {
         registerCleanStableMockTask(project);
         registerStableMockRecordTask(project);
         registerStableMockPlaybackTask(project);
+        registerGenerateReportTask(project);
     }
 
     private void registerCleanStableMockTask(Project project) {
@@ -76,6 +77,13 @@ public class StableMockPlugin implements Plugin<Project> {
                 tl.setEvents(java.util.Arrays.asList("passed", "skipped", "failed", "standardOut", "standardError"));
                 tl.setShowStandardStreams(true);
             });
+        });
+    }
+
+    private void registerGenerateReportTask(Project project) {
+        project.getTasks().register("stableMockReport", GenerateStableMockReportTask.class, task -> {
+            task.setGroup("verification");
+            task.setDescription("Generate StableMock recording report (JSON and HTML) from existing recordings");
         });
     }
 }

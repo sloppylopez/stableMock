@@ -598,6 +598,19 @@ public class StableMockExtension
                     }
                 }
             }
+            
+            // Generate recording report after all recordings are complete (only in record mode)
+            if (StableMockConfig.isRecordMode()) {
+                try {
+                    com.fasterxml.jackson.databind.node.ObjectNode report = 
+                            com.stablemock.core.reporting.RecordingReportGenerator.generateReport(testResourcesDir, testClassName);
+                    if (report != null) {
+                        com.stablemock.core.reporting.RecordingReportGenerator.saveReport(report, testResourcesDir);
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to generate recording report: {}", e.getMessage());
+                }
+            }
         }
 
         if (StableMockConfig.useGlobalProperties()) {

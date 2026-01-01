@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StableMock Recording Report</title>
+  <style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f5f5f5;
+  padding: 20px;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+}
+
+.header .meta {
+  margin: 5px 0;
+  opacity: 0.9;
+  font-size: 0.9em;
+}
+
+.header code {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.summary {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.summary h2 {
+  margin-bottom: 20px;
+  color: #667eea;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.summary-item {
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.summary-value {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 5px;
+}
+
+.summary-label {
+  color: #666;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.test-classes {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.test-classes h2 {
+  margin-bottom: 20px;
+  color: #667eea;
+}
+
+.test-class {
+  margin-bottom: 40px;
+  padding-bottom: 30px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.test-class:last-child {
+  border-bottom: none;
+}
+
+.test-class h3 {
+  color: #495057;
+  margin-bottom: 15px;
+  font-size: 1.5em;
+}
+
+.test-method {
+  margin-left: 20px;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #667eea;
+}
+
+.test-method h4 {
+  color: #495057;
+  margin-bottom: 10px;
+}
+
+.folder-path {
+  margin-bottom: 15px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.folder-path code {
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.annotation-section {
+  margin-top: 15px;
+  padding: 15px;
+  background: white;
+  border-radius: 4px;
+}
+
+.annotation-section h5 {
+  color: #667eea;
+  margin-bottom: 15px;
+}
+
+.mutating-fields, .ignore-patterns, .requests {
+  margin-top: 20px;
+}
+
+.mutating-fields h6, .ignore-patterns h6, .requests h6 {
+  color: #495057;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+}
+
+.mutating-fields ul, .ignore-patterns ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.mutating-fields li, .ignore-patterns li {
+  margin: 8px 0;
+  padding: 8px;
+  background: #fff;
+  border-radius: 4px;
+  border-left: 3px solid #667eea;
+}
+
+.field-path {
+  font-weight: bold;
+  color: #667eea;
+}
+
+.confidence {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.confidence-high {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.confidence-medium {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.confidence-low {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.sample-values {
+  margin-top: 8px;
+  margin-left: 20px;
+}
+
+.sample-values li {
+  margin: 4px 0;
+  padding: 4px;
+  background: #f8f9fa;
+  border-left: none;
+}
+
+.sample-values code {
+  font-size: 0.85em;
+}
+
+details {
+  margin-top: 5px;
+}
+
+summary {
+  cursor: pointer;
+  color: #667eea;
+  font-size: 0.9em;
+}
+
+summary:hover {
+  text-decoration: underline;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+table th {
+  background: #667eea;
+  color: white;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+}
+
+table td {
+  padding: 10px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.method {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.85em;
+}
+
+.method-get {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.method-post {
+  background-color: #cce5ff;
+  color: #004085;
+}
+
+.method-put {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.method-delete {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.method-patch {
+  background-color: #e2e3e5;
+  color: #383d41;
+}
+
+.inline-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.inline-list li {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  border-left: none;
+}
+
+.meta-info {
+  margin: 10px 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+code {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>StableMock Recording Report</h1>
+    <p class="meta">Generated: 2026-01-01T14:23:10.342604700Z</p>
+    <p class="meta">Triggered by: GradleTask</p>
+    <p class="meta">Base directory: <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock</code></p>
+  </div>
+  <div class="summary">
+    <h2>Summary</h2>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-value">7</div>
+        <div class="summary-label">Test Classes</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-value">13</div>
+        <div class="summary-label">Test Methods</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-value">42</div>
+        <div class="summary-label">Total Requests</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-value">13</div>
+        <div class="summary-label">Mutating Fields</div>
+      </div>
+    </div>
+  </div>
+  <div class="test-classes">
+    <h2>Test Classes</h2>
+    <div class="test-class">
+      <h3>DynamicFieldDetectionTest</h3>
+      <div class="test-method">
+        <h4>testDetectChangingFields</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\DynamicFieldDetectionTest\testDetectChangingFields</code></p>
+          <div class="mutating-fields">
+            <h6>Mutating Fields</h6>
+            <ul>
+              <li>
+                <code class="field-path">json:timestamp</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>2025-12-31T15:50:35.958451600Z</code></li>
+                    <li><code>2025-12-31T15:50:35.479118500Z</code></li>
+                    <li><code>2025-12-31T15:52:55.570199600Z</code></li>
+                  </ul>
+                </details>
+              </li>
+              <li>
+                <code class="field-path">json:requestId</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>19e5d965-d210-482c-adee-0469c88d87f5</code></li>
+                    <li><code>fa44b4d5-3321-4550-99d9-9393f14702d4</code></li>
+                    <li><code>de41af25-8763-4441-afc7-d8a62971c5e1</code></li>
+                  </ul>
+                </details>
+              </li>
+            </ul>
+          </div>
+          <p class="meta-info"><strong>Analyzed requests:</strong> 10</p>
+          <div class="ignore-patterns">
+            <h6>Generated Ignore Patterns</h6>
+            <ul>
+              <li><code>json:timestamp</code></li>
+              <li><code>json:requestId</code></li>
+            </ul>
+          </div>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-post">POST</span></td>
+                  <td><code>/posts</code></td>
+                  <td>2</td>
+                  <td>✓</td>
+                  <td>
+                    <ul class="inline-list">
+                      <li><code>json:timestamp</code></li>
+                      <li><code>json:requestId</code></li>
+                    </ul>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </div>
+    </div>
+    <div class="test-class">
+      <h3>GraphQLTest</h3>
+      <div class="test-method">
+        <h4>testGraphQLQuery</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\GraphQLTest\testGraphQLQuery</code></p>
+          <div class="mutating-fields">
+            <h6>Mutating Fields</h6>
+            <ul>
+              <li>
+                <code class="field-path">json:query</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>{ countries { code name } }</code></li>
+                    <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital } }</code></li>
+                    <li><code>{ countries { code name } }</code></li>
+                  </ul>
+                </details>
+              </li>
+              <li>
+                <code class="field-path">json:variables</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>{&quot;code&quot;:&quot;US&quot;}</code></li>
+                    <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
+                    <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
+                  </ul>
+                </details>
+              </li>
+            </ul>
+          </div>
+          <p class="meta-info"><strong>Analyzed requests:</strong> 10</p>
+          <div class="ignore-patterns">
+            <h6>Generated Ignore Patterns</h6>
+            <ul>
+              <li><code>json:query</code></li>
+              <li><code>json:variables</code></li>
+            </ul>
+          </div>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-post">POST</span></td>
+                  <td><code>/graphql</code></td>
+                  <td>3</td>
+                  <td>✓</td>
+                  <td>
+                    <ul class="inline-list">
+                      <li><code>json:query</code></li>
+                      <li><code>json:variables</code></li>
+                    </ul>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </div>
+      <div class="test-method">
+        <h4>testGraphQLQueryWithGB</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\GraphQLTest\testGraphQLQueryWithGB</code></p>
+          <div class="mutating-fields">
+            <h6>Mutating Fields</h6>
+            <ul>
+              <li>
+                <code class="field-path">json:query</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>{ countries { code name } }</code></li>
+                    <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital } }</code></li>
+                    <li><code>{ countries { code name } }</code></li>
+                  </ul>
+                </details>
+              </li>
+              <li>
+                <code class="field-path">json:variables</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>{&quot;code&quot;:&quot;US&quot;}</code></li>
+                    <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
+                    <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
+                  </ul>
+                </details>
+              </li>
+            </ul>
+          </div>
+          <p class="meta-info"><strong>Analyzed requests:</strong> 10</p>
+          <div class="ignore-patterns">
+            <h6>Generated Ignore Patterns</h6>
+            <ul>
+              <li><code>json:query</code></li>
+              <li><code>json:variables</code></li>
+            </ul>
+          </div>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-post">POST</span></td>
+                  <td><code>/graphql</code></td>
+                  <td>3</td>
+                  <td>✓</td>
+                  <td>
+                    <ul class="inline-list">
+                      <li><code>json:query</code></li>
+                      <li><code>json:variables</code></li>
+                    </ul>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </div>
+      <div class="test-method">
+        <h4>testGraphQLQueryWithVariables</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\GraphQLTest\testGraphQLQueryWithVariables</code></p>
+          <div class="mutating-fields">
+            <h6>Mutating Fields</h6>
+            <ul>
+              <li>
+                <code class="field-path">json:query</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>{ countries { code name } }</code></li>
+                    <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital } }</code></li>
+                    <li><code>{ countries { code name } }</code></li>
+                  </ul>
+                </details>
+              </li>
+              <li>
+                <code class="field-path">json:variables</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>{&quot;code&quot;:&quot;US&quot;}</code></li>
+                    <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
+                    <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
+                  </ul>
+                </details>
+              </li>
+            </ul>
+          </div>
+          <p class="meta-info"><strong>Analyzed requests:</strong> 10</p>
+          <div class="ignore-patterns">
+            <h6>Generated Ignore Patterns</h6>
+            <ul>
+              <li><code>json:query</code></li>
+              <li><code>json:variables</code></li>
+            </ul>
+          </div>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-post">POST</span></td>
+                  <td><code>/graphql</code></td>
+                  <td>3</td>
+                  <td>✓</td>
+                  <td>
+                    <ul class="inline-list">
+                      <li><code>json:query</code></li>
+                      <li><code>json:variables</code></li>
+                    </ul>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </div>
+    </div>
+    <div class="test-class">
+      <h3>MultipleAnnotationTest</h3>
+      <div class="test-method">
+        <h4>testMultipleAnnotationsRecordSeparately</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\MultipleAnnotationTest\testMultipleAnnotationsRecordSeparately</code></p>
+        <div class="annotation-section">
+          <h5>Annotation 0</h5>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/1</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/2</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="annotation-section">
+          <h5>Annotation 1</h5>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/get?id=2</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/get?id=1</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="test-method">
+        <h4>testMultipleAnnotationsWork</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\MultipleAnnotationTest\testMultipleAnnotationsWork</code></p>
+        <div class="annotation-section">
+          <h5>Annotation 0</h5>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/1</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/2</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="annotation-section">
+          <h5>Annotation 1</h5>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/get?id=2</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/get?id=1</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="test-class">
+      <h3>MultipleAnnotationXmlTest</h3>
+      <div class="test-method">
+        <h4>testMultipleAnnotationsWorkWithXml</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\MultipleAnnotationXmlTest\testMultipleAnnotationsWorkWithXml</code></p>
+        <div class="annotation-section">
+          <h5>Annotation 0</h5>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/1</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="annotation-section">
+          <h5>Annotation 1</h5>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-post">POST</span></td>
+                  <td><code>/post</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="test-class">
+      <h3>PaginationTest</h3>
+      <div class="test-method">
+        <h4>testPagination</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\PaginationTest\testPagination</code></p>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/posts</code></td>
+                  <td>3</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </div>
+    </div>
+    <div class="test-class">
+      <h3>SpringBootIntegrationTest</h3>
+      <div class="test-method">
+        <h4>testCreatePostViaController</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\SpringBootIntegrationTest\testCreatePostViaController</code></p>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-post">POST</span></td>
+                  <td><code>/posts</code></td>
+                  <td>1</td>
+                  <td>✓</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/1</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/2</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/3</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </div>
+      <div class="test-method">
+        <h4>testGetUser2ViaController</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\SpringBootIntegrationTest\testGetUser2ViaController</code></p>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-post">POST</span></td>
+                  <td><code>/posts</code></td>
+                  <td>1</td>
+                  <td>✓</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/1</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/2</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/3</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </div>
+      <div class="test-method">
+        <h4>testGetUser3ViaController</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\SpringBootIntegrationTest\testGetUser3ViaController</code></p>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-post">POST</span></td>
+                  <td><code>/posts</code></td>
+                  <td>1</td>
+                  <td>✓</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/1</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/2</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/3</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </div>
+      <div class="test-method">
+        <h4>testGetUserViaController</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\SpringBootIntegrationTest\testGetUserViaController</code></p>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-post">POST</span></td>
+                  <td><code>/posts</code></td>
+                  <td>1</td>
+                  <td>✓</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/1</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/2</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="method method-get">GET</span></td>
+                  <td><code>/users/3</code></td>
+                  <td>1</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </div>
+    </div>
+    <div class="test-class">
+      <h3>XmlDynamicFieldDetectionTest</h3>
+      <div class="test-method">
+        <h4>testDetectChangingFieldsInXml</h4>
+        <p class="folder-path"><strong>Folder:</strong> <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock\XmlDynamicFieldDetectionTest\testDetectChangingFieldsInXml</code></p>
+          <div class="mutating-fields">
+            <h6>Mutating Fields</h6>
+            <ul>
+              <li>
+                <code class="field-path">xml://*[local-name()=&#39;request&#39;]/*[local-name()=&#39;data&#39;]/*[local-name()=&#39;user&#39;]/@*[local-name()=&#39;sessionId&#39;]</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>a64dfbad-2360-49e4-82bf-4c69648d52d0</code></li>
+                    <li><code>6135bbb4-5c29-4e3b-9e22-7fa7a181c4dc</code></li>
+                    <li><code>8a89d57a-fab8-4332-b75d-b59ad5f24d0a</code></li>
+                  </ul>
+                </details>
+              </li>
+              <li>
+                <code class="field-path">xml://*[local-name()=&#39;request&#39;]/*[local-name()=&#39;header&#39;]/@*[local-name()=&#39;id&#39;]</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>a64dfbad-2360-49e4-82bf-4c69648d52d0</code></li>
+                    <li><code>6135bbb4-5c29-4e3b-9e22-7fa7a181c4dc</code></li>
+                    <li><code>8a89d57a-fab8-4332-b75d-b59ad5f24d0a</code></li>
+                  </ul>
+                </details>
+              </li>
+              <li>
+                <code class="field-path">xml://*[local-name()=&#39;request&#39;]/*[local-name()=&#39;header&#39;]/@*[local-name()=&#39;version&#39;]</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>1.1767196235942</code></li>
+                    <li><code>1.1767196235277</code></li>
+                    <li><code>1.1767196375879</code></li>
+                  </ul>
+                </details>
+              </li>
+              <li>
+                <code class="field-path">xml://*[local-name()=&#39;request&#39;]/*[local-name()=&#39;header&#39;]/*[local-name()=&#39;requestId&#39;]</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>7ac0318a-1a0a-4319-95af-f28f5d22c8b5</code></li>
+                    <li><code>0c929440-8791-41db-b59c-d362740eda97</code></li>
+                    <li><code>87aab675-304e-4038-8cb7-cde1efbf1493</code></li>
+                  </ul>
+                </details>
+              </li>
+              <li>
+                <code class="field-path">xml://*[local-name()=&#39;request&#39;]/*[local-name()=&#39;header&#39;]/*[local-name()=&#39;timestamp&#39;]</code>
+                <span class="confidence confidence-high">HIGH</span>
+                <details>
+                  <summary>Sample values</summary>
+                  <ul class="sample-values">
+                    <li><code>2025-12-31T15:50:35.942343300Z</code></li>
+                    <li><code>2025-12-31T15:50:35.277612600Z</code></li>
+                    <li><code>2025-12-31T15:52:55.879728800Z</code></li>
+                  </ul>
+                </details>
+              </li>
+            </ul>
+          </div>
+          <p class="meta-info"><strong>Analyzed requests:</strong> 10</p>
+          <div class="ignore-patterns">
+            <h6>Generated Ignore Patterns</h6>
+            <ul>
+              <li><code>xml://*[local-name()=&#39;request&#39;]/*[local-name()=&#39;data&#39;]/*[local-name()=&#39;user&#39;]/@*[local-name()=&#39;sessionId&#39;]</code></li>
+              <li><code>xml://*[local-name()=&#39;request&#39;]/*[local-name()=&#39;header&#39;]/@*[local-name()=&#39;id&#39;]</code></li>
+              <li><code>xml://*[local-name()=&#39;request&#39;]/*[local-name()=&#39;header&#39;]/@*[local-name()=&#39;version&#39;]</code></li>
+              <li><code>xml://*[local-name()=&#39;request&#39;]/*[local-name()=&#39;header&#39;]/*[local-name()=&#39;requestId&#39;]</code></li>
+              <li><code>xml://*[local-name()=&#39;request&#39;]/*[local-name()=&#39;header&#39;]/*[local-name()=&#39;timestamp&#39;]</code></li>
+            </ul>
+          </div>
+          <div class="requests">
+            <h6>Recorded Requests</h6>
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>Count</th>
+                  <th>Has Body</th>
+                  <th>Mutating Fields</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="method method-post">POST</span></td>
+                  <td><code>/post</code></td>
+                  <td>2</td>
+                  <td>—</td>
+                  <td>
+                    —
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

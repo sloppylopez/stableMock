@@ -1,0 +1,410 @@
+{
+  "generatedAt" : "2026-01-01T14:23:10.342604700Z",
+  "baseDirectory" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock",
+  "triggeredBy" : "GradleTask",
+  "testClasses" : [ {
+    "testClass" : "DynamicFieldDetectionTest",
+    "testMethods" : [ {
+      "testMethod" : "testDetectChangingFields",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\DynamicFieldDetectionTest\\testDetectChangingFields",
+      "annotation" : {
+        "detectedFields" : {
+          "testClass" : "DynamicFieldDetectionTest",
+          "testMethod" : "testDetectChangingFields",
+          "detectedAt" : "2025-12-31T15:56:05.588063734Z",
+          "analyzed_requests_count" : 10,
+          "dynamic_fields" : [ {
+            "field_path" : "json:timestamp",
+            "confidence" : "HIGH",
+            "sample_values" : [ "2025-12-31T15:50:35.958451600Z", "2025-12-31T15:50:35.479118500Z", "2025-12-31T15:52:55.570199600Z" ]
+          }, {
+            "field_path" : "json:requestId",
+            "confidence" : "HIGH",
+            "sample_values" : [ "19e5d965-d210-482c-adee-0469c88d87f5", "fa44b4d5-3321-4550-99d9-9393f14702d4", "de41af25-8763-4441-afc7-d8a62971c5e1" ]
+          } ],
+          "ignore_patterns" : [ "json:timestamp", "json:requestId" ]
+        },
+        "ignorePatterns" : [ "json:timestamp", "json:requestId" ],
+        "requests" : [ {
+          "method" : "POST",
+          "url" : "/posts",
+          "requestCount" : 2,
+          "hasBody" : true,
+          "mutatingFields" : [ {
+            "fieldPath" : "json:timestamp",
+            "confidence" : "HIGH",
+            "sampleValues" : [ "2025-12-31T15:50:35.958451600Z", "2025-12-31T15:50:35.479118500Z", "2025-12-31T15:52:55.570199600Z" ]
+          }, {
+            "fieldPath" : "json:requestId",
+            "confidence" : "HIGH",
+            "sampleValues" : [ "19e5d965-d210-482c-adee-0469c88d87f5", "fa44b4d5-3321-4550-99d9-9393f14702d4", "de41af25-8763-4441-afc7-d8a62971c5e1" ]
+          } ]
+        } ]
+      }
+    } ]
+  }, {
+    "testClass" : "GraphQLTest",
+    "testMethods" : [ {
+      "testMethod" : "testGraphQLQuery",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\GraphQLTest\\testGraphQLQuery",
+      "annotation" : {
+        "detectedFields" : {
+          "testClass" : "GraphQLTest",
+          "testMethod" : "testGraphQLQuery",
+          "detectedAt" : "2025-12-31T15:56:06.551360527Z",
+          "analyzed_requests_count" : 10,
+          "dynamic_fields" : [ {
+            "field_path" : "json:query",
+            "confidence" : "HIGH",
+            "sample_values" : [ "{ countries { code name } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }", "{ countries { code name } }" ]
+          }, {
+            "field_path" : "json:variables",
+            "confidence" : "HIGH",
+            "sample_values" : [ "{\"code\":\"US\"}", "{\"code\":\"GB\"}", "{\"code\":\"GB\"}" ]
+          } ],
+          "ignore_patterns" : [ "json:query", "json:variables" ]
+        },
+        "ignorePatterns" : [ "json:query", "json:variables" ],
+        "requests" : [ {
+          "method" : "POST",
+          "url" : "/graphql",
+          "requestCount" : 3,
+          "hasBody" : true,
+          "mutatingFields" : [ {
+            "fieldPath" : "json:query",
+            "confidence" : "HIGH",
+            "sampleValues" : [ "{ countries { code name } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }", "{ countries { code name } }" ]
+          }, {
+            "fieldPath" : "json:variables",
+            "confidence" : "HIGH",
+            "sampleValues" : [ "{\"code\":\"US\"}", "{\"code\":\"GB\"}", "{\"code\":\"GB\"}" ]
+          } ]
+        } ]
+      }
+    }, {
+      "testMethod" : "testGraphQLQueryWithGB",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\GraphQLTest\\testGraphQLQueryWithGB",
+      "annotation" : {
+        "detectedFields" : {
+          "testClass" : "GraphQLTest",
+          "testMethod" : "testGraphQLQueryWithGB",
+          "detectedAt" : "2025-12-31T15:56:06.551370646Z",
+          "analyzed_requests_count" : 10,
+          "dynamic_fields" : [ {
+            "field_path" : "json:query",
+            "confidence" : "HIGH",
+            "sample_values" : [ "{ countries { code name } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }", "{ countries { code name } }" ]
+          }, {
+            "field_path" : "json:variables",
+            "confidence" : "HIGH",
+            "sample_values" : [ "{\"code\":\"US\"}", "{\"code\":\"GB\"}", "{\"code\":\"GB\"}" ]
+          } ],
+          "ignore_patterns" : [ "json:query", "json:variables" ]
+        },
+        "ignorePatterns" : [ "json:query", "json:variables" ],
+        "requests" : [ {
+          "method" : "POST",
+          "url" : "/graphql",
+          "requestCount" : 3,
+          "hasBody" : true,
+          "mutatingFields" : [ {
+            "fieldPath" : "json:query",
+            "confidence" : "HIGH",
+            "sampleValues" : [ "{ countries { code name } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }", "{ countries { code name } }" ]
+          }, {
+            "fieldPath" : "json:variables",
+            "confidence" : "HIGH",
+            "sampleValues" : [ "{\"code\":\"US\"}", "{\"code\":\"GB\"}", "{\"code\":\"GB\"}" ]
+          } ]
+        } ]
+      }
+    }, {
+      "testMethod" : "testGraphQLQueryWithVariables",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\GraphQLTest\\testGraphQLQueryWithVariables",
+      "annotation" : {
+        "detectedFields" : {
+          "testClass" : "GraphQLTest",
+          "testMethod" : "testGraphQLQueryWithVariables",
+          "detectedAt" : "2025-12-31T15:56:06.551360538Z",
+          "analyzed_requests_count" : 10,
+          "dynamic_fields" : [ {
+            "field_path" : "json:query",
+            "confidence" : "HIGH",
+            "sample_values" : [ "{ countries { code name } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }", "{ countries { code name } }" ]
+          }, {
+            "field_path" : "json:variables",
+            "confidence" : "HIGH",
+            "sample_values" : [ "{\"code\":\"US\"}", "{\"code\":\"GB\"}", "{\"code\":\"GB\"}" ]
+          } ],
+          "ignore_patterns" : [ "json:query", "json:variables" ]
+        },
+        "ignorePatterns" : [ "json:query", "json:variables" ],
+        "requests" : [ {
+          "method" : "POST",
+          "url" : "/graphql",
+          "requestCount" : 3,
+          "hasBody" : true,
+          "mutatingFields" : [ {
+            "fieldPath" : "json:query",
+            "confidence" : "HIGH",
+            "sampleValues" : [ "{ countries { code name } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }", "{ countries { code name } }" ]
+          }, {
+            "fieldPath" : "json:variables",
+            "confidence" : "HIGH",
+            "sampleValues" : [ "{\"code\":\"US\"}", "{\"code\":\"GB\"}", "{\"code\":\"GB\"}" ]
+          } ]
+        } ]
+      }
+    } ]
+  }, {
+    "testClass" : "MultipleAnnotationTest",
+    "testMethods" : [ {
+      "testMethod" : "testMultipleAnnotationsRecordSeparately",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\MultipleAnnotationTest\\testMultipleAnnotationsRecordSeparately",
+      "annotations" : [ {
+        "annotationIndex" : 0,
+        "requests" : [ {
+          "method" : "GET",
+          "url" : "/users/1",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/users/2",
+          "requestCount" : 1,
+          "hasBody" : false
+        } ]
+      }, {
+        "annotationIndex" : 1,
+        "requests" : [ {
+          "method" : "GET",
+          "url" : "/get?id=2",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/get?id=1",
+          "requestCount" : 1,
+          "hasBody" : false
+        } ]
+      } ]
+    }, {
+      "testMethod" : "testMultipleAnnotationsWork",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\MultipleAnnotationTest\\testMultipleAnnotationsWork",
+      "annotations" : [ {
+        "annotationIndex" : 0,
+        "requests" : [ {
+          "method" : "GET",
+          "url" : "/users/1",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/users/2",
+          "requestCount" : 1,
+          "hasBody" : false
+        } ]
+      }, {
+        "annotationIndex" : 1,
+        "requests" : [ {
+          "method" : "GET",
+          "url" : "/get?id=2",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/get?id=1",
+          "requestCount" : 1,
+          "hasBody" : false
+        } ]
+      } ]
+    } ]
+  }, {
+    "testClass" : "MultipleAnnotationXmlTest",
+    "testMethods" : [ {
+      "testMethod" : "testMultipleAnnotationsWorkWithXml",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\MultipleAnnotationXmlTest\\testMultipleAnnotationsWorkWithXml",
+      "annotations" : [ {
+        "annotationIndex" : 0,
+        "requests" : [ {
+          "method" : "GET",
+          "url" : "/users/1",
+          "requestCount" : 1,
+          "hasBody" : false
+        } ]
+      }, {
+        "annotationIndex" : 1,
+        "requests" : [ {
+          "method" : "POST",
+          "url" : "/post",
+          "requestCount" : 1,
+          "hasBody" : false
+        } ]
+      } ]
+    } ]
+  }, {
+    "testClass" : "PaginationTest",
+    "testMethods" : [ {
+      "testMethod" : "testPagination",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\PaginationTest\\testPagination",
+      "annotation" : {
+        "requests" : [ {
+          "method" : "GET",
+          "url" : "/posts",
+          "requestCount" : 3,
+          "hasBody" : false
+        } ]
+      }
+    } ]
+  }, {
+    "testClass" : "SpringBootIntegrationTest",
+    "testMethods" : [ {
+      "testMethod" : "testCreatePostViaController",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testCreatePostViaController",
+      "annotation" : {
+        "requests" : [ {
+          "method" : "POST",
+          "url" : "/posts",
+          "requestCount" : 1,
+          "hasBody" : true
+        }, {
+          "method" : "GET",
+          "url" : "/users/1",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/users/2",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/users/3",
+          "requestCount" : 1,
+          "hasBody" : false
+        } ]
+      }
+    }, {
+      "testMethod" : "testGetUser2ViaController",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testGetUser2ViaController",
+      "annotation" : {
+        "requests" : [ {
+          "method" : "POST",
+          "url" : "/posts",
+          "requestCount" : 1,
+          "hasBody" : true
+        }, {
+          "method" : "GET",
+          "url" : "/users/1",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/users/2",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/users/3",
+          "requestCount" : 1,
+          "hasBody" : false
+        } ]
+      }
+    }, {
+      "testMethod" : "testGetUser3ViaController",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testGetUser3ViaController",
+      "annotation" : {
+        "requests" : [ {
+          "method" : "POST",
+          "url" : "/posts",
+          "requestCount" : 1,
+          "hasBody" : true
+        }, {
+          "method" : "GET",
+          "url" : "/users/1",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/users/2",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/users/3",
+          "requestCount" : 1,
+          "hasBody" : false
+        } ]
+      }
+    }, {
+      "testMethod" : "testGetUserViaController",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testGetUserViaController",
+      "annotation" : {
+        "requests" : [ {
+          "method" : "POST",
+          "url" : "/posts",
+          "requestCount" : 1,
+          "hasBody" : true
+        }, {
+          "method" : "GET",
+          "url" : "/users/1",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/users/2",
+          "requestCount" : 1,
+          "hasBody" : false
+        }, {
+          "method" : "GET",
+          "url" : "/users/3",
+          "requestCount" : 1,
+          "hasBody" : false
+        } ]
+      }
+    } ]
+  }, {
+    "testClass" : "XmlDynamicFieldDetectionTest",
+    "testMethods" : [ {
+      "testMethod" : "testDetectChangingFieldsInXml",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\XmlDynamicFieldDetectionTest\\testDetectChangingFieldsInXml",
+      "annotation" : {
+        "detectedFields" : {
+          "testClass" : "XmlDynamicFieldDetectionTest",
+          "testMethod" : "testDetectChangingFieldsInXml",
+          "detectedAt" : "2025-12-31T15:56:07.156032119Z",
+          "analyzed_requests_count" : 10,
+          "dynamic_fields" : [ {
+            "field_path" : "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']",
+            "confidence" : "HIGH",
+            "sample_values" : [ "a64dfbad-2360-49e4-82bf-4c69648d52d0", "6135bbb4-5c29-4e3b-9e22-7fa7a181c4dc", "8a89d57a-fab8-4332-b75d-b59ad5f24d0a" ]
+          }, {
+            "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']",
+            "confidence" : "HIGH",
+            "sample_values" : [ "a64dfbad-2360-49e4-82bf-4c69648d52d0", "6135bbb4-5c29-4e3b-9e22-7fa7a181c4dc", "8a89d57a-fab8-4332-b75d-b59ad5f24d0a" ]
+          }, {
+            "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']",
+            "confidence" : "HIGH",
+            "sample_values" : [ "1.1767196235942", "1.1767196235277", "1.1767196375879" ]
+          }, {
+            "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']",
+            "confidence" : "HIGH",
+            "sample_values" : [ "7ac0318a-1a0a-4319-95af-f28f5d22c8b5", "0c929440-8791-41db-b59c-d362740eda97", "87aab675-304e-4038-8cb7-cde1efbf1493" ]
+          }, {
+            "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']",
+            "confidence" : "HIGH",
+            "sample_values" : [ "2025-12-31T15:50:35.942343300Z", "2025-12-31T15:50:35.277612600Z", "2025-12-31T15:52:55.879728800Z" ]
+          } ],
+          "ignore_patterns" : [ "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']" ]
+        },
+        "ignorePatterns" : [ "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']" ],
+        "requests" : [ {
+          "method" : "POST",
+          "url" : "/post",
+          "requestCount" : 2,
+          "hasBody" : false
+        } ]
+      }
+    } ]
+  } ]
+}

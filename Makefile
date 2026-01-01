@@ -116,7 +116,18 @@ spring-example:
 	sleep 15 && \
 	sync && \
 	echo "=== Playback mode ===" && \
-	./gradlew stableMockPlayback $$gradle_args
+	./gradlew stableMockPlayback $$gradle_args && \
+	echo "=== Verifying recording report was generated ===" && \
+	if [ -f "src/test/resources/stablemock/recording-report.json" ]; then \
+		echo "Recording report (JSON) found: src/test/resources/stablemock/recording-report.json"; \
+	else \
+		echo "WARNING: Recording report (JSON) not found"; \
+	fi && \
+	if [ -f "src/test/resources/stablemock/recording-report.html" ]; then \
+		echo "Recording report (HTML) found: src/test/resources/stablemock/recording-report.html"; \
+	else \
+		echo "WARNING: Recording report (HTML) not found"; \
+	fi
 	@echo "=== Verifying cleanup - checking for class-level directories ==="
 	@$(MAKE) verify-cleanup
 

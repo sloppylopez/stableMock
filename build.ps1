@@ -106,6 +106,20 @@ function Invoke-SpringExample {
         & .\gradlew.bat stableMockPlayback $gradleArgs
         if ($LASTEXITCODE -ne 0) { throw "Gradle command failed with exit code $LASTEXITCODE" }
         
+        Write-Step "Verifying recording report was generated"
+        $reportJson = "src\test\resources\stablemock\recording-report.json"
+        $reportHtml = "src\test\resources\stablemock\recording-report.html"
+        if (Test-Path $reportJson) {
+            Write-Host "Recording report (JSON) found: $reportJson" -ForegroundColor Green
+        } else {
+            Write-Host "WARNING: Recording report (JSON) not found at: $reportJson" -ForegroundColor Yellow
+        }
+        if (Test-Path $reportHtml) {
+            Write-Host "Recording report (HTML) found: $reportHtml" -ForegroundColor Green
+        } else {
+            Write-Host "WARNING: Recording report (HTML) not found at: $reportHtml" -ForegroundColor Yellow
+        }
+        
         Write-Step "Verifying cleanup - checking for class-level directories"
         Test-StableMockCleanup
     }
