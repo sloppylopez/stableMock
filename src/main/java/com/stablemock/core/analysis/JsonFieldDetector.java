@@ -82,39 +82,55 @@ public final class JsonFieldDetector {
 
                     // Check if all values are the same
                     boolean allSame = true;
-                    String firstValue = fieldValues.get(0).toString();
+                    String firstValueStr = fieldValues.get(0).toString();
                     for (int i = 1; i < fieldValues.size(); i++) {
-                        if (!firstValue.equals(fieldValues.get(i).toString())) {
+                        if (!firstValueStr.equals(fieldValues.get(i).toString())) {
                             allSame = false;
                             break;
                         }
                     }
 
                     if (!allSame) {
-                        // This field has changing values - it's dynamic!
-                        List<String> sampleValues = new ArrayList<>();
-                        for (JsonNode value : fieldValues) {
-                            if (value.isTextual()) {
-                                sampleValues.add(value.asText());
-                            } else {
-                                sampleValues.add(value.toString());
+                        // This field has changing values
+                        // If it's a primitive (string, number, boolean, null), mark it as dynamic
+                        // If it's an object or array, recurse to find the specific nested fields that are changing
+                        JsonNode firstValueNode = fieldValues.get(0);
+                        boolean isComplexType = firstValueNode.isObject() || firstValueNode.isArray();
+                        
+                        logger.debug("Field {} has changing values. isObject: {}, isArray: {}, isComplexType: {}", 
+                                currentPath, firstValueNode.isObject(), firstValueNode.isArray(), isComplexType);
+                        
+                        if (isComplexType) {
+                            // It's a complex type - recurse to find specific nested dynamic fields
+                            // Don't add the parent field, only add the specific nested fields that are changing
+                            logger.info("Field {} is a complex type (object/array), recursing to find nested dynamic fields instead of marking parent as dynamic", currentPath);
+                            detectDynamicFieldsInJsonRecursive(fieldValues, currentPath, result);
+                        } else {
+                            // It's a primitive type - mark it as dynamic
+                            List<String> sampleValues = new ArrayList<>();
+                            for (JsonNode value : fieldValues) {
+                                if (value.isTextual()) {
+                                    sampleValues.add(value.asText());
+                                } else {
+                                    sampleValues.add(value.toString());
+                                }
                             }
+
+                            // Limit sample values to first 3
+                            if (sampleValues.size() > 3) {
+                                sampleValues = sampleValues.subList(0, 3);
+                            }
+
+                            String confidence = ConfidenceCalculator.calculateConfidence(fieldValues.size());
+                            String jsonPath = "json:" + currentPath;
+
+                            result.addDynamicField(new DetectionResult.DynamicField(
+                                    jsonPath, confidence, sampleValues));
+                            result.addIgnorePattern(jsonPath);
+
+                            logger.info("Detected dynamic JSON field: {} (confidence: {}, samples: {})",
+                                    jsonPath, confidence, sampleValues.size());
                         }
-
-                        // Limit sample values to first 3
-                        if (sampleValues.size() > 3) {
-                            sampleValues = sampleValues.subList(0, 3);
-                        }
-
-                        String confidence = ConfidenceCalculator.calculateConfidence(fieldValues.size());
-                        String jsonPath = "json:" + currentPath;
-
-                        result.addDynamicField(new DetectionResult.DynamicField(
-                                jsonPath, confidence, sampleValues));
-                        result.addIgnorePattern(jsonPath);
-
-                        logger.info("Detected dynamic JSON field: {} (confidence: {}, samples: {})",
-                                jsonPath, confidence, sampleValues.size());
                     } else if (fieldValues.get(0).isObject() || fieldValues.get(0).isArray()) {
                         // Values are same, but recurse to check nested structure
                         detectDynamicFieldsInJsonRecursive(fieldValues, currentPath, result);

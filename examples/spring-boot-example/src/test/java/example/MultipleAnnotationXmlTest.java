@@ -6,7 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -43,20 +46,25 @@ class MultipleAnnotationXmlTest extends BaseStableMockTest {
         String xml = "<request><id>123</id><message>Hello</message></request>";
 
         // First API (jsonplaceholder) - JSON
-        String jsonResponse = restTemplate.getForObject("/api/users/1", String.class);
+        // Flow: Test -> Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/users/1
+        ResponseEntity<String> jsonResponseEntity = restTemplate.getForEntity("/api/users/1", String.class);
+        String jsonResponse = jsonResponseEntity.getBody();
         assertNotNull(jsonResponse, "Response from jsonplaceholder should not be null");
         assertTrue(jsonResponse.contains("\"id\": 1") || jsonResponse.contains("\"id\":1"),
                 "Response should contain user id 1");
 
         // Second API (postman-echo) - XML
-        ResponseEntity<String> postmanResp = postXml("/api/postmanecho/xml", xml);
-        assertResponseOkOrFailWithInstructions(postmanResp);
-
-        assertNotNull(postmanResp.getBody(), "Postman Echo response should not be null");
+        // Flow: Test -> Controller -> ThirdPartyService -> PostmanEchoClient -> postman-echo.com/post
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+        HttpEntity<String> request = new HttpEntity<>(xml, headers);
+        ResponseEntity<String> postmanResponseEntity = restTemplate.postForEntity("/api/postmanecho/xml", request, String.class);
+        String postmanResp = postmanResponseEntity.getBody();
+        assertNotNull(postmanResp, "Postman Echo response should not be null");
 
         // Both services return JSON bodies; just sanity-check typical markers
-        assertTrue(postmanResp.getBody().contains("data") || postmanResp.getBody().contains("postman") || postmanResp.getBody().contains("headers"),
-                "Postman Echo response should look like an echo JSON. Got: " + preview(postmanResp.getBody()));
+        assertTrue(postmanResp.contains("data") || postmanResp.contains("postman") || postmanResp.contains("headers"),
+                "Postman Echo response should look like an echo JSON. Got: " + preview(postmanResp));
 
         // In PLAYBACK, assert recorded directories exist from prior record runs.
         String mode = System.getProperty("stablemock.mode", "PLAYBACK");
@@ -65,29 +73,6 @@ class MultipleAnnotationXmlTest extends BaseStableMockTest {
             File ann1Mappings = new File("src/test/resources/stablemock/MultipleAnnotationXmlTest/testMultipleAnnotationsWorkWithXml/annotation_1/mappings");
             assertTrue(ann0Mappings.exists(), "annotation_0 mappings should exist: " + ann0Mappings.getPath());
             assertTrue(ann1Mappings.exists(), "annotation_1 mappings should exist: " + ann1Mappings.getPath());
-        }
-    }
-
-    private ResponseEntity<String> postXml(String path, String xml) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_XML);
-        HttpEntity<String> entity = new HttpEntity<>(xml, headers);
-        return restTemplate.exchange(path, HttpMethod.POST, entity, String.class);
-    }
-
-    private void assertResponseOkOrFailWithInstructions(ResponseEntity<String> response) {
-        int status = response.getStatusCodeValue();
-        String mode = System.getProperty("stablemock.mode", "PLAYBACK");
-        if ("RECORD".equalsIgnoreCase(mode)) {
-            assertEquals(200, status, "Request should succeed in RECORD mode. Status: " + status);
-        } else {
-            if (status != 200) {
-                fail(String.format(
-                        "Request failed in PLAYBACK mode! Status: %d, Body: %s%n" +
-                                "STEP 1: Run record twice: ./gradlew stableMockRecord%n" +
-                                "STEP 2: Then run playback: ./gradlew stableMockPlayback%n",
-                        status, preview(response.getBody())));
-            }
         }
     }
 

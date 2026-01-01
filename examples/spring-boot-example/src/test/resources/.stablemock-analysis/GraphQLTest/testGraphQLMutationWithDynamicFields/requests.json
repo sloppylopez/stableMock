@@ -1,0 +1,13 @@
+[ {
+  "timestamp" : "2026-01-01T23:27:56.442801700Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-01T23:27:55.956458200Z\",\n    \"requestId\": \"4dd4a392-4d7f-428b-ad79-641c6f2e283b\"\n  }\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2026-01-01T23:27:56.444143100Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-01T23:27:55.711930200Z\",\n    \"requestId\": \"c258510f-868a-4cf3-a1ef-ddf62057a422\"\n  }\n}\n",
+  "contentType" : "application/json"
+} ]

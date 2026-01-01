@@ -47,5 +47,21 @@ public class UserController {
         String response = thirdPartyService.executeGraphQL(requestBody);
         return ResponseEntity.ok(response);
     }
+    
+    @GetMapping("/posts")
+    public ResponseEntity<String> getPostsWithQueryParams(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String timestamp,
+            @RequestParam(required = false) String correlationId) {
+        String posts = thirdPartyService.getPostsWithQueryParams(page, limit, timestamp, correlationId);
+        return ResponseEntity.ok(posts);
+    }
+    
+    @PostMapping(value = "/posts/with-dynamic-fields", consumes = "application/json")
+    public ResponseEntity<String> createPostWithDynamicFields(@RequestBody String body) {
+        String post = thirdPartyService.createPostWithDynamicFields(body);
+        return ResponseEntity.ok(post);
+    }
 }
 

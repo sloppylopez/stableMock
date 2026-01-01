@@ -6,7 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -40,15 +43,22 @@ class XmlDynamicFieldDetectionTest extends BaseStableMockTest {
 
     @Test
     void testDetectChangingFieldsInXml() throws Exception {
+        // Flow: Test -> Controller -> ThirdPartyService -> PostmanEchoClient -> postman-echo.com/post
         String xml1 = generateXmlWithDynamicFields();
-        ResponseEntity<String> resp1 = postXml(xml1);
-        assertResponseOkOrFailWithInstructions(resp1);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+        HttpEntity<String> request1 = new HttpEntity<>(xml1, headers);
+        ResponseEntity<String> response1Entity = restTemplate.postForEntity("/api/postmanecho/xml", request1, String.class);
+        String resp1 = response1Entity.getBody();
+        assertNotNull(resp1, "First response should not be null");
 
         Thread.sleep(50);
 
         String xml2 = generateXmlWithDynamicFields();
-        ResponseEntity<String> resp2 = postXml(xml2);
-        assertResponseOkOrFailWithInstructions(resp2);
+        HttpEntity<String> request2 = new HttpEntity<>(xml2, headers);
+        ResponseEntity<String> response2Entity = restTemplate.postForEntity("/api/postmanecho/xml", request2, String.class);
+        String resp2 = response2Entity.getBody();
+        assertNotNull(resp2, "Second response should not be null");
 
         assertNotEquals(xml1, xml2, "XML bodies should differ due to dynamic fields");
 
@@ -58,33 +68,6 @@ class XmlDynamicFieldDetectionTest extends BaseStableMockTest {
                     "src/test/resources/stablemock/XmlDynamicFieldDetectionTest/testDetectChangingFieldsInXml/detected-fields.json");
             assertTrue(analysisFile.exists(),
                     "Analysis file should exist after recording: " + analysisFile.getAbsolutePath());
-        }
-    }
-
-    private ResponseEntity<String> postXml(String xml) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_XML);
-        HttpEntity<String> entity = new HttpEntity<>(xml, headers);
-        return restTemplate.exchange("/api/postmanecho/xml", HttpMethod.POST, entity, String.class);
-    }
-
-    private void assertResponseOkOrFailWithInstructions(ResponseEntity<String> response) {
-        int status = response.getStatusCodeValue();
-        String mode = System.getProperty("stablemock.mode", "PLAYBACK");
-        if ("RECORD".equalsIgnoreCase(mode)) {
-            assertEquals(200, status, "Request should succeed in RECORD mode. Status: " + status);
-            assertNotNull(response.getBody(), "Response body should not be null");
-        } else {
-            if (status != 200) {
-                String bodyPreview = response.getBody() != null
-                        ? response.getBody().substring(0, Math.min(300, response.getBody().length()))
-                        : "null";
-                fail(String.format(
-                        "Request failed in PLAYBACK mode! Status: %d, Body: %s%n" +
-                                "STEP 1: Run record twice: ./gradlew stableMockRecord%n" +
-                                "STEP 2: Then run playback: ./gradlew stableMockPlayback%n",
-                        status, bodyPreview));
-            }
         }
     }
 

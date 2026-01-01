@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -20,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 3. ThirdPartyService reads app.thirdparty.url from Spring Environment
  * 4. JsonPlaceholderClient ends up calling WireMock instead of the real
  * jsonplaceholder host
- * 5. Tests hit controller -> service -> Feign client -> WireMock
+ * 5. Tests call controller -> service -> Feign client -> WireMock (third-party API calls)
  */
 @U(urls = { "https://jsonplaceholder.typicode.com" },
    properties = { "app.thirdparty.url" })
@@ -45,38 +46,40 @@ class SpringBootIntegrationTest extends BaseStableMockTest {
 
     @Test
     void testGetUserViaController() {
-        String response = restTemplate.getForObject("/api/users/1", String.class);
+        // Flow: Test -> Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/users/1
+        ResponseEntity<String> response = restTemplate.getForEntity("/api/users/1", String.class);
 
-        assertNotNull(response);
-        assertTrue(response.contains("\"id\": 1"), "Response should contain user id 1");
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().contains("\"id\": 1"), "Response should contain user id 1");
     }
 
     @Test
     void testCreatePostViaController() {
-        String response = restTemplate.postForObject(
-                "/api/posts?title=Test Title&body=Test Body&userId=1",
-                null,
-                String.class);
+        // Flow: Test -> Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/posts
+        String url = "/api/posts?title=Test Title&body=Test Body&userId=1";
+        ResponseEntity<String> response = restTemplate.postForEntity(url, null, String.class);
 
-        assertNotNull(response, "Response should not be null");
-        assertTrue(response.contains("\"id\": 101"), "Response should contain new post id 101");
+        assertNotNull(response.getBody(), "Response should not be null");
+        assertTrue(response.getBody().contains("\"id\": 101"), "Response should contain new post id 101");
     }
 
     @Test
     void testGetUser2ViaController() {
         // This test uses a different user ID to ensure it's a distinct request
-        String response = restTemplate.getForObject("/api/users/2", String.class);
+        // Flow: Test -> Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/users/2
+        ResponseEntity<String> response = restTemplate.getForEntity("/api/users/2", String.class);
 
-        assertNotNull(response);
-        assertTrue(response.contains("\"id\": 2"), "Response should contain user id 2");
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().contains("\"id\": 2"), "Response should contain user id 2");
     }
 
     @Test
     void testGetUser3ViaController() {
         // Another parallel test with different user ID
-        String response = restTemplate.getForObject("/api/users/3", String.class);
+        // Flow: Test -> Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/users/3
+        ResponseEntity<String> response = restTemplate.getForEntity("/api/users/3", String.class);
 
-        assertNotNull(response);
-        assertTrue(response.contains("\"id\": 3"), "Response should contain user id 3");
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().contains("\"id\": 3"), "Response should contain user id 3");
     }
 }

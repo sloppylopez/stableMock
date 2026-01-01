@@ -1,0 +1,43 @@
+{
+  "id" : "9195e44a-a165-4eee-8227-4139e0703b60",
+  "name" : "graphql",
+  "request" : {
+    "url" : "/graphql",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-01T23:27:55.956458200Z\",\n    \"requestId\": \"4dd4a392-4d7f-428b-ad79-641c6f2e283b\"\n  }\n}\n",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "graphql-6e8873d3-890f-4399-a2f0-caf8ec98e9ae.json",
+    "headers" : {
+      "date" : "Thu, 01 Jan 2026 23:27:56 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=39;refill=30",
+      "vary" : "accept-encoding",
+      "stellate-rate-limit-decision" : "pass",
+      "access-control-allow-headers" : "*",
+      "gcdn-cache" : "PASS",
+      "x-served-by" : "cache-par-lfpb1150041-PAR",
+      "stellate-rate-limit-budget-required" : "6",
+      "x-cache-hits" : "0",
+      "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
+      "gcdn-passed-through-response" : "has-errors",
+      "access-control-expose-headers" : "*",
+      "access-control-allow-origin" : "*",
+      "access-control-allow-credentials" : "true",
+      "stellate-rate-limit-budget-remaining" : "39",
+      "access-control-max-age" : "600",
+      "x-powered-by" : "Stellate",
+      "content-type" : "application/json; charset=utf-8",
+      "x-cache" : "MISS",
+      "cache-control" : "s-maxage=0, no-cache, no-store, must-revalidate",
+      "alt-svc" : "h3=\":443\"; ma=86400"
+    }
+  },
+  "uuid" : "9195e44a-a165-4eee-8227-4139e0703b60",
+  "persistent" : true,
+  "insertionIndex" : 0
+}
