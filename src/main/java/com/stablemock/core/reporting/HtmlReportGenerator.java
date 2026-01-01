@@ -61,6 +61,9 @@ public final class HtmlReportGenerator {
                 writer.println("  <meta charset=\"UTF-8\">");
                 writer.println("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
                 writer.println("  <title>StableMock Recording Report</title>");
+                writer.println("  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">");
+                writer.println("  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>");
+                writer.println("  <link href=\"https://fonts.googleapis.com/css2?family=Rye&family=Bebas+Neue&display=swap\" rel=\"stylesheet\">");
                 writer.println("  <style>");
                 writer.println(getCssStyles());
                 writer.println("  </style>");
@@ -81,18 +84,23 @@ public final class HtmlReportGenerator {
 
     private static void generateHeader(PrintWriter writer, JsonNode report) {
         writer.println("  <div class=\"header\">");
-        writer.println("    <h1>StableMock Recording Report</h1>");
+        writer.println("    <div class=\"header-content\">");
+        writer.println("      <img src=\"stablemock-logo-transparent-outline.png\" alt=\"StableMock Logo\" class=\"logo\">");
+        writer.println("      <div class=\"header-text\">");
+        writer.println("        <h1>StableMock Recording Report</h1>");
         
         if (report.has("generatedAt")) {
-            writer.println("    <p class=\"meta\">Generated: " + escapeHtml(report.get("generatedAt").asText()) + "</p>");
+            writer.println("        <p class=\"meta\">Generated: " + escapeHtml(report.get("generatedAt").asText()) + "</p>");
         }
         if (report.has("triggeredBy")) {
-            writer.println("    <p class=\"meta\">Triggered by: " + escapeHtml(report.get("triggeredBy").asText()) + "</p>");
+            writer.println("        <p class=\"meta\">Triggered by: " + escapeHtml(report.get("triggeredBy").asText()) + "</p>");
         }
         if (report.has("baseDirectory")) {
-            writer.println("    <p class=\"meta\">Base directory: <code>" + escapeHtml(report.get("baseDirectory").asText()) + "</code></p>");
+            writer.println("        <p class=\"meta\">Base directory: <code>" + escapeHtml(report.get("baseDirectory").asText()) + "</code></p>");
         }
         
+        writer.println("      </div>");
+        writer.println("    </div>");
         writer.println("  </div>");
     }
 
@@ -409,49 +417,93 @@ public final class HtmlReportGenerator {
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.6;
-              color: #333;
-              background-color: #f5f5f5;
+              color: #d1d5db;
+              background: linear-gradient(to bottom, #000000, #1a0f0a);
               padding: 20px;
+              min-height: 100vh;
             }
             
             .header {
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white;
+              background: linear-gradient(135deg, #E8A740 0%, #F5C97A 100%);
+              color: #000000;
               padding: 30px;
               border-radius: 8px;
               margin-bottom: 30px;
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+              box-shadow: 0 4px 20px rgba(232, 167, 64, 0.4), 0 0 40px rgba(232, 167, 64, 0.2);
+              border: 2px solid rgba(232, 167, 64, 0.5);
+            }
+            
+            .header-content {
+              display: flex;
+              align-items: center;
+              gap: 20px;
+            }
+            
+            .logo {
+              width: 120px;
+              height: 120px;
+              flex-shrink: 0;
+              filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
+            }
+            
+            @media (max-width: 768px) {
+              .header-content {
+                flex-direction: column;
+                text-align: center;
+              }
+              
+              .logo {
+                width: 80px;
+                height: 80px;
+              }
+            }
+            
+            .header-text {
+              flex: 1;
             }
             
             .header h1 {
+              font-family: 'Rye', serif;
               font-size: 2.5em;
               margin-bottom: 10px;
+              background: linear-gradient(to right, #000000, #5C3A1A);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
             }
             
             .header .meta {
               margin: 5px 0;
-              opacity: 0.9;
+              opacity: 0.8;
               font-size: 0.9em;
+              color: #1a0f0a;
             }
             
             .header code {
-              background-color: rgba(255, 255, 255, 0.2);
+              background-color: rgba(0, 0, 0, 0.2);
               padding: 2px 6px;
               border-radius: 3px;
               font-size: 0.9em;
+              color: #1a0f0a;
             }
             
             .summary {
-              background: white;
+              background: linear-gradient(to bottom right, rgba(160, 111, 62, 0.2), rgba(0, 0, 0, 0.4));
               padding: 25px;
               border-radius: 8px;
               margin-bottom: 30px;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+              border: 1px solid rgba(232, 167, 64, 0.3);
             }
             
             .summary h2 {
               margin-bottom: 20px;
-              color: #667eea;
+              font-family: 'Rye', serif;
+              font-size: 2em;
+              background: linear-gradient(to right, #E8A740, #F5C97A);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
             }
             
             .summary-grid {
@@ -463,40 +515,49 @@ public final class HtmlReportGenerator {
             .summary-item {
               text-align: center;
               padding: 20px;
-              background: #f8f9fa;
+              background: linear-gradient(to bottom right, rgba(160, 111, 62, 0.1), rgba(0, 0, 0, 0.3));
               border-radius: 6px;
+              border: 1px solid rgba(232, 167, 64, 0.2);
             }
             
             .summary-value {
+              font-family: 'Bebas Neue', sans-serif;
               font-size: 2.5em;
               font-weight: bold;
-              color: #667eea;
+              color: #E8A740;
               margin-bottom: 5px;
+              text-shadow: 0 0 10px rgba(232, 167, 64, 0.5);
             }
             
             .summary-label {
-              color: #666;
+              color: #9ca3af;
               font-size: 0.9em;
               text-transform: uppercase;
               letter-spacing: 0.5px;
             }
             
             .test-classes {
-              background: white;
+              background: linear-gradient(to bottom right, rgba(160, 111, 62, 0.2), rgba(0, 0, 0, 0.4));
               padding: 25px;
               border-radius: 8px;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+              box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+              border: 1px solid rgba(232, 167, 64, 0.3);
             }
             
             .test-classes h2 {
               margin-bottom: 20px;
-              color: #667eea;
+              font-family: 'Rye', serif;
+              font-size: 2em;
+              background: linear-gradient(to right, #E8A740, #F5C97A);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
             }
             
             .test-class {
               margin-bottom: 40px;
               padding-bottom: 30px;
-              border-bottom: 2px solid #e9ecef;
+              border-bottom: 2px solid rgba(232, 167, 64, 0.2);
             }
             
             .test-class:last-child {
@@ -504,48 +565,54 @@ public final class HtmlReportGenerator {
             }
             
             .test-class h3 {
-              color: #495057;
+              color: #E8A740;
               margin-bottom: 15px;
               font-size: 1.5em;
+              font-weight: bold;
             }
             
             .test-method {
               margin-left: 20px;
               margin-bottom: 30px;
               padding: 20px;
-              background: #f8f9fa;
+              background: linear-gradient(to bottom right, rgba(160, 111, 62, 0.1), rgba(0, 0, 0, 0.3));
               border-radius: 6px;
-              border-left: 4px solid #667eea;
+              border-left: 4px solid #E8A740;
             }
             
             .test-method h4 {
-              color: #495057;
+              color: #F5C97A;
               margin-bottom: 10px;
+              font-weight: bold;
             }
             
             .folder-path {
               margin-bottom: 15px;
               font-size: 0.9em;
-              color: #666;
+              color: #9ca3af;
             }
             
             .folder-path code {
-              background: #e9ecef;
+              background: rgba(0, 0, 0, 0.4);
               padding: 2px 6px;
               border-radius: 3px;
               font-size: 0.85em;
+              color: #E8A740;
+              border: 1px solid rgba(232, 167, 64, 0.3);
             }
             
             .annotation-section {
               margin-top: 15px;
               padding: 15px;
-              background: white;
+              background: rgba(0, 0, 0, 0.3);
               border-radius: 4px;
+              border: 1px solid rgba(232, 167, 64, 0.2);
             }
             
             .annotation-section h5 {
-              color: #667eea;
+              color: #E8A740;
               margin-bottom: 15px;
+              font-weight: bold;
             }
             
             .mutating-fields, .ignore-patterns, .requests {
@@ -553,9 +620,10 @@ public final class HtmlReportGenerator {
             }
             
             .mutating-fields h6, .ignore-patterns h6, .requests h6 {
-              color: #495057;
+              color: #F5C97A;
               margin-bottom: 10px;
               font-size: 1.1em;
+              font-weight: bold;
             }
             
             .mutating-fields ul, .ignore-patterns ul {
@@ -566,14 +634,14 @@ public final class HtmlReportGenerator {
             .mutating-fields li, .ignore-patterns li {
               margin: 8px 0;
               padding: 8px;
-              background: #fff;
+              background: rgba(0, 0, 0, 0.4);
               border-radius: 4px;
-              border-left: 3px solid #667eea;
+              border-left: 3px solid #E8A740;
             }
             
             .field-path {
               font-weight: bold;
-              color: #667eea;
+              color: #E8A740;
             }
             
             .confidence {
@@ -586,18 +654,21 @@ public final class HtmlReportGenerator {
             }
             
             .confidence-high {
-              background-color: #d4edda;
-              color: #155724;
+              background-color: rgba(34, 197, 94, 0.2);
+              color: #4ade80;
+              border: 1px solid rgba(34, 197, 94, 0.4);
             }
             
             .confidence-medium {
-              background-color: #fff3cd;
-              color: #856404;
+              background-color: rgba(232, 167, 64, 0.2);
+              color: #F5C97A;
+              border: 1px solid rgba(232, 167, 64, 0.4);
             }
             
             .confidence-low {
-              background-color: #f8d7da;
-              color: #721c24;
+              background-color: rgba(239, 68, 68, 0.2);
+              color: #f87171;
+              border: 1px solid rgba(239, 68, 68, 0.4);
             }
             
             .sample-values {
@@ -608,12 +679,13 @@ public final class HtmlReportGenerator {
             .sample-values li {
               margin: 4px 0;
               padding: 4px;
-              background: #f8f9fa;
+              background: rgba(0, 0, 0, 0.3);
               border-left: none;
             }
             
             .sample-values code {
               font-size: 0.85em;
+              color: #9ca3af;
             }
             
             details {
@@ -622,12 +694,13 @@ public final class HtmlReportGenerator {
             
             summary {
               cursor: pointer;
-              color: #667eea;
+              color: #E8A740;
               font-size: 0.9em;
             }
             
             summary:hover {
               text-decoration: underline;
+              color: #F5C97A;
             }
             
             table {
@@ -637,20 +710,22 @@ public final class HtmlReportGenerator {
             }
             
             table th {
-              background: #667eea;
-              color: white;
+              background: linear-gradient(to bottom, #E8A740, #A06F3E);
+              color: #000000;
               padding: 12px;
               text-align: left;
               font-weight: 600;
+              border: 1px solid rgba(232, 167, 64, 0.5);
             }
             
             table td {
               padding: 10px;
-              border-bottom: 1px solid #e9ecef;
+              border-bottom: 1px solid rgba(232, 167, 64, 0.2);
+              background: rgba(0, 0, 0, 0.2);
             }
             
             table tr:hover {
-              background-color: #f8f9fa;
+              background-color: rgba(232, 167, 64, 0.1);
             }
             
             .method {
@@ -662,28 +737,33 @@ public final class HtmlReportGenerator {
             }
             
             .method-get {
-              background-color: #d4edda;
-              color: #155724;
+              background-color: rgba(34, 197, 94, 0.2);
+              color: #4ade80;
+              border: 1px solid rgba(34, 197, 94, 0.4);
             }
             
             .method-post {
-              background-color: #cce5ff;
-              color: #004085;
+              background-color: rgba(59, 130, 246, 0.2);
+              color: #60a5fa;
+              border: 1px solid rgba(59, 130, 246, 0.4);
             }
             
             .method-put {
-              background-color: #fff3cd;
-              color: #856404;
+              background-color: rgba(232, 167, 64, 0.2);
+              color: #F5C97A;
+              border: 1px solid rgba(232, 167, 64, 0.4);
             }
             
             .method-delete {
-              background-color: #f8d7da;
-              color: #721c24;
+              background-color: rgba(239, 68, 68, 0.2);
+              color: #f87171;
+              border: 1px solid rgba(239, 68, 68, 0.4);
             }
             
             .method-patch {
-              background-color: #e2e3e5;
-              color: #383d41;
+              background-color: rgba(168, 85, 247, 0.2);
+              color: #a78bfa;
+              border: 1px solid rgba(168, 85, 247, 0.4);
             }
             
             .inline-list {
@@ -696,20 +776,22 @@ public final class HtmlReportGenerator {
               display: inline-block;
               margin-right: 8px;
               padding: 2px 6px;
-              background: #e9ecef;
+              background: rgba(0, 0, 0, 0.4);
               border-radius: 3px;
               border-left: none;
+              border: 1px solid rgba(232, 167, 64, 0.3);
             }
             
             .meta-info {
               margin: 10px 0;
-              color: #666;
+              color: #9ca3af;
               font-size: 0.9em;
             }
             
             code {
               font-family: 'Courier New', monospace;
               font-size: 0.9em;
+              color: #E8A740;
             }
             """;
     }

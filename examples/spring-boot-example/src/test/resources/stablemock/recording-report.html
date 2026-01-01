@@ -28,6 +28,34 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.logo {
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .logo {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+.header-text {
+  flex: 1;
+}
+
 .header h1 {
   font-size: 2.5em;
   margin-bottom: 10px;
@@ -321,10 +349,15 @@ code {
 </head>
 <body>
   <div class="header">
-    <h1>StableMock Recording Report</h1>
-    <p class="meta">Generated: 2026-01-01T16:36:47.232272400Z</p>
-    <p class="meta">Triggered by: MultipleAnnotationTest</p>
-    <p class="meta">Base directory: <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock</code></p>
+    <div class="header-content">
+      <img src="stablemock-logo-transparent-outline.png" alt="StableMock Logo" class="logo">
+      <div class="header-text">
+        <h1>StableMock Recording Report</h1>
+        <p class="meta">Generated: 2026-01-01T21:56:09.967093Z</p>
+        <p class="meta">Triggered by: GradleTask</p>
+        <p class="meta">Base directory: <code>K:\dev2\stablemock\examples\spring-boot-example\src\test\resources\stablemock</code></p>
+      </div>
+    </div>
   </div>
   <div class="summary">
     <h2>Summary</h2>
@@ -363,9 +396,9 @@ code {
                 <details>
                   <summary>Sample values</summary>
                   <ul class="sample-values">
-                    <li><code>2026-01-01T14:30:54.418503418Z</code></li>
-                    <li><code>2026-01-01T14:30:52.425946426Z</code></li>
-                    <li><code>2026-01-01T14:34:08.183864700Z</code></li>
+                    <li><code>2026-01-01T14:34:34.289132800Z</code></li>
+                    <li><code>2026-01-01T14:34:33.867964Z</code></li>
+                    <li><code>2026-01-01T16:36:19.418924900Z</code></li>
                   </ul>
                 </details>
               </li>
@@ -375,9 +408,9 @@ code {
                 <details>
                   <summary>Sample values</summary>
                   <ul class="sample-values">
-                    <li><code>03754f0c-a356-4f3a-b236-4744dcd2330c</code></li>
-                    <li><code>e4b4a087-ef75-4c51-bf67-c445dc3bf8f1</code></li>
-                    <li><code>a1700e58-da06-41bd-8c76-3017f0c1e102</code></li>
+                    <li><code>b1547936-0767-4cbe-b2b4-fc6def6aa85f</code></li>
+                    <li><code>93e25a3f-c3b4-493f-8259-ce01c0a92ff7</code></li>
+                    <li><code>007c9fc4-ce40-4837-be4b-799a4e17a63b</code></li>
                   </ul>
                 </details>
               </li>
@@ -436,7 +469,7 @@ code {
                   <summary>Sample values</summary>
                   <ul class="sample-values">
                     <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital currency } }</code></li>
-                    <li><code>{ countries { code name } }</code></li>
+                    <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital currency } }</code></li>
                     <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital } }</code></li>
                   </ul>
                 </details>
@@ -448,8 +481,8 @@ code {
                   <summary>Sample values</summary>
                   <ul class="sample-values">
                     <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
-                    <li><code>{&quot;code&quot;:&quot;US&quot;}</code></li>
                     <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
+                    <li><code>{&quot;code&quot;:&quot;US&quot;}</code></li>
                   </ul>
                 </details>
               </li>
@@ -505,7 +538,7 @@ code {
                   <summary>Sample values</summary>
                   <ul class="sample-values">
                     <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital currency } }</code></li>
-                    <li><code>{ countries { code name } }</code></li>
+                    <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital currency } }</code></li>
                     <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital } }</code></li>
                   </ul>
                 </details>
@@ -517,8 +550,8 @@ code {
                   <summary>Sample values</summary>
                   <ul class="sample-values">
                     <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
-                    <li><code>{&quot;code&quot;:&quot;US&quot;}</code></li>
                     <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
+                    <li><code>{&quot;code&quot;:&quot;US&quot;}</code></li>
                   </ul>
                 </details>
               </li>
@@ -574,7 +607,7 @@ code {
                   <summary>Sample values</summary>
                   <ul class="sample-values">
                     <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital currency } }</code></li>
-                    <li><code>{ countries { code name } }</code></li>
+                    <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital currency } }</code></li>
                     <li><code>query GetCountry($code: ID!) { country(code: $code) { name capital } }</code></li>
                   </ul>
                 </details>
@@ -586,8 +619,8 @@ code {
                   <summary>Sample values</summary>
                   <ul class="sample-values">
                     <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
-                    <li><code>{&quot;code&quot;:&quot;US&quot;}</code></li>
                     <li><code>{&quot;code&quot;:&quot;GB&quot;}</code></li>
+                    <li><code>{&quot;code&quot;:&quot;US&quot;}</code></li>
                   </ul>
                 </details>
               </li>
@@ -1126,9 +1159,9 @@ code {
                 <details>
                   <summary>Sample values</summary>
                   <ul class="sample-values">
-                    <li><code>fd0d2240-4378-4eaa-a484-65d882abd580</code></li>
-                    <li><code>0dfac308-e342-4c7a-b6ed-d47b6f816b42</code></li>
-                    <li><code>7a01de57-44cf-403d-a579-80b288a876e2</code></li>
+                    <li><code>542d896e-c198-4e4a-9f08-81d51efa92d6</code></li>
+                    <li><code>61fc548d-8ed6-4409-ae84-84d85b7d112f</code></li>
+                    <li><code>74a41c2d-a00f-444e-b232-1b6955717d0c</code></li>
                   </ul>
                 </details>
               </li>
@@ -1138,9 +1171,9 @@ code {
                 <details>
                   <summary>Sample values</summary>
                   <ul class="sample-values">
-                    <li><code>fd0d2240-4378-4eaa-a484-65d882abd580</code></li>
-                    <li><code>0dfac308-e342-4c7a-b6ed-d47b6f816b42</code></li>
-                    <li><code>7a01de57-44cf-403d-a579-80b288a876e2</code></li>
+                    <li><code>542d896e-c198-4e4a-9f08-81d51efa92d6</code></li>
+                    <li><code>61fc548d-8ed6-4409-ae84-84d85b7d112f</code></li>
+                    <li><code>74a41c2d-a00f-444e-b232-1b6955717d0c</code></li>
                   </ul>
                 </details>
               </li>
@@ -1150,9 +1183,9 @@ code {
                 <details>
                   <summary>Sample values</summary>
                   <ul class="sample-values">
-                    <li><code>1.1767277855590</code></li>
-                    <li><code>1.1767277852433</code></li>
-                    <li><code>1.1767278048383</code></li>
+                    <li><code>1.1767278074304</code></li>
+                    <li><code>1.1767278073771</code></li>
+                    <li><code>1.1767285380066</code></li>
                   </ul>
                 </details>
               </li>
@@ -1162,9 +1195,9 @@ code {
                 <details>
                   <summary>Sample values</summary>
                   <ul class="sample-values">
-                    <li><code>6d4e4dc1-02b6-4360-ba67-098f76ce5599</code></li>
-                    <li><code>bd73eca1-252a-478f-b83a-57595faea75d</code></li>
-                    <li><code>26735917-a300-4f53-9cb4-94f60bd7950b</code></li>
+                    <li><code>ec7bfb77-ca0a-473d-bbd5-8b98eff10ff4</code></li>
+                    <li><code>b859a14e-6a5b-405e-ae0a-22c47e029332</code></li>
+                    <li><code>103ad85e-bc03-417c-ac1a-4d56265151cb</code></li>
                   </ul>
                 </details>
               </li>
@@ -1174,9 +1207,9 @@ code {
                 <details>
                   <summary>Sample values</summary>
                   <ul class="sample-values">
-                    <li><code>2026-01-01T14:30:55.589995190Z</code></li>
-                    <li><code>2026-01-01T14:30:52.433610697Z</code></li>
-                    <li><code>2026-01-01T14:34:08.383181800Z</code></li>
+                    <li><code>2026-01-01T14:34:34.304779300Z</code></li>
+                    <li><code>2026-01-01T14:34:33.771985400Z</code></li>
+                    <li><code>2026-01-01T16:36:20.066891500Z</code></li>
                   </ul>
                 </details>
               </li>
