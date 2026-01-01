@@ -193,6 +193,14 @@ public final class ExtensionContextManager {
             return store.get("existingRequestCount", Integer.class);
         }
 
+        public void putTestMethodStartTime(long timestamp) {
+            store.put("testMethodStartTime", timestamp);
+        }
+
+        public Long getTestMethodStartTime() {
+            return store.get("testMethodStartTime", Long.class);
+        }
+
         public void putExistingRequestCounts(List<Integer> counts) {
             store.put("existingRequestCounts", counts);
         }

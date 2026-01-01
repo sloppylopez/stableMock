@@ -245,6 +245,9 @@ public class StableMockExtension
             File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
             File mappingsDir = new File(testResourcesDir, "stablemock/" + testClassName + "/" + testMethodName);
 
+            // Capture timestamp before test method runs to ensure we only save events from this test
+            long testMethodStartTime = System.currentTimeMillis();
+            
             int existingRequestCount = classServer.getAllServeEvents().size();
             List<Integer> existingRequestCounts = null;
             List<WireMockServer> classServers = classStore.getServers();
@@ -262,6 +265,7 @@ public class StableMockExtension
             methodStore.putTargetUrl(classStore.getTargetUrl());
             methodStore.putUseClassLevelServer(true);
             methodStore.putExistingRequestCount(existingRequestCount);
+            methodStore.putTestMethodStartTime(testMethodStartTime);
             if (existingRequestCounts != null) {
                 methodStore.putExistingRequestCounts(existingRequestCounts);
             }
@@ -477,8 +481,9 @@ public class StableMockExtension
                                     }
                                 }
                                 
+                                Long testMethodStartTime = methodStore.getTestMethodStartTime();
                                 MappingStorage.saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl,
-                                        existingRequestCount, scenario);
+                                        existingRequestCount, scenario, testMethodStartTime);
 
                                 // Track requests and run detection for single annotation
                                 performDynamicFieldDetection(context, server, existingRequestCount, null,

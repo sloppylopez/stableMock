@@ -90,10 +90,11 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
      *                                when the same endpoint is called multiple times. When enabled, multiple requests
      *                                to the same endpoint will be saved as separate mappings with proper scenario
      *                                state transitions (Started -> state-2 -> state-3 -> ...)
+     * @param testMethodStartTime     timestamp when the test method started (milliseconds since epoch), or null to skip timestamp filtering
      * @throws IOException if an I/O error occurs while creating directories or saving mappings
      */
     public static void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
-            File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario) throws IOException {
+            File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario, Long testMethodStartTime) throws IOException {
         File testMethodMappingsSubDir = new File(testMethodMappingsDir, "mappings");
         File testMethodFilesSubDir = new File(testMethodMappingsDir, "__files");
 
@@ -111,12 +112,30 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         // WireMock returns serve events in REVERSE chronological order (newest first)
         // So we need to get elements from the START of the list, not the end
         int newEventsCount = allServeEvents.size() - existingRequestCount;
-        List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> testMethodServeEvents = 
+        List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> candidateEvents = 
             newEventsCount > 0 ? allServeEvents.subList(0, newEventsCount) : new java.util.ArrayList<>();
         
+        // Use count-based filtering (WireMock returns events in reverse chronological order)
+        // Clean the mappings directory first to ensure we don't mix requests from different test runs
+        if (testMethodMappingsSubDir.exists()) {
+            java.io.File[] existingMappings = testMethodMappingsSubDir.listFiles();
+            if (existingMappings != null && existingMappings.length > 0) {
+                logger.info("Cleaning {} existing mapping(s) from test method directory before saving new ones", existingMappings.length);
+                for (java.io.File mapping : existingMappings) {
+                    if (mapping.isFile() && mapping.getName().endsWith(".json")) {
+                        if (!mapping.delete()) {
+                            logger.warn("Failed to delete existing mapping file: {}", mapping.getAbsolutePath());
+                        }
+                    }
+                }
+            }
+        }
+        
+        List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> testMethodServeEvents = candidateEvents;
+        
         if (testMethodServeEvents.isEmpty()) {
-            logger.warn("No serve events for this test method (existing: {}, total: {})", 
-                existingRequestCount, allServeEvents.size());
+            logger.warn("No serve events for this test method (existing: {}, total: {}, filtered: {})", 
+                existingRequestCount, allServeEvents.size(), candidateEvents.size());
             return;
         }
 
