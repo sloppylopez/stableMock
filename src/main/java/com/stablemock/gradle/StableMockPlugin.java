@@ -25,8 +25,9 @@ public class StableMockPlugin implements Plugin<Project> {
     private void registerCleanStableMockTask(Project project) {
         project.getTasks().register("cleanStableMock", org.gradle.api.tasks.Delete.class, task -> {
             task.setGroup("verification");
-            task.setDescription("Clean StableMock recordings");
+            task.setDescription("Clean StableMock recordings and analysis data");
             task.delete(project.file("src/test/resources/stablemock"));
+            task.delete(project.file("src/test/resources/.stablemock-analysis"));
         });
     }
 
@@ -46,6 +47,11 @@ public class StableMockPlugin implements Plugin<Project> {
             task.systemProperty("stablemock.showMatches", System.getProperty("stablemock.showMatches", "false"));
             task.systemProperty("stablemock.debug", System.getProperty("stablemock.debug", "false"));
             task.systemProperty("stablemock.useSharedServer", "true"); // Enable shared server for Spring Boot parallel execution
+
+            // Disable parallel execution for recording to ensure accurate request isolation
+            // Parallel execution causes serve events from different test methods to mix,
+            // making it impossible to correctly identify which requests belong to which test method
+            task.systemProperty("junit.jupiter.execution.parallel.enabled", "false");
 
             // Configure test logging
             task.testLogging(tl -> {

@@ -1,16 +1,16 @@
 {
   "testClass" : "DynamicFieldDetectionTest",
   "testMethod" : "testDetectChangingFields",
-  "detectedAt" : "2026-01-01T16:36:46.802231600Z",
-  "analyzed_requests_count" : 10,
+  "detectedAt" : "2026-01-01T22:24:53.369369800Z",
+  "analyzed_requests_count" : 2,
   "dynamic_fields" : [ {
     "field_path" : "json:timestamp",
-    "confidence" : "HIGH",
-    "sample_values" : [ "2026-01-01T14:30:54.418503418Z", "2026-01-01T14:30:52.425946426Z", "2026-01-01T14:34:08.183864700Z" ]
+    "confidence" : "LOW",
+    "sample_values" : [ "2026-01-01T22:24:52.819559100Z", "2026-01-01T22:24:52.421766300Z" ]
   }, {
     "field_path" : "json:requestId",
-    "confidence" : "HIGH",
-    "sample_values" : [ "03754f0c-a356-4f3a-b236-4744dcd2330c", "e4b4a087-ef75-4c51-bf67-c445dc3bf8f1", "a1700e58-da06-41bd-8c76-3017f0c1e102" ]
+    "confidence" : "LOW",
+    "sample_values" : [ "bf050c74-695b-4799-80d2-608e536e3c31", "a1f4151d-e618-452e-b67c-6e946f6d82ba" ]
   } ],
   "ignore_patterns" : [ "json:timestamp", "json:requestId" ]
 }

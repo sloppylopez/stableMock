@@ -1,7 +1,7 @@
 {
-  "generatedAt" : "2026-01-01T21:56:09.967093Z",
+  "generatedAt" : "2026-01-01T22:24:54.242523500Z",
   "baseDirectory" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock",
-  "triggeredBy" : "GradleTask",
+  "triggeredBy" : "MultipleAnnotationTest",
   "testClasses" : [ {
     "testClass" : "DynamicFieldDetectionTest",
     "testMethods" : [ {
@@ -11,16 +11,16 @@
         "detectedFields" : {
           "testClass" : "DynamicFieldDetectionTest",
           "testMethod" : "testDetectChangingFields",
-          "detectedAt" : "2026-01-01T21:45:32.152673300Z",
-          "analyzed_requests_count" : 10,
+          "detectedAt" : "2026-01-01T22:24:53.369369800Z",
+          "analyzed_requests_count" : 2,
           "dynamic_fields" : [ {
             "field_path" : "json:timestamp",
-            "confidence" : "HIGH",
-            "sample_values" : [ "2026-01-01T14:34:34.289132800Z", "2026-01-01T14:34:33.867964Z", "2026-01-01T16:36:19.418924900Z" ]
+            "confidence" : "LOW",
+            "sample_values" : [ "2026-01-01T22:24:52.819559100Z", "2026-01-01T22:24:52.421766300Z" ]
           }, {
             "field_path" : "json:requestId",
-            "confidence" : "HIGH",
-            "sample_values" : [ "b1547936-0767-4cbe-b2b4-fc6def6aa85f", "93e25a3f-c3b4-493f-8259-ce01c0a92ff7", "007c9fc4-ce40-4837-be4b-799a4e17a63b" ]
+            "confidence" : "LOW",
+            "sample_values" : [ "bf050c74-695b-4799-80d2-608e536e3c31", "a1f4151d-e618-452e-b67c-6e946f6d82ba" ]
           } ],
           "ignore_patterns" : [ "json:timestamp", "json:requestId" ]
         },
@@ -32,12 +32,12 @@
           "hasBody" : true,
           "mutatingFields" : [ {
             "fieldPath" : "json:timestamp",
-            "confidence" : "HIGH",
-            "sampleValues" : [ "2026-01-01T14:34:34.289132800Z", "2026-01-01T14:34:33.867964Z", "2026-01-01T16:36:19.418924900Z" ]
+            "confidence" : "LOW",
+            "sampleValues" : [ "2026-01-01T22:24:52.819559100Z", "2026-01-01T22:24:52.421766300Z" ]
           }, {
             "fieldPath" : "json:requestId",
-            "confidence" : "HIGH",
-            "sampleValues" : [ "b1547936-0767-4cbe-b2b4-fc6def6aa85f", "93e25a3f-c3b4-493f-8259-ce01c0a92ff7", "007c9fc4-ce40-4837-be4b-799a4e17a63b" ]
+            "confidence" : "LOW",
+            "sampleValues" : [ "bf050c74-695b-4799-80d2-608e536e3c31", "a1f4151d-e618-452e-b67c-6e946f6d82ba" ]
           } ]
         } ]
       }
@@ -48,111 +48,33 @@
       "testMethod" : "testGraphQLQuery",
       "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\GraphQLTest\\testGraphQLQuery",
       "annotation" : {
-        "detectedFields" : {
-          "testClass" : "GraphQLTest",
-          "testMethod" : "testGraphQLQuery",
-          "detectedAt" : "2026-01-01T21:45:31.787309900Z",
-          "analyzed_requests_count" : 10,
-          "dynamic_fields" : [ {
-            "field_path" : "json:query",
-            "confidence" : "HIGH",
-            "sample_values" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }" ]
-          }, {
-            "field_path" : "json:variables",
-            "confidence" : "HIGH",
-            "sample_values" : [ "{\"code\":\"GB\"}", "{\"code\":\"GB\"}", "{\"code\":\"US\"}" ]
-          } ],
-          "ignore_patterns" : [ "json:query", "json:variables" ]
-        },
-        "ignorePatterns" : [ "json:query", "json:variables" ],
         "requests" : [ {
           "method" : "POST",
           "url" : "/graphql",
-          "requestCount" : 3,
-          "hasBody" : true,
-          "mutatingFields" : [ {
-            "fieldPath" : "json:query",
-            "confidence" : "HIGH",
-            "sampleValues" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }" ]
-          }, {
-            "fieldPath" : "json:variables",
-            "confidence" : "HIGH",
-            "sampleValues" : [ "{\"code\":\"GB\"}", "{\"code\":\"GB\"}", "{\"code\":\"US\"}" ]
-          } ]
+          "requestCount" : 1,
+          "hasBody" : true
         } ]
       }
     }, {
       "testMethod" : "testGraphQLQueryWithGB",
       "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\GraphQLTest\\testGraphQLQueryWithGB",
       "annotation" : {
-        "detectedFields" : {
-          "testClass" : "GraphQLTest",
-          "testMethod" : "testGraphQLQueryWithGB",
-          "detectedAt" : "2026-01-01T21:45:31.787309900Z",
-          "analyzed_requests_count" : 10,
-          "dynamic_fields" : [ {
-            "field_path" : "json:query",
-            "confidence" : "HIGH",
-            "sample_values" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }" ]
-          }, {
-            "field_path" : "json:variables",
-            "confidence" : "HIGH",
-            "sample_values" : [ "{\"code\":\"GB\"}", "{\"code\":\"GB\"}", "{\"code\":\"US\"}" ]
-          } ],
-          "ignore_patterns" : [ "json:query", "json:variables" ]
-        },
-        "ignorePatterns" : [ "json:query", "json:variables" ],
         "requests" : [ {
           "method" : "POST",
           "url" : "/graphql",
-          "requestCount" : 3,
-          "hasBody" : true,
-          "mutatingFields" : [ {
-            "fieldPath" : "json:query",
-            "confidence" : "HIGH",
-            "sampleValues" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }" ]
-          }, {
-            "fieldPath" : "json:variables",
-            "confidence" : "HIGH",
-            "sampleValues" : [ "{\"code\":\"GB\"}", "{\"code\":\"GB\"}", "{\"code\":\"US\"}" ]
-          } ]
+          "requestCount" : 1,
+          "hasBody" : true
         } ]
       }
     }, {
       "testMethod" : "testGraphQLQueryWithVariables",
       "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\GraphQLTest\\testGraphQLQueryWithVariables",
       "annotation" : {
-        "detectedFields" : {
-          "testClass" : "GraphQLTest",
-          "testMethod" : "testGraphQLQueryWithVariables",
-          "detectedAt" : "2026-01-01T21:45:31.796284Z",
-          "analyzed_requests_count" : 10,
-          "dynamic_fields" : [ {
-            "field_path" : "json:query",
-            "confidence" : "HIGH",
-            "sample_values" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }" ]
-          }, {
-            "field_path" : "json:variables",
-            "confidence" : "HIGH",
-            "sample_values" : [ "{\"code\":\"GB\"}", "{\"code\":\"GB\"}", "{\"code\":\"US\"}" ]
-          } ],
-          "ignore_patterns" : [ "json:query", "json:variables" ]
-        },
-        "ignorePatterns" : [ "json:query", "json:variables" ],
         "requests" : [ {
           "method" : "POST",
           "url" : "/graphql",
-          "requestCount" : 3,
-          "hasBody" : true,
-          "mutatingFields" : [ {
-            "fieldPath" : "json:query",
-            "confidence" : "HIGH",
-            "sampleValues" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }" ]
-          }, {
-            "fieldPath" : "json:variables",
-            "confidence" : "HIGH",
-            "sampleValues" : [ "{\"code\":\"GB\"}", "{\"code\":\"GB\"}", "{\"code\":\"US\"}" ]
-          } ]
+          "requestCount" : 1,
+          "hasBody" : true
         } ]
       }
     } ]
@@ -165,11 +87,6 @@
         "annotationIndex" : 0,
         "requests" : [ {
           "method" : "GET",
-          "url" : "/users/1",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
-          "method" : "GET",
           "url" : "/users/2",
           "requestCount" : 1,
           "hasBody" : false
@@ -179,11 +96,6 @@
         "requests" : [ {
           "method" : "GET",
           "url" : "/get?id=2",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
-          "method" : "GET",
-          "url" : "/get?id=1",
           "requestCount" : 1,
           "hasBody" : false
         } ]
@@ -198,22 +110,12 @@
           "url" : "/users/1",
           "requestCount" : 1,
           "hasBody" : false
-        }, {
-          "method" : "GET",
-          "url" : "/users/2",
-          "requestCount" : 1,
-          "hasBody" : false
         } ]
       }, {
         "annotationIndex" : 1,
         "requests" : [ {
           "method" : "GET",
           "url" : "/get?id=1",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
-          "method" : "GET",
-          "url" : "/get?id=2",
           "requestCount" : 1,
           "hasBody" : false
         } ]
@@ -267,21 +169,6 @@
           "url" : "/posts",
           "requestCount" : 1,
           "hasBody" : true
-        }, {
-          "method" : "GET",
-          "url" : "/users/1",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
-          "method" : "GET",
-          "url" : "/users/2",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
-          "method" : "GET",
-          "url" : "/users/3",
-          "requestCount" : 1,
-          "hasBody" : false
         } ]
       }
     }, {
@@ -289,23 +176,8 @@
       "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testGetUser2ViaController",
       "annotation" : {
         "requests" : [ {
-          "method" : "POST",
-          "url" : "/posts",
-          "requestCount" : 1,
-          "hasBody" : true
-        }, {
-          "method" : "GET",
-          "url" : "/users/1",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
           "method" : "GET",
           "url" : "/users/2",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
-          "method" : "GET",
-          "url" : "/users/3",
           "requestCount" : 1,
           "hasBody" : false
         } ]
@@ -315,21 +187,6 @@
       "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testGetUser3ViaController",
       "annotation" : {
         "requests" : [ {
-          "method" : "POST",
-          "url" : "/posts",
-          "requestCount" : 1,
-          "hasBody" : true
-        }, {
-          "method" : "GET",
-          "url" : "/users/1",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
-          "method" : "GET",
-          "url" : "/users/2",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
           "method" : "GET",
           "url" : "/users/3",
           "requestCount" : 1,
@@ -341,23 +198,8 @@
       "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testGetUserViaController",
       "annotation" : {
         "requests" : [ {
-          "method" : "POST",
-          "url" : "/posts",
-          "requestCount" : 1,
-          "hasBody" : true
-        }, {
           "method" : "GET",
           "url" : "/users/1",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
-          "method" : "GET",
-          "url" : "/users/2",
-          "requestCount" : 1,
-          "hasBody" : false
-        }, {
-          "method" : "GET",
-          "url" : "/users/3",
           "requestCount" : 1,
           "hasBody" : false
         } ]
@@ -372,28 +214,28 @@
         "detectedFields" : {
           "testClass" : "XmlDynamicFieldDetectionTest",
           "testMethod" : "testDetectChangingFieldsInXml",
-          "detectedAt" : "2026-01-01T21:45:32.736525Z",
-          "analyzed_requests_count" : 10,
+          "detectedAt" : "2026-01-01T22:24:53.418894500Z",
+          "analyzed_requests_count" : 2,
           "dynamic_fields" : [ {
             "field_path" : "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']",
-            "confidence" : "HIGH",
-            "sample_values" : [ "542d896e-c198-4e4a-9f08-81d51efa92d6", "61fc548d-8ed6-4409-ae84-84d85b7d112f", "74a41c2d-a00f-444e-b232-1b6955717d0c" ]
+            "confidence" : "LOW",
+            "sample_values" : [ "ba1f3bc0-817a-45c3-ae30-b49db6d483d8", "6bd06310-1201-413d-afe5-ddcf42c8ed81" ]
           }, {
             "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']",
-            "confidence" : "HIGH",
-            "sample_values" : [ "542d896e-c198-4e4a-9f08-81d51efa92d6", "61fc548d-8ed6-4409-ae84-84d85b7d112f", "74a41c2d-a00f-444e-b232-1b6955717d0c" ]
+            "confidence" : "LOW",
+            "sample_values" : [ "ba1f3bc0-817a-45c3-ae30-b49db6d483d8", "6bd06310-1201-413d-afe5-ddcf42c8ed81" ]
           }, {
             "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']",
-            "confidence" : "HIGH",
-            "sample_values" : [ "1.1767278074304", "1.1767278073771", "1.1767285380066" ]
+            "confidence" : "LOW",
+            "sample_values" : [ "1.1767306292728", "1.1767306292189" ]
           }, {
             "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']",
-            "confidence" : "HIGH",
-            "sample_values" : [ "ec7bfb77-ca0a-473d-bbd5-8b98eff10ff4", "b859a14e-6a5b-405e-ae0a-22c47e029332", "103ad85e-bc03-417c-ac1a-4d56265151cb" ]
+            "confidence" : "LOW",
+            "sample_values" : [ "fa442da8-1c0c-4af5-bba0-680804c6bb7a", "bcafe7b9-edf0-4352-818d-6c904cd0438b" ]
           }, {
             "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']",
-            "confidence" : "HIGH",
-            "sample_values" : [ "2026-01-01T14:34:34.304779300Z", "2026-01-01T14:34:33.771985400Z", "2026-01-01T16:36:20.066891500Z" ]
+            "confidence" : "LOW",
+            "sample_values" : [ "2026-01-01T22:24:52.728573700Z", "2026-01-01T22:24:52.188656900Z" ]
           } ],
           "ignore_patterns" : [ "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']" ]
         },
