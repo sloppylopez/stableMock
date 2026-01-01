@@ -66,7 +66,19 @@ public class ThirdPartyService {
     public String getPosts() {
         // FeignClient uses the URL from app.thirdparty.url property
         // This is set by @DynamicPropertySource in tests to point to WireMock
-        return jsonPlaceholderClient.getPosts();
+        return jsonPlaceholderClient.getPosts(null, null, null, null);
+    }
+    
+    public String getPostsWithQueryParams(Integer page, Integer limit, String timestamp, String correlationId) {
+        // FeignClient uses the URL from app.thirdparty.url property
+        // This is set by @DynamicPropertySource in tests to point to WireMock
+        return jsonPlaceholderClient.getPosts(page, limit, timestamp, correlationId);
+    }
+    
+    public String createPostWithDynamicFields(String body) {
+        // FeignClient uses the URL from app.thirdparty.url property
+        // This is set by @DynamicPropertySource in tests to point to WireMock
+        return jsonPlaceholderClient.createPost(body);
     }
 }
 

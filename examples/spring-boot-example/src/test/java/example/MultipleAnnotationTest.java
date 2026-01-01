@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -25,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class MultipleAnnotationTest extends BaseStableMockTest {
 
     @Autowired
-    private TestRestTemplate  restTemplate;
+    private ThirdPartyService thirdPartyService;
 
     @DynamicPropertySource
     static void registerMockUrls(DynamicPropertyRegistry registry) {
@@ -35,20 +34,20 @@ class MultipleAnnotationTest extends BaseStableMockTest {
     @Test
     void testMultipleAnnotationsWork() {
         // This test verifies that multiple @U annotations work correctly
-        // First annotation: jsonplaceholder.typicode.com - called via /api/users/1
-        // Second annotation: postman-echo.com - called via /api/postmanecho/users/1
+        // First annotation: jsonplaceholder.typicode.com - called via ThirdPartyService.getUser()
+        // Second annotation: postman-echo.com - called via ThirdPartyService.getUserFromPostmanEcho()
         // Both should be tracked separately
         
-        // Call first API (jsonplaceholder)
-        String response1 = restTemplate.getForObject("/api/users/1", String.class);
+        // Call first API (jsonplaceholder) - ThirdPartyService.getUser() -> JsonPlaceholderClient.getUser() -> jsonplaceholder.typicode.com/users/1
+        String response1 = thirdPartyService.getUser(1);
         assertNotNull(response1, "Response from jsonplaceholder should not be null");
         assertTrue(response1.contains("\"id\": 1") || response1.contains("\"id\":1"), 
                 "Response should contain user id 1");
         assertTrue(response1.contains("username") || response1.contains("name"), 
                 "Response should contain user fields");
         
-        // Call second API (postman-echo)
-        String response2 = restTemplate.getForObject("/api/postmanecho/users/1", String.class);
+        // Call second API (postman-echo) - ThirdPartyService.getUserFromPostmanEcho() -> PostmanEchoClient.getUser() -> postman-echo.com/get?id=1
+        String response2 = thirdPartyService.getUserFromPostmanEcho(1);
         assertNotNull(response2, "Response from postman-echo should not be null");
         assertTrue(response2.contains("url") || response2.contains("args") || response2.contains("headers"), 
                 "Response should contain echo fields");
@@ -57,14 +56,14 @@ class MultipleAnnotationTest extends BaseStableMockTest {
     @Test
     void testMultipleAnnotationsRecordSeparately() {
         // This test makes requests to both APIs to verify both annotations are tracked
-        // First annotation: jsonplaceholder.typicode.com
-        String response1 = restTemplate.getForObject("/api/users/2", String.class);
+        // First annotation: jsonplaceholder.typicode.com - ThirdPartyService.getUser() -> JsonPlaceholderClient.getUser() -> jsonplaceholder.typicode.com/users/2
+        String response1 = thirdPartyService.getUser(2);
         assertNotNull(response1, "Response from jsonplaceholder should not be null");
         assertTrue(response1.contains("\"id\": 2") || response1.contains("\"id\":2"), 
                 "Response should contain user id 2");
         
-        // Second annotation: postman-echo.com
-        String response2 = restTemplate.getForObject("/api/postmanecho/users/2", String.class);
+        // Second annotation: postman-echo.com - ThirdPartyService.getUserFromPostmanEcho() -> PostmanEchoClient.getUser() -> postman-echo.com/get?id=2
+        String response2 = thirdPartyService.getUserFromPostmanEcho(2);
         assertNotNull(response2, "Response from postman-echo should not be null");
         assertTrue(response2.contains("url") || response2.contains("args") || response2.contains("headers"), 
                 "Response should contain echo fields");

@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.net.URI;
 
@@ -18,6 +19,10 @@ public interface JsonPlaceholderClient {
     String createPost(@RequestBody String body);
     
     @GetMapping("/posts")
-    String getPosts();
+    String getPosts(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String timestamp,
+            @RequestParam(required = false) String correlationId);
 }
 
