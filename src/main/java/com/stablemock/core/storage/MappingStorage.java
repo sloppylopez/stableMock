@@ -36,12 +36,13 @@ public final class MappingStorage {
      *                              the same endpoint is called multiple times. When enabled, multiple requests
      *                              to the same endpoint will be saved as separate mappings with proper scenario
      *                              state transitions (Started -> state-2 -> state-3 -> ...)
+     * @param testMethodStartTime   timestamp when the test method started (milliseconds since epoch), or null to skip timestamp filtering
      * @throws IOException if an I/O error occurs while saving mappings
      */
     public static void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
-            File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario) throws IOException {
+            File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario, Long testMethodStartTime) throws IOException {
         SingleAnnotationMappingStorage.saveMappingsForTestMethod(wireMockServer, testMethodMappingsDir, 
-                baseMappingsDir, targetUrl, existingRequestCount, scenario);
+                baseMappingsDir, targetUrl, existingRequestCount, scenario, testMethodStartTime);
     }
     
     /**
