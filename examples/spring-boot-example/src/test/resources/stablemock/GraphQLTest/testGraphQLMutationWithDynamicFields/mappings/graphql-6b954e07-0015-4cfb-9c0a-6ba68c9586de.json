@@ -1,26 +1,26 @@
 {
-  "id" : "953f91a1-0f1e-4061-b724-db3b27979ff9",
+  "id" : "6b954e07-0015-4cfb-9c0a-6ba68c9586de",
   "name" : "graphql",
   "request" : {
     "url" : "/graphql",
     "method" : "POST",
     "bodyPatterns" : [ {
-      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-01T23:16:37.381483371Z\",\n    \"requestId\": \"92e6cd95-921b-4829-9533-5d9b470223bf\"\n  }\n}\n",
+      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-01T23:27:55.711930200Z\",\n    \"requestId\": \"c258510f-868a-4cf3-a1ef-ddf62057a422\"\n  }\n}\n",
       "ignoreArrayOrder" : true,
       "ignoreExtraElements" : true
     } ]
   },
   "response" : {
     "status" : 200,
-    "bodyFileName" : "graphql-3c955f38-a159-4b77-81c6-e1c87deacd41.json",
+    "bodyFileName" : "graphql-e495d808-9c5f-4420-9ef8-39153f35dce4.json",
     "headers" : {
-      "date" : "Thu, 01 Jan 2026 23:16:37 GMT",
-      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=41;refill=1",
+      "date" : "Thu, 01 Jan 2026 23:27:55 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=40;refill=30",
       "vary" : "accept-encoding",
       "stellate-rate-limit-decision" : "pass",
       "access-control-allow-headers" : "*",
       "gcdn-cache" : "PASS",
-      "x-served-by" : "cache-par-lfpb1150021-PAR",
+      "x-served-by" : "cache-par-lfpb1150080-PAR",
       "stellate-rate-limit-budget-required" : "6",
       "x-cache-hits" : "0",
       "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
@@ -28,7 +28,7 @@
       "access-control-expose-headers" : "*",
       "access-control-allow-origin" : "*",
       "access-control-allow-credentials" : "true",
-      "stellate-rate-limit-budget-remaining" : "41",
+      "stellate-rate-limit-budget-remaining" : "40",
       "access-control-max-age" : "600",
       "x-powered-by" : "Stellate",
       "content-type" : "application/json; charset=utf-8",
@@ -37,7 +37,7 @@
       "alt-svc" : "h3=\":443\"; ma=86400"
     }
   },
-  "uuid" : "953f91a1-0f1e-4061-b724-db3b27979ff9",
+  "uuid" : "6b954e07-0015-4cfb-9c0a-6ba68c9586de",
   "persistent" : true,
   "insertionIndex" : 1
 }

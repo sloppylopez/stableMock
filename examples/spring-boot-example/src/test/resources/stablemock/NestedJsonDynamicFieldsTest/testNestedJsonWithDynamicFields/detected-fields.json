@@ -1,16 +1,28 @@
 {
   "testClass" : "NestedJsonDynamicFieldsTest",
   "testMethod" : "testNestedJsonWithDynamicFields",
-  "detectedAt" : "2026-01-01T23:16:36.467343475Z",
+  "detectedAt" : "2026-01-01T23:27:54.532407300Z",
   "analyzed_requests_count" : 2,
   "dynamic_fields" : [ {
-    "field_path" : "json:order",
+    "field_path" : "json:order.items[0].metadata.timestamp",
     "confidence" : "LOW",
-    "sample_values" : [ "{\"id\":\"order-123\",\"items\":[{\"productId\":\"prod-1\",\"quantity\":2,\"metadata\":{\"timestamp\":\"2026-01-01T23:16:33.755990497Z\",\"sessionId\":\"f9e8f511-1157-4266-b54d-400d0c091857\"}}],\"payment\":{\"transactionId\":\"b67b940a-e644-4bbe-9d78-1910234f2cb7\",\"timestamp\":\"2026-01-01T23:16:33.755990497Z\"}}", "{\"id\":\"order-123\",\"items\":[{\"productId\":\"prod-1\",\"quantity\":2,\"metadata\":{\"timestamp\":\"2026-01-01T23:16:30.253250794Z\",\"sessionId\":\"16e0a87f-02a1-4fad-983e-7420a02a7b07\"}}],\"payment\":{\"transactionId\":\"fa5b28c0-6846-44f4-b724-ab8da40af076\",\"timestamp\":\"2026-01-01T23:16:30.253250794Z\"}}" ]
+    "sample_values" : [ "2026-01-01T23:27:53.924339800Z", "2026-01-01T23:27:53.382253200Z" ]
+  }, {
+    "field_path" : "json:order.items[0].metadata.sessionId",
+    "confidence" : "LOW",
+    "sample_values" : [ "1b1518c2-aac3-4967-9f87-8251e6d36eef", "b55a8de7-ef92-489f-be7b-ad135800acd5" ]
+  }, {
+    "field_path" : "json:order.payment.transactionId",
+    "confidence" : "LOW",
+    "sample_values" : [ "190ef298-7239-41fe-9c13-ed7a269274f6", "dc0b17af-a387-427e-8d30-a0c728b40c63" ]
+  }, {
+    "field_path" : "json:order.payment.timestamp",
+    "confidence" : "LOW",
+    "sample_values" : [ "2026-01-01T23:27:53.924339800Z", "2026-01-01T23:27:53.382253200Z" ]
   }, {
     "field_path" : "json:requestId",
     "confidence" : "LOW",
-    "sample_values" : [ "f0530bf9-d399-42b9-8174-bd9663d0a016", "6fd0be1f-cdb5-4903-a18d-18a9d0051c88" ]
+    "sample_values" : [ "dfd75e05-1914-46b8-a298-706a84e5272c", "a62b1012-0f42-4b74-b60b-79e0a3df155a" ]
   } ],
-  "ignore_patterns" : [ "json:order", "json:requestId" ]
+  "ignore_patterns" : [ "json:order.items[0].metadata.timestamp", "json:order.items[0].metadata.sessionId", "json:order.payment.transactionId", "json:order.payment.timestamp", "json:requestId" ]
 }

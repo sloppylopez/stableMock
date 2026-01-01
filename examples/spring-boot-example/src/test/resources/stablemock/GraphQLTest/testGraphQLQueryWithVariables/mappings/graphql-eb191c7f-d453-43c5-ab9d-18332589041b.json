@@ -1,33 +1,33 @@
 {
-  "id" : "0a7fa5f9-f9b3-48ca-b2e4-8d4dd76e5210",
+  "id" : "eb191c7f-d453-43c5-ab9d-18332589041b",
   "name" : "graphql",
   "request" : {
     "url" : "/graphql",
     "method" : "POST",
     "bodyPatterns" : [ {
-      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"CA\"\n  }\n}\n",
+      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
       "ignoreArrayOrder" : true,
       "ignoreExtraElements" : true
     } ]
   },
   "response" : {
     "status" : 200,
-    "body" : "{\"data\":{\"country\":{\"capital\":\"Ottawa\",\"name\":\"Canada\"}}}",
+    "body" : "{\"data\":{\"country\":{\"capital\":\"Washington D.C.\",\"name\":\"United States\"}}}",
     "headers" : {
-      "date" : "Thu, 01 Jan 2026 22:42:22 GMT",
-      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=41;refill=1",
+      "date" : "Tue, 30 Dec 2025 21:16:07 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=42;refill=31",
       "vary" : "accept-encoding",
       "stellate-rate-limit-decision" : "pass",
       "access-control-allow-headers" : "*",
       "gcdn-cache" : "HIT",
-      "x-served-by" : "cache-par-lfpb1150073-PAR",
+      "x-served-by" : "cache-par-lfpb1150090-PAR",
       "stellate-rate-limit-budget-required" : "6",
-      "x-cache-hits" : "17",
+      "x-cache-hits" : "72",
       "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
       "access-control-expose-headers" : "*",
       "access-control-allow-origin" : "*",
       "access-control-allow-credentials" : "true",
-      "stellate-rate-limit-budget-remaining" : "41",
+      "stellate-rate-limit-budget-remaining" : "42",
       "access-control-max-age" : "600",
       "x-powered-by" : "Stellate",
       "content-type" : "application/json; charset=utf-8",
@@ -35,10 +35,10 @@
       "cache-control" : "public, s-maxage=2628000, stale-while-revalidate=2628000",
       "alt-svc" : "h3=\":443\"; ma=86400",
       "accept-ranges" : "bytes",
-      "age" : "2057"
+      "age" : "180708"
     }
   },
-  "uuid" : "0a7fa5f9-f9b3-48ca-b2e4-8d4dd76e5210",
+  "uuid" : "eb191c7f-d453-43c5-ab9d-18332589041b",
   "persistent" : true,
   "insertionIndex" : 0
 }
