@@ -11,14 +11,16 @@ public final class ConfidenceCalculator {
 
     /**
      * Calculates confidence level based on sample size.
+     * Since we now clean the analysis directory to ensure accurate detection,
+     * even 2 samples are reliable enough to detect dynamic fields.
      * 
      * @param sampleSize Number of samples analyzed
-     * @return Confidence level: "HIGH" (>=5), "MEDIUM" (>=3), or "LOW" (<3)
+     * @return Confidence level: "HIGH" (>=3), "MEDIUM" (>=2), or "LOW" (<2, rare)
      */
     public static String calculateConfidence(int sampleSize) {
-        if (sampleSize >= 5) {
+        if (sampleSize >= 3) {
             return "HIGH";
-        } else if (sampleSize >= 3) {
+        } else if (sampleSize >= 2) {
             return "MEDIUM";
         } else {
             return "LOW";
