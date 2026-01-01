@@ -142,7 +142,13 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         logger.info("=== RECORDING: {} serve event(s) for this test method ===", testMethodServeEvents.size());
         for (int i = 0; i < testMethodServeEvents.size(); i++) {
             com.github.tomakehurst.wiremock.stubbing.ServeEvent se = testMethodServeEvents.get(i);
-            logger.info("  ServeEvent[{}]: {} {}", i, se.getRequest().getMethod().getName(), se.getRequest().getUrl());
+            String bodyPreview = se.getRequest().getBodyAsString();
+            if (bodyPreview != null && bodyPreview.length() > 100) {
+                bodyPreview = bodyPreview.substring(0, 100) + "...";
+            }
+            logger.info("  ServeEvent[{}]: {} {} | Body preview: {}", i, 
+                se.getRequest().getMethod().getName(), se.getRequest().getUrl(), 
+                bodyPreview != null ? bodyPreview : "(no body)");
         }
 
         // Match mappings to serve events by signature AND body content (when needed)

@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 /**
@@ -295,11 +297,54 @@ public final class RecordingReportGenerator {
             objectMapper.writeValue(jsonReportFile, report);
             logger.info("Recording report (JSON) saved to: {}", jsonReportFile.getAbsolutePath());
             
+            // Copy logo image to stablemock directory for HTML report
+            copyLogoImage(stablemockDir);
+            
             // Generate HTML report
             HtmlReportGenerator.generateHtmlReport(report, htmlReportFile);
             logger.info("Recording report (HTML) saved to: {}", htmlReportFile.getAbsolutePath());
         } catch (IOException e) {
             logger.error("Failed to save recording report: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Copies the StableMock logo image to the stablemock directory for use in HTML reports.
+     */
+    private static void copyLogoImage(File stablemockDir) {
+        try {
+            // Try to find logo relative to test resources directory first
+            File testResourcesDir = stablemockDir.getParentFile();
+            if (testResourcesDir != null) {
+                File logoSource = new File(testResourcesDir, "images/stablemock-logo-transparent-outline.png");
+                if (logoSource.exists() && logoSource.isFile()) {
+                    File logoFile = new File(stablemockDir, "stablemock-logo-transparent-outline.png");
+                    Files.copy(logoSource.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    logger.info("Logo image copied from test resources to: {}", logoFile.getAbsolutePath());
+                    return;
+                }
+            }
+            
+            // Try to find logo in the project root's test resources (for when running from examples)
+            // Walk up from stablemock directory: stablemock -> test/resources -> src/test/resources -> .../src/test/resources/images
+            File currentDir = stablemockDir.getAbsoluteFile();
+            int maxDepth = 15; // Increased depth to handle nested project structures
+            int depth = 0;
+            while (currentDir != null && depth < maxDepth) {
+                File possibleLogo = new File(currentDir, "src/test/resources/images/stablemock-logo-transparent-outline.png");
+                if (possibleLogo.exists() && possibleLogo.isFile()) {
+                    File logoFile = new File(stablemockDir, "stablemock-logo-transparent-outline.png");
+                    Files.copy(possibleLogo.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    logger.info("Logo image copied from {} to: {}", possibleLogo.getAbsolutePath(), logoFile.getAbsolutePath());
+                    return;
+                }
+                currentDir = currentDir.getParentFile();
+                depth++;
+            }
+            
+            logger.warn("Logo image not found. Tried test resources and project root (up to {} levels deep). Logo will not appear in HTML report.", maxDepth);
+        } catch (IOException e) {
+            logger.warn("Failed to copy logo image: {}", e.getMessage(), e);
         }
     }
 

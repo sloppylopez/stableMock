@@ -84,6 +84,23 @@ public final class HtmlReportGenerator {
 
     private static void generateHeader(PrintWriter writer, JsonNode report) {
         writer.println("  <div class=\"header\">");
+        writer.println("    <!-- Animated background elements -->");
+        writer.println("    <div class=\"header-bg-elements\">");
+        writer.println("      <div class=\"header-glow header-glow-1\"></div>");
+        writer.println("      <div class=\"header-glow header-glow-2\"></div>");
+        writer.println("      <div class=\"header-glow header-glow-3\"></div>");
+        writer.println("    </div>");
+        writer.println("    <!-- Particle effects -->");
+        writer.println("    <div class=\"header-particles\">");
+        for (int i = 0; i < 20; i++) {
+            double left = Math.random() * 100;
+            double top = Math.random() * 100;
+            double delay = Math.random() * 6;
+            double duration = 4 + Math.random() * 4;
+            writer.println(String.format("      <div class=\"header-particle\" style=\"left: %.1f%%; top: %.1f%%; animation-delay: %.1fs; animation-duration: %.1fs;\"></div>", 
+                left, top, delay, duration));
+        }
+        writer.println("    </div>");
         writer.println("    <div class=\"header-content\">");
         writer.println("      <img src=\"stablemock-logo-transparent-outline.png\" alt=\"StableMock Logo\" class=\"logo\">");
         writer.println("      <div class=\"header-text\">");
@@ -424,26 +441,102 @@ public final class HtmlReportGenerator {
             }
             
             .header {
-              background: linear-gradient(135deg, #E8A740 0%, #F5C97A 100%);
-              color: #000000;
+              background: #000000;
+              color: #d1d5db;
               padding: 30px;
               border-radius: 8px;
               margin-bottom: 30px;
-              box-shadow: 0 4px 20px rgba(232, 167, 64, 0.4), 0 0 40px rgba(232, 167, 64, 0.2);
-              border: 2px solid rgba(232, 167, 64, 0.5);
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+              border: 1px solid rgba(232, 167, 64, 0.3);
+              position: relative;
+              overflow: hidden;
+            }
+            
+            .header-bg-elements {
+              position: absolute;
+              inset: 0;
+              overflow: hidden;
+              pointer-events: none;
+            }
+            
+            .header-glow {
+              position: absolute;
+              border-radius: 50%;
+              filter: blur(80px);
+              opacity: 0.3;
+              animation: float 6s ease-in-out infinite;
+            }
+            
+            .header-glow-1 {
+              width: 384px;
+              height: 384px;
+              background: rgba(232, 167, 64, 0.1);
+              top: 25%;
+              left: 25%;
+            }
+            
+            .header-glow-2 {
+              width: 384px;
+              height: 384px;
+              background: rgba(245, 201, 122, 0.1);
+              bottom: 25%;
+              right: 25%;
+              animation-delay: 2s;
+            }
+            
+            .header-glow-3 {
+              width: 600px;
+              height: 600px;
+              background: rgba(232, 167, 64, 0.05);
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              animation-delay: 4s;
+            }
+            
+            .header-particles {
+              position: absolute;
+              inset: 0;
+              pointer-events: none;
+            }
+            
+            .header-particle {
+              position: absolute;
+              width: 4px;
+              height: 4px;
+              background: rgba(232, 167, 64, 0.3);
+              border-radius: 50%;
+              animation: float 8s ease-in-out infinite;
+            }
+            
+            @keyframes float {
+              0%, 100% {
+                transform: translate(0, 0);
+              }
+              25% {
+                transform: translate(10px, -10px);
+              }
+              50% {
+                transform: translate(-5px, 10px);
+              }
+              75% {
+                transform: translate(-10px, -5px);
+              }
             }
             
             .header-content {
               display: flex;
               align-items: center;
               gap: 20px;
+              position: relative;
+              z-index: 1;
             }
             
             .logo {
               width: 120px;
               height: 120px;
               flex-shrink: 0;
-              filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.5));
+              filter: drop-shadow(0 0 20px rgba(232, 167, 64, 0.6));
             }
             
             @media (max-width: 768px) {
@@ -466,7 +559,7 @@ public final class HtmlReportGenerator {
               font-family: 'Rye', serif;
               font-size: 2.5em;
               margin-bottom: 10px;
-              background: linear-gradient(to right, #000000, #5C3A1A);
+              background: linear-gradient(to right, #E8A740, #F5C97A);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
@@ -474,17 +567,18 @@ public final class HtmlReportGenerator {
             
             .header .meta {
               margin: 5px 0;
-              opacity: 0.8;
+              opacity: 0.9;
               font-size: 0.9em;
-              color: #1a0f0a;
+              color: #d1d5db;
             }
             
             .header code {
-              background-color: rgba(0, 0, 0, 0.2);
+              background-color: rgba(232, 167, 64, 0.2);
               padding: 2px 6px;
               border-radius: 3px;
               font-size: 0.9em;
-              color: #1a0f0a;
+              color: #E8A740;
+              border: 1px solid rgba(232, 167, 64, 0.3);
             }
             
             .summary {

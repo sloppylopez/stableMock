@@ -161,6 +161,8 @@ public final class DynamicFieldAnalysisOrchestrator {
 
     /**
      * Tracks new requests from the current test execution.
+     * WireMock returns serve events in REVERSE chronological order (newest first),
+     * so we need to get events from the START of the list, not the end.
      */
     private static void trackNewRequests(
             List<ServeEvent> allServeEvents,
@@ -170,9 +172,17 @@ public final class DynamicFieldAnalysisOrchestrator {
             String testMethodName,
             Integer annotationIndex) {
 
-        int startIndex = existingRequestCount != null ? existingRequestCount : 0;
+        int existingCount = existingRequestCount != null ? existingRequestCount : 0;
+        int newEventsCount = allServeEvents.size() - existingCount;
+        
+        if (newEventsCount <= 0) {
+            logger.debug("No new serve events to track (existing: {}, total: {})", existingCount, allServeEvents.size());
+            return;
+        }
 
-        for (int i = startIndex; i < allServeEvents.size(); i++) {
+        // WireMock returns serve events in REVERSE chronological order (newest first)
+        // So we need to get elements from the START of the list (indices 0 to newEventsCount-1)
+        for (int i = 0; i < newEventsCount; i++) {
             ServeEvent event = allServeEvents.get(i);
             String url = event.getRequest().getUrl();
             String method = event.getRequest().getMethod().getName();
