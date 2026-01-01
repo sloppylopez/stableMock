@@ -5,6 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -28,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class XmlDynamicFieldDetectionTest extends BaseStableMockTest {
 
     @Autowired
-    private ThirdPartyService thirdPartyService;
+    private TestRestTemplate restTemplate;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
@@ -38,15 +43,21 @@ class XmlDynamicFieldDetectionTest extends BaseStableMockTest {
 
     @Test
     void testDetectChangingFieldsInXml() throws Exception {
-        // Calls ThirdPartyService.postXmlToPostmanEcho() -> PostmanEchoClient.postXml() -> postman-echo.com/post
+        // Flow: Test -> Controller -> ThirdPartyService -> PostmanEchoClient -> postman-echo.com/post
         String xml1 = generateXmlWithDynamicFields();
-        String resp1 = thirdPartyService.postXmlToPostmanEcho(xml1);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+        HttpEntity<String> request1 = new HttpEntity<>(xml1, headers);
+        ResponseEntity<String> response1Entity = restTemplate.postForEntity("/api/postmanecho/xml", request1, String.class);
+        String resp1 = response1Entity.getBody();
         assertNotNull(resp1, "First response should not be null");
 
         Thread.sleep(50);
 
         String xml2 = generateXmlWithDynamicFields();
-        String resp2 = thirdPartyService.postXmlToPostmanEcho(xml2);
+        HttpEntity<String> request2 = new HttpEntity<>(xml2, headers);
+        ResponseEntity<String> response2Entity = restTemplate.postForEntity("/api/postmanecho/xml", request2, String.class);
+        String resp2 = response2Entity.getBody();
         assertNotNull(resp2, "Second response should not be null");
 
         assertNotEquals(xml1, xml2, "XML bodies should differ due to dynamic fields");

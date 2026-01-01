@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -31,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class PaginationTest extends BaseStableMockTest {
     
     @Autowired
-    private ThirdPartyService thirdPartyService;
+    private TestRestTemplate restTemplate;
     
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
@@ -41,19 +43,23 @@ public class PaginationTest extends BaseStableMockTest {
     @Test
     void testPagination() {
         // First call - should return first recorded response
-        String response1 = thirdPartyService.getPosts();
+        // Flow: Test -> Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/posts
+        ResponseEntity<String> response1Entity = restTemplate.getForEntity("/api/posts", String.class);
+        String response1 = response1Entity.getBody();
         assertNotNull(response1, "First call should return a response");
         assertTrue(response1.contains("\"id\""), "Response should contain post data");
         
         // Second call - should return second recorded response (if scenario mode is implemented)
         // In scenario mode, this should return the second recorded response sequentially
-        String response2 = thirdPartyService.getPosts();
+        ResponseEntity<String> response2Entity = restTemplate.getForEntity("/api/posts", String.class);
+        String response2 = response2Entity.getBody();
         assertNotNull(response2, "Second call should return a response");
         assertTrue(response2.contains("\"id\""), "Response should contain post data");
         
         // Third call - should return third recorded response (if scenario mode is implemented)
         // In scenario mode, this should return the third recorded response sequentially
-        String response3 = thirdPartyService.getPosts();
+        ResponseEntity<String> response3Entity = restTemplate.getForEntity("/api/posts", String.class);
+        String response3 = response3Entity.getBody();
         assertNotNull(response3, "Third call should return a response");
         assertTrue(response3.contains("\"id\""), "Response should contain post data");
         

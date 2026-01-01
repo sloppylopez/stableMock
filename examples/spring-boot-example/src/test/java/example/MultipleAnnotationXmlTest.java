@@ -5,6 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -29,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class MultipleAnnotationXmlTest extends BaseStableMockTest {
 
     @Autowired
-    private ThirdPartyService thirdPartyService;
+    private TestRestTemplate restTemplate;
 
     @DynamicPropertySource
     static void registerMockUrls(DynamicPropertyRegistry registry) {
@@ -41,15 +46,20 @@ class MultipleAnnotationXmlTest extends BaseStableMockTest {
         String xml = "<request><id>123</id><message>Hello</message></request>";
 
         // First API (jsonplaceholder) - JSON
-        // ThirdPartyService.getUser() -> JsonPlaceholderClient.getUser() -> jsonplaceholder.typicode.com/users/1
-        String jsonResponse = thirdPartyService.getUser(1);
+        // Flow: Test -> Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/users/1
+        ResponseEntity<String> jsonResponseEntity = restTemplate.getForEntity("/api/users/1", String.class);
+        String jsonResponse = jsonResponseEntity.getBody();
         assertNotNull(jsonResponse, "Response from jsonplaceholder should not be null");
         assertTrue(jsonResponse.contains("\"id\": 1") || jsonResponse.contains("\"id\":1"),
                 "Response should contain user id 1");
 
         // Second API (postman-echo) - XML
-        // ThirdPartyService.postXmlToPostmanEcho() -> PostmanEchoClient.postXml() -> postman-echo.com/post
-        String postmanResp = thirdPartyService.postXmlToPostmanEcho(xml);
+        // Flow: Test -> Controller -> ThirdPartyService -> PostmanEchoClient -> postman-echo.com/post
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_XML);
+        HttpEntity<String> request = new HttpEntity<>(xml, headers);
+        ResponseEntity<String> postmanResponseEntity = restTemplate.postForEntity("/api/postmanecho/xml", request, String.class);
+        String postmanResp = postmanResponseEntity.getBody();
         assertNotNull(postmanResp, "Postman Echo response should not be null");
 
         // Both services return JSON bodies; just sanity-check typical markers

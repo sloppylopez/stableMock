@@ -7,6 +7,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -25,9 +30,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * This test verifies that StableMock can detect changing query parameters
  * in actual third-party API calls (via Feign client), not Spring Boot controller calls.
  * 
- * The test calls ThirdPartyService.getPostsWithQueryParams(), which uses JsonPlaceholderClient
- * to make HTTP calls to the third-party API (jsonplaceholder.typicode.com) with query parameters.
- * StableMock records these third-party API calls with their query parameters.
+ * The test calls the Spring Boot controller endpoint /api/posts, which goes through:
+ * Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/posts
+ * StableMock records the third-party API calls with their query parameters.
  * 
  * Expected behavior:
  * - RECORD mode: Records third-party API calls with different query params as separate mappings
@@ -39,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class QueryParametersDynamicFieldsTest extends BaseStableMockTest {
 
     @Autowired
-    private ThirdPartyService thirdPartyService;
+    private TestRestTemplate restTemplate;
 
     @DynamicPropertySource
     static void registerMockUrls(DynamicPropertyRegistry registry) {
@@ -93,9 +98,11 @@ class QueryParametersDynamicFieldsTest extends BaseStableMockTest {
             correlationId2 = params2.get("correlationId");
         }
         
-        // First call: Third-party API call with query parameters
-        // This goes through: ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/posts?page=1&limit=10&timestamp=...&correlationId=...
-        String response1 = thirdPartyService.getPostsWithQueryParams(page1, limit1, timestamp1, correlationId1);
+        // First call: Call Spring Boot controller endpoint with query parameters
+        // Flow: Test -> Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/posts?page=1&limit=10&timestamp=...&correlationId=...
+        String url1 = "/api/posts?page=" + page1 + "&limit=" + limit1 + "&timestamp=" + timestamp1 + "&correlationId=" + correlationId1;
+        ResponseEntity<String> response1Entity = restTemplate.getForEntity(url1, String.class);
+        String response1 = response1Entity.getBody();
         assertNotNull(response1, "First response should not be null");
         // Note: jsonplaceholder.typicode.com/posts returns an array, so check for array format
         assertTrue(response1.contains("[") || response1.contains("\"id\""), 
@@ -103,9 +110,11 @@ class QueryParametersDynamicFieldsTest extends BaseStableMockTest {
 
         Thread.sleep(50); // Small delay
 
-        // Second call: Same third-party API endpoint, different query parameter values
-        // This goes through: ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/posts?page=2&limit=10&timestamp=...&correlationId=...
-        String response2 = thirdPartyService.getPostsWithQueryParams(page2, limit2, timestamp2, correlationId2);
+        // Second call: Same controller endpoint, different query parameter values
+        // Flow: Test -> Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/posts?page=2&limit=10&timestamp=...&correlationId=...
+        String url2 = "/api/posts?page=" + page2 + "&limit=" + limit2 + "&timestamp=" + timestamp2 + "&correlationId=" + correlationId2;
+        ResponseEntity<String> response2Entity = restTemplate.getForEntity(url2, String.class);
+        String response2 = response2Entity.getBody();
         assertNotNull(response2, "Second response should not be null");
         assertTrue(response2.contains("[") || response2.contains("\"id\""), 
                 "Response should contain post data. Got: " + preview(response2));

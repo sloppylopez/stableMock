@@ -5,6 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -30,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class NestedJsonDynamicFieldsTest extends BaseStableMockTest {
 
     @Autowired
-    private ThirdPartyService thirdPartyService;
+    private TestRestTemplate restTemplate;
 
     @DynamicPropertySource
     static void registerMockUrls(DynamicPropertyRegistry registry) {
@@ -40,7 +45,7 @@ class NestedJsonDynamicFieldsTest extends BaseStableMockTest {
     @Test
     void testNestedJsonWithDynamicFields() throws InterruptedException {
         // First request: Complex nested JSON with dynamic fields at various levels
-        // Calls ThirdPartyService.createPostWithDynamicFields() -> JsonPlaceholderClient.createPost() -> jsonplaceholder.typicode.com/posts
+        // Flow: Test -> Controller -> ThirdPartyService -> JsonPlaceholderClient -> jsonplaceholder.typicode.com/posts
         String timestamp1 = Instant.now().toString();
         String requestId1 = UUID.randomUUID().toString();
         String sessionId1 = UUID.randomUUID().toString();
@@ -69,7 +74,11 @@ class NestedJsonDynamicFieldsTest extends BaseStableMockTest {
             }
             """, timestamp1, sessionId1, transactionId1, timestamp1, requestId1);
 
-        String response1 = thirdPartyService.createPostWithDynamicFields(body1);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request1 = new HttpEntity<>(body1, headers);
+        ResponseEntity<String> response1Entity = restTemplate.postForEntity("/api/posts/with-dynamic-fields", request1, String.class);
+        String response1 = response1Entity.getBody();
         assertNotNull(response1, "First response should not be null");
 
         Thread.sleep(50); // Small delay to ensure values change
@@ -103,7 +112,9 @@ class NestedJsonDynamicFieldsTest extends BaseStableMockTest {
             }
             """, timestamp2, sessionId2, transactionId2, timestamp2, requestId2);
 
-        String response2 = thirdPartyService.createPostWithDynamicFields(body2);
+        HttpEntity<String> request2 = new HttpEntity<>(body2, headers);
+        ResponseEntity<String> response2Entity = restTemplate.postForEntity("/api/posts/with-dynamic-fields", request2, String.class);
+        String response2 = response2Entity.getBody();
         assertNotNull(response2, "Second response should not be null");
 
         // Verify that the bodies are different (dynamic fields changed)

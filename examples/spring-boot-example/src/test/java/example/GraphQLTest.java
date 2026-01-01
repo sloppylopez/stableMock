@@ -5,6 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -32,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class GraphQLTest extends BaseStableMockTest {
 
     @Autowired
-    private ThirdPartyService thirdPartyService;
+    private TestRestTemplate restTemplate;
 
     @DynamicPropertySource
     static void registerMockUrls(DynamicPropertyRegistry registry) {
@@ -42,23 +47,27 @@ class GraphQLTest extends BaseStableMockTest {
     @Test
     void testGraphQLQuery() {
         // Simple GraphQL query without variables - get all countries
-        // Calls ThirdPartyService.executeGraphQL() -> GraphQLClient.executeQuery() -> countries.trevorblades.com
+        // Flow: Test -> Controller -> ThirdPartyService -> GraphQLClient -> countries.trevorblades.com
         String graphqlQuery = """
             {
               "query": "{ countries { code name } }"
             }
             """;
 
-        String response = thirdPartyService.executeGraphQL(graphqlQuery);
-        assertNotNull(response, "GraphQL response should not be null");
-        assertTrue(response.contains("countries") || response.contains("data"),
-                "Response should contain GraphQL data. Got: " + preview(response));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>(graphqlQuery, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity("/api/graphql", request, String.class);
+        
+        assertNotNull(response.getBody(), "GraphQL response should not be null");
+        assertTrue(response.getBody().contains("countries") || response.getBody().contains("data"),
+                "Response should contain GraphQL data. Got: " + preview(response.getBody()));
     }
 
     @Test
     void testGraphQLQueryWithVariables() {
         // GraphQL query with variables - get a specific country by code
-        // Calls ThirdPartyService.executeGraphQL() -> GraphQLClient.executeQuery() -> countries.trevorblades.com
+        // Flow: Test -> Controller -> ThirdPartyService -> GraphQLClient -> countries.trevorblades.com
         String graphqlQuery = """
             {
               "query": "query GetCountry($code: ID!) { country(code: $code) { name capital } }",
@@ -68,17 +77,21 @@ class GraphQLTest extends BaseStableMockTest {
             }
             """;
 
-        String response = thirdPartyService.executeGraphQL(graphqlQuery);
-        assertNotNull(response, "GraphQL response should not be null");
-        assertTrue(response.contains("country") || response.contains("name"),
-                "Response should contain GraphQL data. Got: " + preview(response));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>(graphqlQuery, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity("/api/graphql", request, String.class);
+        
+        assertNotNull(response.getBody(), "GraphQL response should not be null");
+        assertTrue(response.getBody().contains("country") || response.getBody().contains("name"),
+                "Response should contain GraphQL data. Got: " + preview(response.getBody()));
     }
 
     @Test
     void testGraphQLQueryWithGB() {
         // GraphQL query with variables for a different country (GB) to ensure distinct requests
         // This test verifies that different variable values are recorded and replayed correctly
-        // Calls ThirdPartyService.executeGraphQL() -> GraphQLClient.executeQuery() -> countries.trevorblades.com
+        // Flow: Test -> Controller -> ThirdPartyService -> GraphQLClient -> countries.trevorblades.com
         String graphqlQuery = """
             {
               "query": "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }",
@@ -88,17 +101,21 @@ class GraphQLTest extends BaseStableMockTest {
             }
             """;
 
-        String response = thirdPartyService.executeGraphQL(graphqlQuery);
-        assertNotNull(response, "GraphQL response should not be null");
-        assertTrue(response.contains("country") || response.contains("name"),
-                "Response should contain GraphQL data. Got: " + preview(response));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>(graphqlQuery, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity("/api/graphql", request, String.class);
+        
+        assertNotNull(response.getBody(), "GraphQL response should not be null");
+        assertTrue(response.getBody().contains("country") || response.getBody().contains("name"),
+                "Response should contain GraphQL data. Got: " + preview(response.getBody()));
     }
 
     @Test
     void testGraphQLQueryWithChangingVariables() throws InterruptedException {
         // GraphQL query where variables change between calls - tests dynamic field detection
         // First call: Get country with code "US"
-        // Calls ThirdPartyService.executeGraphQL() -> GraphQLClient.executeQuery() -> countries.trevorblades.com
+        // Flow: Test -> Controller -> ThirdPartyService -> GraphQLClient -> countries.trevorblades.com
         String graphqlQuery1 = """
             {
               "query": "query GetCountry($code: ID!) { country(code: $code) { name capital } }",
@@ -108,7 +125,11 @@ class GraphQLTest extends BaseStableMockTest {
             }
             """;
 
-        String response1 = thirdPartyService.executeGraphQL(graphqlQuery1);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request1 = new HttpEntity<>(graphqlQuery1, headers);
+        ResponseEntity<String> response1Entity = restTemplate.postForEntity("/api/graphql", request1, String.class);
+        String response1 = response1Entity.getBody();
         assertNotNull(response1, "First response should not be null");
 
         Thread.sleep(50); // Small delay to ensure distinct requests
@@ -123,7 +144,9 @@ class GraphQLTest extends BaseStableMockTest {
             }
             """;
 
-        String response2 = thirdPartyService.executeGraphQL(graphqlQuery2);
+        HttpEntity<String> request2 = new HttpEntity<>(graphqlQuery2, headers);
+        ResponseEntity<String> response2Entity = restTemplate.postForEntity("/api/graphql", request2, String.class);
+        String response2 = response2Entity.getBody();
         assertNotNull(response2, "Second response should not be null");
 
         // Verify that the queries are different (variables changed)
@@ -145,7 +168,7 @@ class GraphQLTest extends BaseStableMockTest {
         // GraphQL mutation with dynamic fields (timestamps, IDs)
         // Note: countries.trevorblades.com doesn't support mutations, so we'll simulate
         // a mutation-like query with dynamic metadata fields
-        // Calls ThirdPartyService.executeGraphQL() -> GraphQLClient.executeQuery() -> countries.trevorblades.com
+        // Flow: Test -> Controller -> ThirdPartyService -> GraphQLClient -> countries.trevorblades.com
         
         String timestamp1 = java.time.Instant.now().toString();
         String requestId1 = java.util.UUID.randomUUID().toString();
@@ -161,7 +184,11 @@ class GraphQLTest extends BaseStableMockTest {
             }
             """, timestamp1, requestId1);
 
-        String response1 = thirdPartyService.executeGraphQL(mutation1);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request1 = new HttpEntity<>(mutation1, headers);
+        ResponseEntity<String> response1Entity = restTemplate.postForEntity("/api/graphql", request1, String.class);
+        String response1 = response1Entity.getBody();
         assertNotNull(response1, "First response should not be null");
 
         Thread.sleep(50); // Small delay to ensure values change
@@ -180,7 +207,9 @@ class GraphQLTest extends BaseStableMockTest {
             }
             """, timestamp2, requestId2);
 
-        String response2 = thirdPartyService.executeGraphQL(mutation2);
+        HttpEntity<String> request2 = new HttpEntity<>(mutation2, headers);
+        ResponseEntity<String> response2Entity = restTemplate.postForEntity("/api/graphql", request2, String.class);
+        String response2 = response2Entity.getBody();
         assertNotNull(response2, "Second response should not be null");
 
         // Verify that the mutations are different (dynamic fields changed)
