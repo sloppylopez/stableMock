@@ -607,8 +607,8 @@ public class StableMockExtension
                     if (report != null) {
                         com.stablemock.core.reporting.RecordingReportGenerator.saveReport(report, testResourcesDir);
                     }
-                } catch (Exception e) {
-                    logger.warn("Failed to generate recording report: {}", e.getMessage());
+                } catch (RuntimeException e) {
+                    logger.error("Failed to generate recording report: {}", e.getMessage(), e);
                 }
             }
         }

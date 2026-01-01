@@ -134,7 +134,13 @@ public final class RecordingReportGenerator {
                                                          String testMethodName, String annotationIndex) {
         ObjectNode annotationNode = objectMapper.createObjectNode();
         if (annotationIndex != null) {
-            annotationNode.put("annotationIndex", Integer.parseInt(annotationIndex));
+            try {
+                int index = Integer.parseInt(annotationIndex);
+                annotationNode.put("annotationIndex", index);
+            } catch (NumberFormatException e) {
+                logger.warn("Invalid annotation index '{}' for {}.{} in directory {}. Skipping numeric index.",
+                        annotationIndex, testClassName, testMethodName, annotationDir.getAbsolutePath());
+            }
         }
         
         // Read detected-fields.json if it exists
@@ -228,7 +234,7 @@ public final class RecordingReportGenerator {
                                 }
                             }
                         } catch (IOException e) {
-                            // Already logged above
+                            logger.debug("Failed to read detected fields file {}: {}", detectedFieldsFile.getName(), e.getMessage());
                         }
                     }
                 }
