@@ -1,0 +1,12 @@
+{
+  "testClass" : "GraphQLTest",
+  "testMethod" : "testGraphQLMutationWithDynamicFields",
+  "detectedAt" : "2026-01-01T23:07:15.168255072Z",
+  "analyzed_requests_count" : 2,
+  "dynamic_fields" : [ {
+    "field_path" : "json:variables",
+    "confidence" : "LOW",
+    "sample_values" : [ "{\"code\":\"US\",\"timestamp\":\"2026-01-01T23:07:14.482690379Z\",\"requestId\":\"50db8e8c-2e78-4b82-b9db-dd815ff13a56\"}", "{\"code\":\"US\",\"timestamp\":\"2026-01-01T23:07:14.261049935Z\",\"requestId\":\"32bc6bf4-86fc-4d07-84e5-1b924d6dbf30\"}" ]
+  } ],
+  "ignore_patterns" : [ "json:variables" ]
+}

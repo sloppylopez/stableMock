@@ -1,28 +1,28 @@
 {
   "testClass" : "XmlDynamicFieldDetectionTest",
   "testMethod" : "testDetectChangingFieldsInXml",
-  "detectedAt" : "2026-01-01T22:24:53.418894500Z",
+  "detectedAt" : "2026-01-01T23:07:13.953502208Z",
   "analyzed_requests_count" : 2,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']",
     "confidence" : "LOW",
-    "sample_values" : [ "ba1f3bc0-817a-45c3-ae30-b49db6d483d8", "6bd06310-1201-413d-afe5-ddcf42c8ed81" ]
+    "sample_values" : [ "d24cf0fd-746d-4d28-a174-dd4ccae6db7f", "d22332bb-12fc-4f4e-87dd-80ccac6c3558" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']",
     "confidence" : "LOW",
-    "sample_values" : [ "ba1f3bc0-817a-45c3-ae30-b49db6d483d8", "6bd06310-1201-413d-afe5-ddcf42c8ed81" ]
+    "sample_values" : [ "d24cf0fd-746d-4d28-a174-dd4ccae6db7f", "d22332bb-12fc-4f4e-87dd-80ccac6c3558" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']",
     "confidence" : "LOW",
-    "sample_values" : [ "1.1767306292728", "1.1767306292189" ]
+    "sample_values" : [ "1.1767308830834", "1.1767308828525" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']",
     "confidence" : "LOW",
-    "sample_values" : [ "fa442da8-1c0c-4af5-bba0-680804c6bb7a", "bcafe7b9-edf0-4352-818d-6c904cd0438b" ]
+    "sample_values" : [ "9246746a-f540-40bd-9a0d-afe5754c11db", "9775aa5c-b8c9-464c-93ae-1068928590e2" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']",
     "confidence" : "LOW",
-    "sample_values" : [ "2026-01-01T22:24:52.728573700Z", "2026-01-01T22:24:52.188656900Z" ]
+    "sample_values" : [ "2026-01-01T23:07:10.834859661Z", "2026-01-01T23:07:08.525491285Z" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']" ]
 }

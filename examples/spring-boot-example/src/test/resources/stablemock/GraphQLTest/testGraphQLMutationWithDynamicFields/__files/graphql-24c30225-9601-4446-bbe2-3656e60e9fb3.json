@@ -1,0 +1,1 @@
+{"errors":[{"message":"Variable \"$timestamp\" is never used in operation \"GetCountry\".","locations":[{"line":1,"column":30}],"extensions":{"code":"GRAPHQL_VALIDATION_FAILED"}},{"message":"Variable \"$requestId\" is never used in operation \"GetCountry\".","locations":[{"line":1,"column":51}],"extensions":{"code":"GRAPHQL_VALIDATION_FAILED"}}]}
