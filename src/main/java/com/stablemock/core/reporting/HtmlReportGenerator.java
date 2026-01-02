@@ -339,12 +339,16 @@ public final class HtmlReportGenerator {
                 writer.println("                </thead>");
                 writer.println("                <tbody>");
                 
+                int requestIndex = 0;
                 for (JsonNode request : requests) {
                     String method = request.has("method") ? request.get("method").asText() : "UNKNOWN";
                     String url = request.has("url") ? request.get("url").asText() : "/unknown";
                     int count = request.has("requestCount") ? request.get("requestCount").asInt() : 0;
                     boolean hasBody = request.has("hasBody") && request.get("hasBody").asBoolean();
                     String requestFilterText = (method + " " + url).toLowerCase();
+                    String detailsId = "request-details-" + requestIndex;
+                    boolean hasExamples = request.has("examples") && request.get("examples").isArray()
+                            && request.get("examples").size() > 0;
                     
                     writer.println("                  <tr class=\"request-row\" data-request-text=\"" + escapeHtmlAttribute(requestFilterText) + "\">");
                     writer.println("                    <td><span class=\"method method-" + method.toLowerCase() + "\">" + escapeHtml(method) + "</span></td>");
@@ -371,9 +375,25 @@ public final class HtmlReportGenerator {
                     
                     writer.println("                    </td>");
                     writer.println("                    <td>");
-                    renderRequestDetails(writer, request);
+                    if (hasExamples) {
+                        writer.println("                      <button type=\"button\" class=\"details-toggle\" onclick=\"toggleRequestDetails('"
+                                + escapeHtmlAttribute(detailsId) + "')\">View details</button>");
+                    } else {
+                        writer.println("                      —");
+                    }
                     writer.println("                    </td>");
                     writer.println("                  </tr>");
+
+                    if (hasExamples) {
+                        writer.println("                  <tr class=\"details-row\" id=\"" + escapeHtmlAttribute(detailsId) + "\">");
+                        writer.println("                    <td colspan=\"6\">");
+                        writer.println("                      <div class=\"details-content\">");
+                        renderRequestDetails(writer, request.get("examples"));
+                        writer.println("                      </div>");
+                        writer.println("                    </td>");
+                        writer.println("                  </tr>");
+                    }
+                    requestIndex++;
                 }
                 
                 writer.println("                </tbody>");
@@ -386,44 +406,49 @@ public final class HtmlReportGenerator {
         writer.println("        </details>");
     }
 
-    private static void renderRequestDetails(PrintWriter writer, JsonNode request) {
-        if (!request.has("examples") || !request.get("examples").isArray() || request.get("examples").size() == 0) {
-            writer.println("—");
+    private static void renderRequestDetails(PrintWriter writer, JsonNode examples) {
+        if (examples == null || !examples.isArray() || examples.size() == 0) {
             return;
         }
-
-        JsonNode examples = request.get("examples");
-        writer.println("                      <details class=\"request-details\">");
-        writer.println("                        <summary>Request/Response (" + examples.size() + ")</summary>");
 
         int index = 1;
         for (JsonNode example : examples) {
             writer.println("                        <div class=\"request-response-pair\">");
-            if (examples.size() > 1) {
-                writer.println("                          <div class=\"example-title\">Example " + index + "</div>");
+            writer.println("                          <div class=\"example-header\">");
+            writer.println("                            <div class=\"example-title\">Example " + index + "</div>");
+            JsonNode responseNode = example.get("response");
+            if (responseNode != null && responseNode.has("status")) {
+                int status = responseNode.get("status").asInt();
+                writer.println("                            <div class=\"example-status\">Status: <span class=\"status-badge "
+                        + statusClass(status) + "\">" + status + "</span></div>");
             }
+            writer.println("                          </div>");
 
             JsonNode requestNode = example.get("request");
+            JsonNode responseNode = example.get("response");
+
+            writer.println("                          <div class=\"headers-block\">");
+            writer.println("                            <div class=\"section-heading\">Headers</div>");
+            if (requestNode != null) {
+                renderJsonBlock(writer, "Request headers", requestNode.get("headers"));
+            }
+            if (responseNode != null) {
+                renderJsonBlock(writer, "Response headers", responseNode.get("headers"));
+            }
+            writer.println("                          </div>");
+
             writer.println("                          <div class=\"request-block\">");
             writer.println("                            <div class=\"section-heading\">Request</div>");
             if (requestNode != null) {
-                renderJsonBlock(writer, "Headers", requestNode.get("headers"));
                 JsonNode requestBodyJson = requestNode.get("bodyJson");
                 String requestBody = requestNode.has("body") ? requestNode.get("body").asText() : null;
                 renderBodyBlock(writer, "Body", requestBodyJson, requestBody);
             }
             writer.println("                          </div>");
 
-            JsonNode responseNode = example.get("response");
             writer.println("                          <div class=\"response-block\">");
             writer.println("                            <div class=\"section-heading\">Response</div>");
             if (responseNode != null) {
-                if (responseNode.has("status")) {
-                    int status = responseNode.get("status").asInt();
-                    writer.println("                            <div class=\"status-line\">Status: <span class=\"status-badge "
-                            + statusClass(status) + "\">" + status + "</span></div>");
-                }
-                renderJsonBlock(writer, "Headers", responseNode.get("headers"));
                 JsonNode responseBodyJson = responseNode.get("bodyJson");
                 String responseBody = responseNode.has("body") ? responseNode.get("body").asText() : null;
                 renderBodyBlock(writer, "Body", responseBodyJson, responseBody);
@@ -437,7 +462,6 @@ public final class HtmlReportGenerator {
             writer.println("                        </div>");
             index++;
         }
-        writer.println("                      </details>");
     }
 
     private static void renderJsonBlock(PrintWriter writer, String title, JsonNode jsonNode) {
@@ -852,8 +876,7 @@ public final class HtmlReportGenerator {
             
             .test-class > summary,
             .test-method > summary,
-            .annotation-section > summary,
-            .request-details > summary {
+            .annotation-section > summary {
               list-style: none;
               display: flex;
               flex-wrap: wrap;
@@ -867,15 +890,13 @@ public final class HtmlReportGenerator {
 
             .test-class > summary::-webkit-details-marker,
             .test-method > summary::-webkit-details-marker,
-            .annotation-section > summary::-webkit-details-marker,
-            .request-details > summary::-webkit-details-marker {
+            .annotation-section > summary::-webkit-details-marker {
               display: none;
             }
 
             .test-class > summary::before,
             .test-method > summary::before,
-            .annotation-section > summary::before,
-            .request-details > summary::before {
+            .annotation-section > summary::before {
               content: "▸";
               display: inline-block;
               margin-right: 6px;
@@ -1123,8 +1144,30 @@ public final class HtmlReportGenerator {
               border: 1px solid rgba(232, 167, 64, 0.2);
             }
 
-            .request-details {
-              margin-top: 4px;
+            .details-toggle {
+              background: transparent;
+              color: #E8A740;
+              border: 1px solid rgba(232, 167, 64, 0.4);
+              padding: 4px 10px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-weight: 600;
+            }
+
+            .details-toggle:hover {
+              background: rgba(232, 167, 64, 0.2);
+            }
+
+            .details-row {
+              display: none;
+            }
+
+            .details-row.is-open {
+              display: table-row;
+            }
+
+            .details-content {
+              padding: 12px 0;
             }
 
             .request-response-pair {
@@ -1134,12 +1177,16 @@ public final class HtmlReportGenerator {
               border-radius: 6px;
               display: grid;
               gap: 12px;
-              grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+              grid-template-columns: repeat(3, minmax(200px, 1fr));
               border: 1px solid rgba(232, 167, 64, 0.25);
             }
 
-            .example-title {
+            .example-header {
               grid-column: 1 / -1;
+              display: flex;
+              flex-wrap: wrap;
+              align-items: center;
+              gap: 10px;
               font-weight: bold;
               color: #F5C97A;
             }
@@ -1160,6 +1207,20 @@ public final class HtmlReportGenerator {
               letter-spacing: 0.04em;
               color: #9ca3af;
               margin-bottom: 4px;
+            }
+
+            .headers-block,
+            .request-block,
+            .response-block {
+              min-width: 0;
+            }
+
+            .example-title {
+              font-weight: bold;
+            }
+
+            .example-status {
+              color: #9ca3af;
             }
 
             pre {
@@ -1228,6 +1289,14 @@ public final class HtmlReportGenerator {
               });
             }
 
+            function toggleRequestDetails(id) {
+              const row = document.getElementById(id);
+              if (!row) {
+                return;
+              }
+              row.classList.toggle('is-open');
+            }
+
             function filterReport() {
               const filterValue = document.getElementById('filterInput').value.toLowerCase().trim();
               const testMethods = document.querySelectorAll('.test-method');
@@ -1240,6 +1309,10 @@ public final class HtmlReportGenerator {
                   const rowText = row.dataset.requestText || '';
                   const matchRow = !filterValue || rowText.includes(filterValue);
                   row.classList.toggle('is-filtered-out', !matchRow);
+                  const detailsRow = row.nextElementSibling;
+                  if (detailsRow && detailsRow.classList.contains('details-row')) {
+                    detailsRow.classList.toggle('is-filtered-out', !matchRow);
+                  }
                   if (matchRow) {
                     hasMatchingRequest = true;
                   }
