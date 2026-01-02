@@ -1,33 +1,33 @@
 {
-  "id" : "900a5812-c4d9-4918-98b4-b3f545add148",
+  "id" : "f078c726-9a2c-4111-be2c-e23f06b19d34",
   "name" : "graphql",
   "request" : {
     "url" : "/graphql",
     "method" : "POST",
     "bodyPatterns" : [ {
-      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"CA\"\n  }\n}\n",
+      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
       "ignoreArrayOrder" : true,
       "ignoreExtraElements" : true
     } ]
   },
   "response" : {
     "status" : 200,
-    "body" : "{\"data\":{\"country\":{\"capital\":\"Ottawa\",\"name\":\"Canada\"}}}",
+    "body" : "{\"data\":{\"country\":{\"capital\":\"Washington D.C.\",\"name\":\"United States\"}}}",
     "headers" : {
-      "date" : "Fri, 02 Jan 2026 15:14:14 GMT",
-      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=38;refill=28",
+      "date" : "Tue, 30 Dec 2025 21:16:07 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=42;refill=30",
       "vary" : "accept-encoding",
       "stellate-rate-limit-decision" : "pass",
       "access-control-allow-headers" : "*",
       "gcdn-cache" : "HIT",
-      "x-served-by" : "cache-muc13925-MUC",
+      "x-served-by" : "cache-par-lfpb1150039-PAR",
       "stellate-rate-limit-budget-required" : "6",
-      "x-cache-hits" : "1",
+      "x-cache-hits" : "84",
       "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
       "access-control-expose-headers" : "*",
       "access-control-allow-origin" : "*",
       "access-control-allow-credentials" : "true",
-      "stellate-rate-limit-budget-remaining" : "38",
+      "stellate-rate-limit-budget-remaining" : "42",
       "access-control-max-age" : "600",
       "x-powered-by" : "Stellate",
       "content-type" : "application/json; charset=utf-8",
@@ -35,10 +35,10 @@
       "cache-control" : "public, s-maxage=2628000, stale-while-revalidate=2628000",
       "alt-svc" : "h3=\":443\"; ma=86400",
       "accept-ranges" : "bytes",
-      "age" : "30"
+      "age" : "238668"
     }
   },
-  "uuid" : "900a5812-c4d9-4918-98b4-b3f545add148",
+  "uuid" : "f078c726-9a2c-4111-be2c-e23f06b19d34",
   "persistent" : true,
   "insertionIndex" : 0
 }
