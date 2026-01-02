@@ -1041,7 +1041,7 @@ public final class HtmlReportGenerator {
             table th {
               background: linear-gradient(to bottom, #E8A740, #A06F3E);
               color: #000000;
-              padding: 12px;
+              padding: 6px 12px;
               text-align: left;
               font-weight: 600;
               border: 1px solid rgba(232, 167, 64, 0.5);
