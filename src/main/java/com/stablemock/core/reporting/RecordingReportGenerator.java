@@ -186,6 +186,12 @@ public final class RecordingReportGenerator {
                                     k -> new RequestInfo(method, url));
                             
                             requestInfo.incrementCount();
+
+                            JsonNode responseNode = mappingJson.get("response");
+                            ObjectNode exampleNode = buildRequestExample(requestNode, responseNode, annotationDir);
+                            if (exampleNode != null) {
+                                requestInfo.addExample(exampleNode);
+                            }
                             
                             // Extract mutating fields from body patterns if available
                             JsonNode bodyPatterns = requestNode.get("bodyPatterns");
@@ -210,6 +216,13 @@ public final class RecordingReportGenerator {
                     requestNode.put("url", requestInfo.url);
                     requestNode.put("requestCount", requestInfo.count);
                     requestNode.put("hasBody", requestInfo.hasBody);
+
+                    if (!requestInfo.examples.isEmpty()) {
+                        ArrayNode examplesArray = requestNode.putArray("examples");
+                        for (ObjectNode example : requestInfo.examples) {
+                            examplesArray.add(example);
+                        }
+                    }
                     
                     // Map mutating fields to this endpoint if detected-fields.json exists
                     // Only include fields for requests that have bodies (POST, PUT, PATCH, etc.)
@@ -272,6 +285,124 @@ public final class RecordingReportGenerator {
             return requestNode.get("urlPattern").asText();
         }
         return "/unknown";
+    }
+
+    private static ObjectNode buildRequestExample(JsonNode requestNode, JsonNode responseNode, File annotationDir) {
+        if (requestNode == null && responseNode == null) {
+            return null;
+        }
+
+        ObjectNode exampleNode = objectMapper.createObjectNode();
+        if (requestNode != null) {
+            ObjectNode requestExample = exampleNode.putObject("request");
+            if (requestNode.has("headers") && requestNode.get("headers").isObject()) {
+                requestExample.set("headers", requestNode.get("headers"));
+            }
+
+            String requestBody = extractRequestBody(requestNode);
+            if (requestBody != null) {
+                requestExample.put("body", requestBody);
+                JsonNode requestBodyJson = parseJsonSafely(requestBody);
+                if (requestBodyJson != null) {
+                    requestExample.set("bodyJson", requestBodyJson);
+                }
+            }
+        }
+
+        if (responseNode != null) {
+            ObjectNode responseExample = exampleNode.putObject("response");
+            if (responseNode.has("status")) {
+                responseExample.put("status", responseNode.get("status").asInt());
+            }
+            if (responseNode.has("headers") && responseNode.get("headers").isObject()) {
+                responseExample.set("headers", responseNode.get("headers"));
+            }
+
+            if (responseNode.has("jsonBody")) {
+                responseExample.set("bodyJson", responseNode.get("jsonBody"));
+            } else if (responseNode.has("body")) {
+                String body = responseNode.get("body").asText();
+                responseExample.put("body", body);
+                JsonNode bodyJson = parseJsonSafely(body);
+                if (bodyJson != null) {
+                    responseExample.set("bodyJson", bodyJson);
+                }
+            } else if (responseNode.has("bodyFileName")) {
+                String bodyFileName = responseNode.get("bodyFileName").asText();
+                responseExample.put("bodyFileName", bodyFileName);
+                String fileContents = readBodyFile(annotationDir, bodyFileName);
+                if (fileContents != null) {
+                    responseExample.put("body", fileContents);
+                    JsonNode bodyJson = parseJsonSafely(fileContents);
+                    if (bodyJson != null) {
+                        responseExample.set("bodyJson", bodyJson);
+                    }
+                }
+            }
+        }
+
+        return exampleNode;
+    }
+
+    private static String extractRequestBody(JsonNode requestNode) {
+        if (requestNode.has("body")) {
+            JsonNode bodyNode = requestNode.get("body");
+            return bodyNode.isTextual() ? bodyNode.asText() : bodyNode.toString();
+        }
+
+        if (requestNode.has("bodyPatterns") && requestNode.get("bodyPatterns").isArray()) {
+            for (JsonNode bodyPattern : requestNode.get("bodyPatterns")) {
+                if (bodyPattern.has("equalToJson")) {
+                    JsonNode bodyNode = bodyPattern.get("equalToJson");
+                    return bodyNode.isTextual() ? bodyNode.asText() : bodyNode.toString();
+                }
+                if (bodyPattern.has("equalTo")) {
+                    JsonNode bodyNode = bodyPattern.get("equalTo");
+                    return bodyNode.isTextual() ? bodyNode.asText() : bodyNode.toString();
+                }
+            }
+        }
+        return null;
+    }
+
+    private static JsonNode parseJsonSafely(String rawJson) {
+        if (rawJson == null || rawJson.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readTree(rawJson);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private static String readBodyFile(File annotationDir, String bodyFileName) {
+        if (annotationDir == null || bodyFileName == null || bodyFileName.isBlank()) {
+            return null;
+        }
+        File filesDir = new File(annotationDir, "__files");
+        File bodyFile = new File(filesDir, bodyFileName);
+        
+        try {
+            File canonicalFilesDir = filesDir.getCanonicalFile();
+            File canonicalBodyFile = bodyFile.getCanonicalFile();
+            String basePath = canonicalFilesDir.getPath();
+            String targetPath = canonicalBodyFile.getPath();
+            
+            if (!targetPath.startsWith(basePath + File.separator) && !targetPath.equals(basePath)) {
+                logger.debug("Rejected response body file outside of base directory: {}", targetPath);
+                return null;
+            }
+            
+            if (!canonicalBodyFile.exists() || !canonicalBodyFile.isFile()) {
+                return null;
+            }
+            
+            return Files.readString(canonicalBodyFile.toPath());
+        } catch (IOException e) {
+            logger.debug("Failed to read response body file {}: {}", bodyFile.getAbsolutePath(), e.getMessage());
+            return null;
+        }
     }
 
 
@@ -356,6 +487,7 @@ public final class RecordingReportGenerator {
         final String url;
         int count = 0;
         boolean hasBody = false;
+        final List<ObjectNode> examples = new ArrayList<>();
 
         RequestInfo(String method, String url) {
             this.method = method;
@@ -369,7 +501,27 @@ public final class RecordingReportGenerator {
         void setHasBody(boolean hasBody) {
             this.hasBody = hasBody;
         }
+
+        void addExample(ObjectNode example) {
+            if (!isDuplicate(example)) {
+                this.examples.add(example);
+            }
+        }
+
+        private boolean isDuplicate(ObjectNode newExample) {
+            try {
+                String newExampleJson = objectMapper.writeValueAsString(newExample);
+                for (ObjectNode existingExample : examples) {
+                    String existingExampleJson = objectMapper.writeValueAsString(existingExample);
+                    if (newExampleJson.equals(existingExampleJson)) {
+                        return true;
+                    }
+                }
+            } catch (IOException e) {
+                logger.debug("Failed to compare examples for deduplication: {}", e.getMessage());
+            }
+            return false;
+        }
     }
 }
-
 

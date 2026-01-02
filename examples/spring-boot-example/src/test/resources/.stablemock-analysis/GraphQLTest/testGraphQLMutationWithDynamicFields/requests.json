@@ -1,13 +1,13 @@
 [ {
-  "timestamp" : "2026-01-01T23:27:56.442801700Z",
+  "timestamp" : "2026-01-02T15:33:55.784424600Z",
   "url" : "/graphql",
   "method" : "POST",
-  "body" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-01T23:27:55.956458200Z\",\n    \"requestId\": \"4dd4a392-4d7f-428b-ad79-641c6f2e283b\"\n  }\n}\n",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-02T15:33:55.349542800Z\",\n    \"requestId\": \"0ba872ff-91b4-485a-9c64-e459349b92ea\"\n  }\n}\n",
   "contentType" : "application/json"
 }, {
-  "timestamp" : "2026-01-01T23:27:56.444143100Z",
+  "timestamp" : "2026-01-02T15:33:55.784424600Z",
   "url" : "/graphql",
   "method" : "POST",
-  "body" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-01T23:27:55.711930200Z\",\n    \"requestId\": \"c258510f-868a-4cf3-a1ef-ddf62057a422\"\n  }\n}\n",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-02T15:33:55.095663600Z\",\n    \"requestId\": \"8d9b0bf8-4142-4784-8405-49da993b7a21\"\n  }\n}\n",
   "contentType" : "application/json"
 } ]

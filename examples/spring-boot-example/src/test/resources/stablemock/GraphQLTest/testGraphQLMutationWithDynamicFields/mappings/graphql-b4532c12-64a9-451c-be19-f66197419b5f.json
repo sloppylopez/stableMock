@@ -1,26 +1,26 @@
 {
-  "id" : "6b954e07-0015-4cfb-9c0a-6ba68c9586de",
+  "id" : "b4532c12-64a9-451c-be19-f66197419b5f",
   "name" : "graphql",
   "request" : {
     "url" : "/graphql",
     "method" : "POST",
     "bodyPatterns" : [ {
-      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-01T23:27:55.711930200Z\",\n    \"requestId\": \"c258510f-868a-4cf3-a1ef-ddf62057a422\"\n  }\n}\n",
+      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-02T15:33:55.095663600Z\",\n    \"requestId\": \"8d9b0bf8-4142-4784-8405-49da993b7a21\"\n  }\n}\n",
       "ignoreArrayOrder" : true,
       "ignoreExtraElements" : true
     } ]
   },
   "response" : {
     "status" : 200,
-    "bodyFileName" : "graphql-e495d808-9c5f-4420-9ef8-39153f35dce4.json",
+    "bodyFileName" : "graphql-a2d8df55-6927-4271-8c9f-c8ff2f037fa5.json",
     "headers" : {
-      "date" : "Thu, 01 Jan 2026 23:27:55 GMT",
-      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=40;refill=30",
+      "date" : "Fri, 02 Jan 2026 15:33:55 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=40;refill=29",
       "vary" : "accept-encoding",
       "stellate-rate-limit-decision" : "pass",
       "access-control-allow-headers" : "*",
       "gcdn-cache" : "PASS",
-      "x-served-by" : "cache-par-lfpb1150080-PAR",
+      "x-served-by" : "cache-par-lfpb1150069-PAR",
       "stellate-rate-limit-budget-required" : "6",
       "x-cache-hits" : "0",
       "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
@@ -37,7 +37,7 @@
       "alt-svc" : "h3=\":443\"; ma=86400"
     }
   },
-  "uuid" : "6b954e07-0015-4cfb-9c0a-6ba68c9586de",
+  "uuid" : "b4532c12-64a9-451c-be19-f66197419b5f",
   "persistent" : true,
   "insertionIndex" : 1
 }

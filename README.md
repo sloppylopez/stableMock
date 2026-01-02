@@ -466,3 +466,67 @@ This will show detailed matching information for each request, helpful when trou
 ## License
 
 MIT License - See LICENSE file for details.
+
+## Disclaimer
+
+**NO WARRANTIES**
+
+This software is provided "as is" without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, or that the software will meet your requirements or operate without interruption or error. The authors and contributors of StableMock make no representations or warranties regarding the accuracy, reliability, completeness, or suitability of this software for any purpose.
+
+**LIMITATION OF LIABILITY**
+
+To the fullest extent permitted by law, the authors, contributors, and maintainers of StableMock shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages, or any loss of profits, revenue, data, use, goodwill, or other intangible losses, resulting from:
+- Your use or inability to use StableMock
+- Any unauthorized access to or use of your servers, systems, or data
+- Any bugs, errors, or defects in the software
+- Any interruption or cessation of transmission to or from the software
+- Any conduct or content of third parties using the software
+- Any other matter relating to the software
+
+**USER RESPONSIBILITY**
+
+You are solely responsible for:
+- Ensuring that your use of StableMock complies with all applicable local, state, national, and international laws and regulations
+- Complying with the terms of service, privacy policies, and acceptable use policies of any third-party services, APIs, or systems you interact with through StableMock
+- Obtaining all necessary permissions, licenses, and authorizations before using StableMock to interact with third-party services
+- Protecting your systems, data, and credentials from unauthorized access
+- Verifying the accuracy and appropriateness of any recorded mock data before using it in production or production-like environments
+- Ensuring that your use of StableMock does not violate any intellectual property rights, privacy rights, or other rights of third parties
+
+**THIRD-PARTY SERVICES**
+
+StableMock may be used to record and replay interactions with third-party services. The authors and contributors are not responsible for:
+- The availability, accuracy, or reliability of any third-party services
+- Any changes to third-party APIs that may affect the functionality of recorded mocks
+- Any violations of third-party terms of service that may occur through the use of StableMock
+- Any data breaches, security incidents, or unauthorized access that may occur when interacting with third-party services
+
+**SECURITY AND DATA PROTECTION**
+
+You acknowledge that:
+- StableMock records HTTP requests and responses, which may contain sensitive, confidential, or personal information
+- You are responsible for securing any recorded mock data and ensuring it is stored and handled in compliance with applicable data protection laws (such as GDPR, CCPA, etc.)
+- You should not commit sensitive data, credentials, or personal information to version control systems
+- The authors are not responsible for any data breaches, unauthorized access, or mishandling of data recorded or stored through the use of StableMock
+
+**TESTING AND PRODUCTION USE**
+
+StableMock is intended for testing purposes. While it may be used in various environments, you acknowledge that:
+- The software is provided without guarantees of production-readiness or suitability for critical systems
+- You should thoroughly test and validate any implementation using StableMock before deploying to production
+- The authors are not responsible for any production incidents, downtime, or failures that may result from the use of StableMock
+
+**MODIFICATIONS AND DISTRIBUTION**
+
+If you modify or distribute StableMock, you acknowledge that:
+- You do so at your own risk
+- The original authors and contributors are not responsible for any issues arising from modified versions
+- You must comply with the MIT License terms when distributing modified versions
+
+**NO ENDORSEMENT**
+
+The use of StableMock does not constitute an endorsement by the authors of any third-party services, APIs, or systems that you may interact with through the software.
+
+**GENERAL**
+
+This disclaimer applies to the fullest extent permitted by law. If any portion of this disclaimer is found to be unenforceable, the remaining portions shall remain in full force and effect. By using StableMock, you acknowledge that you have read, understood, and agree to be bound by this disclaimer.
