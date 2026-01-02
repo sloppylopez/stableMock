@@ -1,26 +1,26 @@
 {
-  "id" : "8490dac3-f213-4f64-9060-aa1feee150b2",
+  "id" : "53478c4d-79d4-4fe0-baae-0faea16d0ad3",
   "name" : "graphql",
   "request" : {
     "url" : "/graphql",
     "method" : "POST",
     "bodyPatterns" : [ {
-      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-02T15:02:53.599682600Z\",\n    \"requestId\": \"b7a7cc9f-f64c-4667-8943-b198e9eb85e5\"\n  }\n}\n",
+      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\",\n    \"timestamp\": \"2026-01-02T15:14:42.694944Z\",\n    \"requestId\": \"23652fbb-7aeb-4667-a55f-edd6f053eb48\"\n  }\n}\n",
       "ignoreArrayOrder" : true,
       "ignoreExtraElements" : true
     } ]
   },
   "response" : {
     "status" : 200,
-    "bodyFileName" : "graphql-e7d9eac2-eb9a-45ca-9eff-82ba7554010b.json",
+    "bodyFileName" : "graphql-07ca6efc-7e47-4ac3-9954-764224424cf1.json",
     "headers" : {
-      "date" : "Fri, 02 Jan 2026 15:02:53 GMT",
+      "date" : "Fri, 02 Jan 2026 15:14:42 GMT",
       "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=39;refill=29",
       "vary" : "accept-encoding",
       "stellate-rate-limit-decision" : "pass",
       "access-control-allow-headers" : "*",
       "gcdn-cache" : "PASS",
-      "x-served-by" : "cache-par-lfpb1150055-PAR",
+      "x-served-by" : "cache-muc13978-MUC",
       "stellate-rate-limit-budget-required" : "6",
       "x-cache-hits" : "0",
       "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
@@ -37,7 +37,7 @@
       "alt-svc" : "h3=\":443\"; ma=86400"
     }
   },
-  "uuid" : "8490dac3-f213-4f64-9060-aa1feee150b2",
+  "uuid" : "53478c4d-79d4-4fe0-baae-0faea16d0ad3",
   "persistent" : true,
   "insertionIndex" : 0
 }
