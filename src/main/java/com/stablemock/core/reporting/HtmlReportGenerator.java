@@ -425,7 +425,6 @@ public final class HtmlReportGenerator {
             writer.println("                          </div>");
 
             JsonNode requestNode = example.get("request");
-            JsonNode responseNode = example.get("response");
 
             writer.println("                          <div class=\"headers-block\">");
             writer.println("                            <div class=\"section-heading\">Headers</div>");
