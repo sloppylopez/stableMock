@@ -73,6 +73,10 @@ public final class HtmlReportGenerator {
                 generateHeader(writer, report);
                 generateSummary(writer, report);
                 generateTestClasses(writer, report);
+
+                writer.println("  <script>");
+                writer.println(getScript());
+                writer.println("  </script>");
                 
                 writer.println("</body>");
                 writer.println("</html>");
@@ -170,6 +174,13 @@ public final class HtmlReportGenerator {
     private static void generateTestClasses(PrintWriter writer, JsonNode report) {
         writer.println("  <div class=\"test-classes\">");
         writer.println("    <h2>Test Classes</h2>");
+        writer.println("    <div class=\"controls\">");
+        writer.println("      <div class=\"control-buttons\">");
+        writer.println("        <button type=\"button\" class=\"control-button\" onclick=\"toggleDetails(true)\">Expand all</button>");
+        writer.println("        <button type=\"button\" class=\"control-button\" onclick=\"toggleDetails(false)\">Collapse all</button>");
+        writer.println("      </div>");
+        writer.println("      <input type=\"text\" id=\"filterInput\" class=\"filter-input\" placeholder=\"Filter by test, method, or URL\" oninput=\"filterReport()\">");
+        writer.println("    </div>");
         
         JsonNode testClasses = report.get("testClasses");
         if (testClasses != null && testClasses.isArray()) {
@@ -184,25 +195,48 @@ public final class HtmlReportGenerator {
     private static void generateTestClass(PrintWriter writer, JsonNode testClass) {
         String testClassName = testClass.has("testClass") ? testClass.get("testClass").asText() : "Unknown";
         
-        writer.println("    <div class=\"test-class\">");
-        writer.println("      <h3>" + escapeHtml(testClassName) + "</h3>");
-        
+        int methodCount = 0;
+        int requestCount = 0;
+        int mutatingCount = 0;
         JsonNode testMethods = testClass.get("testMethods");
         if (testMethods != null && testMethods.isArray()) {
+            methodCount = testMethods.size();
             for (JsonNode testMethod : testMethods) {
-                generateTestMethod(writer, testMethod);
+                requestCount += countRequests(testMethod);
+                mutatingCount += countMutatingFields(testMethod);
+            }
+        }
+
+        writer.println("    <details class=\"test-class\" data-test-class=\"" + escapeHtmlAttribute(testClassName) + "\">");
+        writer.println("      <summary>");
+        writer.println("        <span class=\"summary-title\">" + escapeHtml(testClassName) + "</span>");
+        writer.println("        <span class=\"badge\">Methods: " + methodCount + "</span>");
+        writer.println("        <span class=\"badge\">Requests: " + requestCount + "</span>");
+        writer.println("        <span class=\"badge\">Mutating fields: " + mutatingCount + "</span>");
+        writer.println("      </summary>");
+        
+        if (testMethods != null && testMethods.isArray()) {
+            for (JsonNode testMethod : testMethods) {
+                generateTestMethod(writer, testMethod, testClassName);
             }
         }
         
-        writer.println("    </div>");
+        writer.println("    </details>");
     }
 
-    private static void generateTestMethod(PrintWriter writer, JsonNode testMethod) {
+    private static void generateTestMethod(PrintWriter writer, JsonNode testMethod, String testClassName) {
         String testMethodName = testMethod.has("testMethod") ? testMethod.get("testMethod").asText() : "Unknown";
         String folderPath = testMethod.has("folderPath") ? testMethod.get("folderPath").asText() : "";
+        int requestCount = countRequests(testMethod);
+        int mutatingCount = countMutatingFields(testMethod);
+        String filterText = String.join(" ", testClassName, testMethodName, folderPath).toLowerCase();
         
-        writer.println("      <div class=\"test-method\">");
-        writer.println("        <h4>" + escapeHtml(testMethodName) + "</h4>");
+        writer.println("      <details class=\"test-method\" data-method-text=\"" + escapeHtmlAttribute(filterText) + "\">");
+        writer.println("        <summary>");
+        writer.println("          <span class=\"summary-title\">" + escapeHtml(testMethodName) + "</span>");
+        writer.println("          <span class=\"badge\">Requests: " + requestCount + "</span>");
+        writer.println("          <span class=\"badge\">Mutating fields: " + mutatingCount + "</span>");
+        writer.println("        </summary>");
         writer.println("        <p class=\"folder-path\"><strong>Folder:</strong> <code>" + escapeHtml(folderPath) + "</code></p>");
         
         // Handle single annotation
@@ -221,14 +255,13 @@ public final class HtmlReportGenerator {
             }
         }
         
-        writer.println("      </div>");
+        writer.println("      </details>");
     }
 
     private static void generateAnnotation(PrintWriter writer, JsonNode annotation, Integer annotationIndex) {
-        if (annotationIndex != null) {
-            writer.println("        <div class=\"annotation-section\">");
-            writer.println("          <h5>Annotation " + annotationIndex + "</h5>");
-        }
+        String annotationTitle = annotationIndex != null ? "Annotation " + annotationIndex : "Annotation";
+        writer.println("        <details class=\"annotation-section\">");
+        writer.println("          <summary>" + escapeHtml(annotationTitle) + "</summary>");
         
         // Detected fields and ignore patterns
         if (annotation.has("detectedFields")) {
@@ -292,60 +325,143 @@ public final class HtmlReportGenerator {
             if (requests.isArray() && requests.size() > 0) {
                 writer.println("          <div class=\"requests\">");
                 writer.println("            <h6>Recorded Requests</h6>");
-                writer.println("            <table>");
-                writer.println("              <thead>");
-                writer.println("                <tr>");
-                writer.println("                  <th>Method</th>");
-                writer.println("                  <th>URL</th>");
-                writer.println("                  <th>Count</th>");
-                writer.println("                  <th>Has Body</th>");
-                writer.println("                  <th>Mutating Fields</th>");
-                writer.println("                </tr>");
-                writer.println("              </thead>");
-                writer.println("              <tbody>");
+                writer.println("            <div class=\"requests-table-wrapper\">");
+                writer.println("              <table>");
+                writer.println("                <thead>");
+                writer.println("                  <tr>");
+                writer.println("                    <th>Method</th>");
+                writer.println("                    <th>URL</th>");
+                writer.println("                    <th>Count</th>");
+                writer.println("                    <th>Has Body</th>");
+                writer.println("                    <th>Mutating Fields</th>");
+                writer.println("                    <th>Details</th>");
+                writer.println("                  </tr>");
+                writer.println("                </thead>");
+                writer.println("                <tbody>");
                 
                 for (JsonNode request : requests) {
                     String method = request.has("method") ? request.get("method").asText() : "UNKNOWN";
                     String url = request.has("url") ? request.get("url").asText() : "/unknown";
                     int count = request.has("requestCount") ? request.get("requestCount").asInt() : 0;
                     boolean hasBody = request.has("hasBody") && request.get("hasBody").asBoolean();
+                    String requestFilterText = (method + " " + url).toLowerCase();
                     
-                    writer.println("                <tr>");
-                    writer.println("                  <td><span class=\"method method-" + method.toLowerCase() + "\">" + escapeHtml(method) + "</span></td>");
-                    writer.println("                  <td><code>" + escapeHtml(url) + "</code></td>");
-                    writer.println("                  <td>" + count + "</td>");
-                    writer.println("                  <td>" + (hasBody ? "✓" : "—") + "</td>");
-                    writer.println("                  <td>");
+                    writer.println("                  <tr class=\"request-row\" data-request-text=\"" + escapeHtmlAttribute(requestFilterText) + "\">");
+                    writer.println("                    <td><span class=\"method method-" + method.toLowerCase() + "\">" + escapeHtml(method) + "</span></td>");
+                    writer.println("                    <td><code>" + escapeHtml(url) + "</code></td>");
+                    writer.println("                    <td>" + count + "</td>");
+                    writer.println("                    <td>" + (hasBody ? "✓" : "—") + "</td>");
+                    writer.println("                    <td>");
                     
                     if (request.has("mutatingFields") && request.get("mutatingFields").isArray()) {
                         JsonNode mutatingFields = request.get("mutatingFields");
                         if (mutatingFields.size() > 0) {
-                            writer.println("                    <ul class=\"inline-list\">");
+                            writer.println("                      <ul class=\"inline-list\">");
                             for (JsonNode field : mutatingFields) {
                                 String fieldPath = field.has("fieldPath") ? field.get("fieldPath").asText() : "Unknown";
-                                writer.println("                      <li><code>" + escapeHtml(fieldPath) + "</code></li>");
+                                writer.println("                        <li><code>" + escapeHtml(fieldPath) + "</code></li>");
                             }
-                            writer.println("                    </ul>");
+                            writer.println("                      </ul>");
                         } else {
-                            writer.println("                    —");
+                            writer.println("                      —");
                         }
                     } else {
-                        writer.println("                    —");
+                        writer.println("                      —");
                     }
                     
-                    writer.println("                  </td>");
-                    writer.println("                </tr>");
+                    writer.println("                    </td>");
+                    writer.println("                    <td>");
+                    renderRequestDetails(writer, request);
+                    writer.println("                    </td>");
+                    writer.println("                  </tr>");
                 }
                 
-                writer.println("              </tbody>");
-                writer.println("            </table>");
+                writer.println("                </tbody>");
+                writer.println("              </table>");
+                writer.println("            </div>");
                 writer.println("          </div>");
             }
         }
         
-        if (annotationIndex != null) {
-            writer.println("        </div>");
+        writer.println("        </details>");
+    }
+
+    private static void renderRequestDetails(PrintWriter writer, JsonNode request) {
+        if (!request.has("examples") || !request.get("examples").isArray() || request.get("examples").size() == 0) {
+            writer.println("—");
+            return;
         }
+
+        JsonNode examples = request.get("examples");
+        writer.println("                      <details class=\"request-details\">");
+        writer.println("                        <summary>Request/Response (" + examples.size() + ")</summary>");
+
+        int index = 1;
+        for (JsonNode example : examples) {
+            writer.println("                        <div class=\"request-response-pair\">");
+            if (examples.size() > 1) {
+                writer.println("                          <div class=\"example-title\">Example " + index + "</div>");
+            }
+
+            JsonNode requestNode = example.get("request");
+            writer.println("                          <div class=\"request-block\">");
+            writer.println("                            <div class=\"section-heading\">Request</div>");
+            if (requestNode != null) {
+                renderJsonBlock(writer, "Headers", requestNode.get("headers"));
+                JsonNode requestBodyJson = requestNode.get("bodyJson");
+                String requestBody = requestNode.has("body") ? requestNode.get("body").asText() : null;
+                renderBodyBlock(writer, "Body", requestBodyJson, requestBody);
+            }
+            writer.println("                          </div>");
+
+            JsonNode responseNode = example.get("response");
+            writer.println("                          <div class=\"response-block\">");
+            writer.println("                            <div class=\"section-heading\">Response</div>");
+            if (responseNode != null) {
+                if (responseNode.has("status")) {
+                    int status = responseNode.get("status").asInt();
+                    writer.println("                            <div class=\"status-line\">Status: <span class=\"status-badge "
+                            + statusClass(status) + "\">" + status + "</span></div>");
+                }
+                renderJsonBlock(writer, "Headers", responseNode.get("headers"));
+                JsonNode responseBodyJson = responseNode.get("bodyJson");
+                String responseBody = responseNode.has("body") ? responseNode.get("body").asText() : null;
+                renderBodyBlock(writer, "Body", responseBodyJson, responseBody);
+                if (responseNode.has("bodyFileName")) {
+                    writer.println("                            <div class=\"meta-info\">Body file: <code>"
+                            + escapeHtml(responseNode.get("bodyFileName").asText()) + "</code></div>");
+                }
+            }
+            writer.println("                          </div>");
+
+            writer.println("                        </div>");
+            index++;
+        }
+        writer.println("                      </details>");
+    }
+
+    private static void renderJsonBlock(PrintWriter writer, String title, JsonNode jsonNode) {
+        if (jsonNode == null || jsonNode.isMissingNode() || jsonNode.isNull()) {
+            return;
+        }
+        writer.println("                            <div class=\"request-section\">");
+        writer.println("                              <div class=\"section-title\">" + escapeHtml(title) + "</div>");
+        writer.println("                              <pre><code>" + escapeHtml(prettyPrintJson(jsonNode)) + "</code></pre>");
+        writer.println("                            </div>");
+    }
+
+    private static void renderBodyBlock(PrintWriter writer, String title, JsonNode bodyJson, String bodyText) {
+        if ((bodyJson == null || bodyJson.isMissingNode() || bodyJson.isNull())
+                && (bodyText == null || bodyText.isBlank())) {
+            return;
+        }
+        writer.println("                            <div class=\"request-section\">");
+        writer.println("                              <div class=\"section-title\">" + escapeHtml(title) + "</div>");
+        String body = bodyJson != null && !bodyJson.isMissingNode() && !bodyJson.isNull()
+                ? prettyPrintJson(bodyJson)
+                : tryPrettyPrintJson(bodyText);
+        writer.println("                              <pre><code>" + escapeHtml(body) + "</code></pre>");
+        writer.println("                            </div>");
     }
 
     private static int countRequests(JsonNode testMethod) {
@@ -411,6 +527,42 @@ public final class HtmlReportGenerator {
         return 0;
     }
 
+    private static String prettyPrintJson(JsonNode jsonNode) {
+        try {
+            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
+        } catch (IOException e) {
+            return jsonNode.toString();
+        }
+    }
+
+    private static String tryPrettyPrintJson(String rawText) {
+        if (rawText == null) {
+            return "";
+        }
+        try {
+            JsonNode jsonNode = objectMapper.readTree(rawText);
+            return prettyPrintJson(jsonNode);
+        } catch (IOException e) {
+            return rawText;
+        }
+    }
+
+    private static String statusClass(int status) {
+        if (status >= 200 && status < 300) {
+            return "status-2xx";
+        }
+        if (status >= 300 && status < 400) {
+            return "status-3xx";
+        }
+        if (status >= 400 && status < 500) {
+            return "status-4xx";
+        }
+        if (status >= 500) {
+            return "status-5xx";
+        }
+        return "status-unknown";
+    }
+
     private static String escapeHtml(String text) {
         if (text == null) {
             return "";
@@ -420,6 +572,10 @@ public final class HtmlReportGenerator {
                    .replace(">", "&gt;")
                    .replace("\"", "&quot;")
                    .replace("'", "&#39;");
+    }
+
+    private static String escapeHtmlAttribute(String text) {
+        return escapeHtml(text);
     }
 
     private static String getCssStyles() {
@@ -646,6 +802,43 @@ public final class HtmlReportGenerator {
               -webkit-text-fill-color: transparent;
               background-clip: text;
             }
+
+            .controls {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 12px;
+              align-items: center;
+              margin-bottom: 20px;
+            }
+
+            .control-buttons {
+              display: flex;
+              gap: 10px;
+            }
+
+            .control-button {
+              background: rgba(232, 167, 64, 0.2);
+              color: #F5C97A;
+              border: 1px solid rgba(232, 167, 64, 0.5);
+              padding: 6px 12px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-weight: 600;
+            }
+
+            .control-button:hover {
+              background: rgba(232, 167, 64, 0.35);
+            }
+
+            .filter-input {
+              flex: 1;
+              min-width: 220px;
+              padding: 8px 12px;
+              border-radius: 6px;
+              border: 1px solid rgba(232, 167, 64, 0.4);
+              background: rgba(0, 0, 0, 0.4);
+              color: #d1d5db;
+            }
             
             .test-class {
               margin-bottom: 40px;
@@ -657,26 +850,66 @@ public final class HtmlReportGenerator {
               border-bottom: none;
             }
             
-            .test-class h3 {
+            .test-class > summary,
+            .test-method > summary,
+            .annotation-section > summary,
+            .request-details > summary {
+              list-style: none;
+              display: flex;
+              flex-wrap: wrap;
+              align-items: center;
+              gap: 10px;
+              cursor: pointer;
               color: #E8A740;
-              margin-bottom: 15px;
-              font-size: 1.5em;
               font-weight: bold;
+              padding: 6px 0;
             }
-            
+
+            .test-class > summary::-webkit-details-marker,
+            .test-method > summary::-webkit-details-marker,
+            .annotation-section > summary::-webkit-details-marker,
+            .request-details > summary::-webkit-details-marker {
+              display: none;
+            }
+
+            .test-class > summary::before,
+            .test-method > summary::before,
+            .annotation-section > summary::before,
+            .request-details > summary::before {
+              content: "▸";
+              display: inline-block;
+              margin-right: 6px;
+              transition: transform 0.2s ease;
+            }
+
+            details[open] > summary::before {
+              transform: rotate(90deg);
+            }
+
+            .summary-title {
+              font-size: 1.2em;
+              color: #F5C97A;
+            }
+
+            .badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 4px;
+              padding: 2px 8px;
+              border-radius: 999px;
+              font-size: 0.75em;
+              background: rgba(0, 0, 0, 0.5);
+              border: 1px solid rgba(232, 167, 64, 0.35);
+              color: #d1d5db;
+            }
+
             .test-method {
               margin-left: 20px;
-              margin-bottom: 30px;
-              padding: 20px;
+              margin-bottom: 20px;
+              padding: 16px 20px;
               background: linear-gradient(to bottom right, rgba(160, 111, 62, 0.1), rgba(0, 0, 0, 0.3));
               border-radius: 6px;
               border-left: 4px solid #E8A740;
-            }
-            
-            .test-method h4 {
-              color: #F5C97A;
-              margin-bottom: 10px;
-              font-weight: bold;
             }
             
             .folder-path {
@@ -696,16 +929,10 @@ public final class HtmlReportGenerator {
             
             .annotation-section {
               margin-top: 15px;
-              padding: 15px;
+              padding: 12px 15px 15px;
               background: rgba(0, 0, 0, 0.3);
               border-radius: 4px;
               border: 1px solid rgba(232, 167, 64, 0.2);
-            }
-            
-            .annotation-section h5 {
-              color: #E8A740;
-              margin-bottom: 15px;
-              font-weight: bold;
             }
             
             .mutating-fields, .ignore-patterns, .requests {
@@ -809,6 +1036,9 @@ public final class HtmlReportGenerator {
               text-align: left;
               font-weight: 600;
               border: 1px solid rgba(232, 167, 64, 0.5);
+              position: sticky;
+              top: 0;
+              z-index: 1;
             }
             
             table td {
@@ -886,7 +1116,144 @@ public final class HtmlReportGenerator {
               font-size: 0.9em;
               color: #E8A740;
             }
+
+            .requests-table-wrapper {
+              overflow-x: auto;
+              border-radius: 6px;
+              border: 1px solid rgba(232, 167, 64, 0.2);
+            }
+
+            .request-details {
+              margin-top: 4px;
+            }
+
+            .request-response-pair {
+              margin-top: 10px;
+              padding: 12px;
+              background: rgba(0, 0, 0, 0.35);
+              border-radius: 6px;
+              display: grid;
+              gap: 12px;
+              grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+              border: 1px solid rgba(232, 167, 64, 0.25);
+            }
+
+            .example-title {
+              grid-column: 1 / -1;
+              font-weight: bold;
+              color: #F5C97A;
+            }
+
+            .section-heading {
+              font-weight: bold;
+              margin-bottom: 6px;
+              color: #F5C97A;
+            }
+
+            .request-section {
+              margin-bottom: 10px;
+            }
+
+            .section-title {
+              font-size: 0.85em;
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
+              color: #9ca3af;
+              margin-bottom: 4px;
+            }
+
+            pre {
+              background: rgba(0, 0, 0, 0.5);
+              padding: 10px;
+              border-radius: 6px;
+              overflow-x: auto;
+              border: 1px solid rgba(232, 167, 64, 0.2);
+              white-space: pre-wrap;
+            }
+
+            .status-line {
+              margin-bottom: 8px;
+              color: #9ca3af;
+            }
+
+            .status-badge {
+              padding: 2px 8px;
+              border-radius: 999px;
+              font-weight: bold;
+              margin-left: 6px;
+              font-size: 0.8em;
+            }
+
+            .status-2xx {
+              background: rgba(34, 197, 94, 0.2);
+              color: #4ade80;
+              border: 1px solid rgba(34, 197, 94, 0.4);
+            }
+
+            .status-3xx {
+              background: rgba(59, 130, 246, 0.2);
+              color: #60a5fa;
+              border: 1px solid rgba(59, 130, 246, 0.4);
+            }
+
+            .status-4xx {
+              background: rgba(239, 68, 68, 0.2);
+              color: #f87171;
+              border: 1px solid rgba(239, 68, 68, 0.4);
+            }
+
+            .status-5xx {
+              background: rgba(168, 85, 247, 0.2);
+              color: #a78bfa;
+              border: 1px solid rgba(168, 85, 247, 0.4);
+            }
+
+            .status-unknown {
+              background: rgba(107, 114, 128, 0.2);
+              color: #d1d5db;
+              border: 1px solid rgba(107, 114, 128, 0.4);
+            }
+
+            .is-filtered-out {
+              display: none;
+            }
+            """;
+    }
+
+    private static String getScript() {
+        return """
+            function toggleDetails(expand) {
+              document.querySelectorAll('.test-classes details').forEach((detail) => {
+                detail.open = expand;
+              });
+            }
+
+            function filterReport() {
+              const filterValue = document.getElementById('filterInput').value.toLowerCase().trim();
+              const testMethods = document.querySelectorAll('.test-method');
+              testMethods.forEach((method) => {
+                const methodText = method.dataset.methodText || '';
+                const matchesMethod = !filterValue || methodText.includes(filterValue);
+
+                let hasMatchingRequest = false;
+                method.querySelectorAll('.request-row').forEach((row) => {
+                  const rowText = row.dataset.requestText || '';
+                  const matchRow = !filterValue || rowText.includes(filterValue);
+                  row.classList.toggle('is-filtered-out', !matchRow);
+                  if (matchRow) {
+                    hasMatchingRequest = true;
+                  }
+                });
+
+                const shouldShow = !filterValue || matchesMethod || hasMatchingRequest;
+                method.classList.toggle('is-filtered-out', !shouldShow);
+              });
+
+              document.querySelectorAll('.test-class').forEach((testClass) => {
+                const visibleMethods = testClass.querySelectorAll('.test-method:not(.is-filtered-out)');
+                testClass.classList.toggle('is-filtered-out', visibleMethods.length === 0 && filterValue !== '');
+              });
+            }
             """;
     }
 }
-
