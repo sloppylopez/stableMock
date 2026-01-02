@@ -17,6 +17,7 @@ public final class HtmlReportGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(HtmlReportGenerator.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static int globalRequestDetailsCounter = 0;
 
     private HtmlReportGenerator() {
         // utility class
@@ -47,6 +48,9 @@ public final class HtmlReportGenerator {
      * Generates an HTML report from a JSON report node.
      */
     public static void generateHtmlReport(JsonNode report, File outputHtmlFile) {
+        // Reset global counter for each report generation
+        globalRequestDetailsCounter = 0;
+        
         try {
             // Create parent directories if needed
             File parentDir = outputHtmlFile.getParentFile();
@@ -269,7 +273,7 @@ public final class HtmlReportGenerator {
             
             if (detectedFields.has("dynamic_fields") && detectedFields.get("dynamic_fields").isArray()) {
                 writer.println("          <div class=\"mutating-fields\">");
-                writer.println("            <h6>Mutating Fields</h6>");
+                writer.println("            <h6>Ignore Patterns</h6>");
                 writer.println("            <ul>");
                 
                 for (JsonNode field : detectedFields.get("dynamic_fields")) {
@@ -304,21 +308,6 @@ public final class HtmlReportGenerator {
             }
         }
         
-        // Ignore patterns
-        if (annotation.has("ignorePatterns")) {
-            JsonNode ignorePatterns = annotation.get("ignorePatterns");
-            if (ignorePatterns.isArray() && ignorePatterns.size() > 0) {
-                writer.println("          <div class=\"ignore-patterns\">");
-                writer.println("            <h6>Generated Ignore Patterns</h6>");
-                writer.println("            <ul>");
-                for (JsonNode pattern : ignorePatterns) {
-                    writer.println("              <li><code>" + escapeHtml(pattern.asText()) + "</code></li>");
-                }
-                writer.println("            </ul>");
-                writer.println("          </div>");
-            }
-        }
-        
         // Requests
         if (annotation.has("requests")) {
             JsonNode requests = annotation.get("requests");
@@ -339,14 +328,13 @@ public final class HtmlReportGenerator {
                 writer.println("                </thead>");
                 writer.println("                <tbody>");
                 
-                int requestIndex = 0;
                 for (JsonNode request : requests) {
                     String method = request.has("method") ? request.get("method").asText() : "UNKNOWN";
                     String url = request.has("url") ? request.get("url").asText() : "/unknown";
                     int count = request.has("requestCount") ? request.get("requestCount").asInt() : 0;
                     boolean hasBody = request.has("hasBody") && request.get("hasBody").asBoolean();
                     String requestFilterText = (method + " " + url).toLowerCase();
-                    String detailsId = "request-details-" + requestIndex;
+                    String detailsId = "request-details-" + globalRequestDetailsCounter++;
                     boolean hasExamples = request.has("examples") && request.get("examples").isArray()
                             && request.get("examples").size() > 0;
                     
@@ -393,7 +381,6 @@ public final class HtmlReportGenerator {
                         writer.println("                    </td>");
                         writer.println("                  </tr>");
                     }
-                    requestIndex++;
                 }
                 
                 writer.println("                </tbody>");
@@ -770,8 +757,9 @@ public final class HtmlReportGenerator {
             
             .summary h2 {
               margin-bottom: 20px;
-              font-family: 'Rye', serif;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               font-size: 2em;
+              font-weight: 600;
               background: linear-gradient(to right, #E8A740, #F5C97A);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
@@ -818,8 +806,9 @@ public final class HtmlReportGenerator {
             
             .test-classes h2 {
               margin-bottom: 20px;
-              font-family: 'Rye', serif;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               font-size: 2em;
+              font-weight: 600;
               background: linear-gradient(to right, #E8A740, #F5C97A);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;

@@ -382,11 +382,23 @@ public final class RecordingReportGenerator {
         }
         File filesDir = new File(annotationDir, "__files");
         File bodyFile = new File(filesDir, bodyFileName);
-        if (!bodyFile.exists() || !bodyFile.isFile()) {
-            return null;
-        }
+        
         try {
-            return Files.readString(bodyFile.toPath());
+            File canonicalFilesDir = filesDir.getCanonicalFile();
+            File canonicalBodyFile = bodyFile.getCanonicalFile();
+            String basePath = canonicalFilesDir.getPath();
+            String targetPath = canonicalBodyFile.getPath();
+            
+            if (!targetPath.startsWith(basePath + File.separator) && !targetPath.equals(basePath)) {
+                logger.debug("Rejected response body file outside of base directory: {}", targetPath);
+                return null;
+            }
+            
+            if (!canonicalBodyFile.exists() || !canonicalBodyFile.isFile()) {
+                return null;
+            }
+            
+            return Files.readString(canonicalBodyFile.toPath());
         } catch (IOException e) {
             logger.debug("Failed to read response body file {}: {}", bodyFile.getAbsolutePath(), e.getMessage());
             return null;
@@ -491,7 +503,24 @@ public final class RecordingReportGenerator {
         }
 
         void addExample(ObjectNode example) {
-            this.examples.add(example);
+            if (!isDuplicate(example)) {
+                this.examples.add(example);
+            }
+        }
+
+        private boolean isDuplicate(ObjectNode newExample) {
+            try {
+                String newExampleJson = objectMapper.writeValueAsString(newExample);
+                for (ObjectNode existingExample : examples) {
+                    String existingExampleJson = objectMapper.writeValueAsString(existingExample);
+                    if (newExampleJson.equals(existingExampleJson)) {
+                        return true;
+                    }
+                }
+            } catch (IOException e) {
+                logger.debug("Failed to compare examples for deduplication: {}", e.getMessage());
+            }
+            return false;
         }
     }
 }
