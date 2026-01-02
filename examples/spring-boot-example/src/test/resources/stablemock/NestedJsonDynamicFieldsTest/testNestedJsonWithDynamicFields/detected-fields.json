@@ -1,28 +1,28 @@
 {
   "testClass" : "NestedJsonDynamicFieldsTest",
   "testMethod" : "testNestedJsonWithDynamicFields",
-  "detectedAt" : "2026-01-01T23:27:54.532407300Z",
+  "detectedAt" : "2026-01-02T15:02:52.824331800Z",
   "analyzed_requests_count" : 2,
   "dynamic_fields" : [ {
     "field_path" : "json:order.items[0].metadata.timestamp",
-    "confidence" : "LOW",
-    "sample_values" : [ "2026-01-01T23:27:53.924339800Z", "2026-01-01T23:27:53.382253200Z" ]
+    "confidence" : "MEDIUM",
+    "sample_values" : [ "2026-01-02T15:02:52.262631500Z", "2026-01-02T15:02:51.690751100Z" ]
   }, {
     "field_path" : "json:order.items[0].metadata.sessionId",
-    "confidence" : "LOW",
-    "sample_values" : [ "1b1518c2-aac3-4967-9f87-8251e6d36eef", "b55a8de7-ef92-489f-be7b-ad135800acd5" ]
+    "confidence" : "MEDIUM",
+    "sample_values" : [ "4a87cf9f-24e5-4205-9ffd-2a49ce6f1e4f", "7c67a028-d5e9-4d3c-bfa6-0a76c2288f8d" ]
   }, {
     "field_path" : "json:order.payment.transactionId",
-    "confidence" : "LOW",
-    "sample_values" : [ "190ef298-7239-41fe-9c13-ed7a269274f6", "dc0b17af-a387-427e-8d30-a0c728b40c63" ]
+    "confidence" : "MEDIUM",
+    "sample_values" : [ "e3a7130a-c0d5-40fb-8a39-9cc98643087d", "2482a98c-31ee-4a44-8615-1ce9f47e2a88" ]
   }, {
     "field_path" : "json:order.payment.timestamp",
-    "confidence" : "LOW",
-    "sample_values" : [ "2026-01-01T23:27:53.924339800Z", "2026-01-01T23:27:53.382253200Z" ]
+    "confidence" : "MEDIUM",
+    "sample_values" : [ "2026-01-02T15:02:52.262631500Z", "2026-01-02T15:02:51.690751100Z" ]
   }, {
     "field_path" : "json:requestId",
-    "confidence" : "LOW",
-    "sample_values" : [ "dfd75e05-1914-46b8-a298-706a84e5272c", "a62b1012-0f42-4b74-b60b-79e0a3df155a" ]
+    "confidence" : "MEDIUM",
+    "sample_values" : [ "cc11caf7-15ed-4293-a574-94b7f866d9d2", "91e30f2d-8071-4c99-8637-e3f95895d091" ]
   } ],
   "ignore_patterns" : [ "json:order.items[0].metadata.timestamp", "json:order.items[0].metadata.sessionId", "json:order.payment.transactionId", "json:order.payment.timestamp", "json:requestId" ]
 }
