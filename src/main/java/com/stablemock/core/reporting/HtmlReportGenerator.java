@@ -68,6 +68,7 @@ public final class HtmlReportGenerator {
                 writer.println("  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">");
                 writer.println("  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>");
                 writer.println("  <link href=\"https://fonts.googleapis.com/css2?family=Rye&family=Bebas+Neue&display=swap\" rel=\"stylesheet\">");
+                writer.println("  <link href=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css\" rel=\"stylesheet\">");
                 writer.println("  <style>");
                 writer.println(getCssStyles());
                 writer.println("  </style>");
@@ -78,6 +79,8 @@ public final class HtmlReportGenerator {
                 generateSummary(writer, report);
                 generateTestClasses(writer, report);
 
+                writer.println("  <script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js\"></script>");
+                writer.println("  <script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js\"></script>");
                 writer.println("  <script>");
                 writer.println(getScript());
                 writer.println("  </script>");
@@ -456,7 +459,7 @@ public final class HtmlReportGenerator {
         }
         writer.println("                            <div class=\"request-section\">");
         writer.println("                              <div class=\"section-title\">" + escapeHtml(title) + "</div>");
-        writer.println("                              <pre><code>" + escapeHtml(prettyPrintJson(jsonNode)) + "</code></pre>");
+        writer.println("                              <pre><code class=\"language-json\">" + escapeHtml(prettyPrintJson(jsonNode)) + "</code></pre>");
         writer.println("                            </div>");
     }
 
@@ -470,8 +473,19 @@ public final class HtmlReportGenerator {
         String body = bodyJson != null && !bodyJson.isMissingNode() && !bodyJson.isNull()
                 ? prettyPrintJson(bodyJson)
                 : tryPrettyPrintJson(bodyText);
-        writer.println("                              <pre><code>" + escapeHtml(body) + "</code></pre>");
+        boolean isJson = bodyJson != null || (bodyText != null && isJsonString(bodyText));
+        String codeClass = isJson ? "language-json" : "";
+        writer.println("                              <pre><code class=\"" + codeClass + "\">" + escapeHtml(body) + "</code></pre>");
         writer.println("                            </div>");
+    }
+    
+    private static boolean isJsonString(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        String trimmed = text.trim();
+        return (trimmed.startsWith("{") && trimmed.endsWith("}")) 
+            || (trimmed.startsWith("[") && trimmed.endsWith("]"));
     }
 
     private static int countRequests(JsonNode testMethod) {
@@ -1125,6 +1139,10 @@ public final class HtmlReportGenerator {
               font-size: 0.9em;
               color: #E8A740;
             }
+            
+            pre code[class*="language-"] {
+              color: inherit;
+            }
 
             .requests-table-wrapper {
               overflow-x: auto;
@@ -1218,6 +1236,16 @@ public final class HtmlReportGenerator {
               overflow-x: auto;
               border: 1px solid rgba(232, 167, 64, 0.2);
               white-space: pre-wrap;
+            }
+            
+            pre code {
+              background: transparent;
+              padding: 0;
+              border: none;
+            }
+            
+            pre[class*="language-"] {
+              background: rgba(0, 0, 0, 0.5);
             }
 
             .status-line {
