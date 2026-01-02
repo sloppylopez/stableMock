@@ -9,21 +9,17 @@
 
 <img src="src/test/resources/images/stablemock-logo-transparent-outline.png" alt="StableMock Logo" width="300" height="300">
 
-## 🌾 "StableMock: Where Your Tests Find Their Rest"
-
-Well howdy there, partner. You remember them dusty days of buildin' mocks by hand — ropin' up JSON files, savin' 'em on disk, and prayin' your transaction IDs didn't go changin' on ya. A bolt of fear withdrew me when them flaky tests came gallopin' through — every test felt like a rodeo, and them wild mustangs you couldn't tame.
-
-Don't chase ghost riders in the sky. Just horseshoe your tests with @U and you're ready to ride.
-
-It spins up its own WireMock corral per test decorated, records them calls, runs the test twice, and ropes down any field that keeps wanderin'. No more patchin' or fiddlin' — your mocks just work. So holster that debug log, take off your hat, and let your tests rest easy.
-
-Old-School Grit. New-School Magic.
-
 </div>
 
 ---
 
-A JUnit 5 extension that uses WireMock to record and replay HTTP requests and responses during tests, with support for ignoring dynamic data (timestamps, IDs, tokens).
+**StableMock**
+
+Auto-record APIs to WireMock stubs. JUnit 5. Zero config.
+
+Stop hand-writing mocks for flaky external APIs. StableMock records real HTTP calls during your tests, turns them into WireMock stubs, and replays them reliably — even when request data changes.
+
+Built for JUnit 5. Works offline. Free & open source.
 
 ## Quick Start
 
