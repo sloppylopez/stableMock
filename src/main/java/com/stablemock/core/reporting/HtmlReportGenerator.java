@@ -438,9 +438,44 @@ public final class HtmlReportGenerator {
                 writer.println("                            <div class=\"example-status\">Status: <span class=\"status-badge "
                         + statusClass(status) + "\">" + status + "</span></div>");
             }
-            writer.println("                          </div>");
-
+            
+            // Show body source/file once in header if both request and response come from same file
             JsonNode requestNode = example.get("request");
+            String bodySource = null;
+            String bodyFileName = null;
+            
+            // Check for bodySource (mapping: prefix) first
+            if (requestNode != null && requestNode.has("bodySource")) {
+                String source = requestNode.get("bodySource").asText();
+                if (source.startsWith("mapping:")) {
+                    bodySource = source.substring(8);
+                }
+            } else if (responseNode != null && responseNode.has("bodySource")) {
+                String source = responseNode.get("bodySource").asText();
+                if (source.startsWith("mapping:")) {
+                    bodySource = source.substring(8);
+                }
+            }
+            
+            // If no bodySource, check for bodyFileName
+            if (bodySource == null) {
+                if (requestNode != null && requestNode.has("bodyFileName")) {
+                    bodyFileName = requestNode.get("bodyFileName").asText();
+                } else if (responseNode != null && responseNode.has("bodyFileName")) {
+                    bodyFileName = responseNode.get("bodyFileName").asText();
+                }
+            }
+            
+            // Display in header
+            if (bodySource != null) {
+                writer.println("                            <div class=\"meta-info\">Body source: <code>"
+                        + escapeHtml(bodySource) + "</code> (stored inline)</div>");
+            } else if (bodyFileName != null) {
+                writer.println("                            <div class=\"meta-info\">Body file: <code>"
+                        + escapeHtml(bodyFileName) + "</code></div>");
+            }
+            
+            writer.println("                          </div>");
 
             writer.println("                          <div class=\"headers-block\">");
             writer.println("                            <div class=\"section-heading\">Headers</div>");
@@ -458,16 +493,7 @@ public final class HtmlReportGenerator {
                 JsonNode requestBodyJson = requestNode.get("bodyJson");
                 String requestBody = requestNode.has("body") ? requestNode.get("body").asText() : null;
                 renderBodyBlock(writer, "Body", requestBodyJson, requestBody, mutatingFields, detailsId + "-example-" + index);
-                if (requestNode.has("bodyFileName")) {
-                    writer.println("                            <div class=\"meta-info\">Body file: <code>"
-                            + escapeHtml(requestNode.get("bodyFileName").asText()) + "</code></div>");
-                } else if (requestNode.has("bodySource")) {
-                    String bodySource = requestNode.get("bodySource").asText();
-                    if (bodySource.startsWith("mapping:")) {
-                        writer.println("                            <div class=\"meta-info\">Body source: <code>"
-                                + escapeHtml(bodySource.substring(8)) + "</code> (stored inline)</div>");
-                    }
-                }
+                // bodySource/bodyFileName is now shown once in the example header
             }
             writer.println("                          </div>");
 
@@ -477,16 +503,7 @@ public final class HtmlReportGenerator {
                 JsonNode responseBodyJson = responseNode.get("bodyJson");
                 String responseBody = responseNode.has("body") ? responseNode.get("body").asText() : null;
                 renderBodyBlock(writer, "Body", responseBodyJson, responseBody, null, null);
-                if (responseNode.has("bodyFileName")) {
-                    writer.println("                            <div class=\"meta-info\">Body file: <code>"
-                            + escapeHtml(responseNode.get("bodyFileName").asText()) + "</code></div>");
-                } else if (responseNode.has("bodySource")) {
-                    String bodySource = responseNode.get("bodySource").asText();
-                    if (bodySource.startsWith("mapping:")) {
-                        writer.println("                            <div class=\"meta-info\">Body source: <code>"
-                                + escapeHtml(bodySource.substring(8)) + "</code> (stored inline)</div>");
-                    }
-                }
+                // bodySource/bodyFileName is now shown once in the example header
             }
             writer.println("                          </div>");
 
@@ -1380,6 +1397,11 @@ public final class HtmlReportGenerator {
               white-space: pre-wrap;
             }
             
+            pre.pre-long {
+              overflow-y: auto;
+              max-height: 400px;
+            }
+            
             pre code {
               background: transparent;
               padding: 0;
@@ -1563,6 +1585,22 @@ public final class HtmlReportGenerator {
               });
             }
 
+            function applyLongResponseScrolling() {
+              document.querySelectorAll('pre').forEach((pre) => {
+                const code = pre.querySelector('code');
+                if (!code) return;
+                
+                // Count lines by counting newline characters in text content
+                const text = code.textContent || code.innerText || '';
+                const lineCount = (text.match(/\\n/g) || []).length + 1;
+                
+                // Apply scrolling if more than 26 lines
+                if (lineCount > 26) {
+                  pre.classList.add('pre-long');
+                }
+              });
+            }
+
             function observeAndHighlight() {
               highlightMutatingFields();
               
@@ -1581,9 +1619,11 @@ public final class HtmlReportGenerator {
             if (document.readyState === 'loading') {
               document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(observeAndHighlight, 300);
+                setTimeout(applyLongResponseScrolling, 300);
               });
             } else {
               setTimeout(observeAndHighlight, 300);
+              setTimeout(applyLongResponseScrolling, 300);
             }
 
             if (typeof Prism !== 'undefined') {
