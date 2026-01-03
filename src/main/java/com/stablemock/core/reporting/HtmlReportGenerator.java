@@ -2,13 +2,23 @@ package com.stablemock.core.reporting;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stablemock.core.analysis.XmlBodyParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Generates a human-readable HTML report from the JSON recording report.
@@ -700,58 +710,122 @@ public final class HtmlReportGenerator {
      * Uses regex-based matching for XPath patterns.
      */
     private static String highlightXmlMutatingFields(String xmlText, JsonNode mutatingFields, String anchorPrefix) {
-        String formattedXml = formatXml(xmlText);
-        
-        // First, apply syntax highlighting to XML (tags, attributes, values)
-        String syntaxHighlighted = buildXmlWithSyntaxHighlighting(formattedXml);
-        
         if (mutatingFields == null || !mutatingFields.isArray() || mutatingFields.size() == 0) {
-            return syntaxHighlighted;
+            String formattedXml = formatXml(xmlText);
+            return buildXmlWithSyntaxHighlighting(formattedXml, null, null);
         }
         
-        // Collect XML XPath patterns
-        java.util.List<String> xmlPatterns = new java.util.ArrayList<>();
-        java.util.Map<String, String> patternToAnchorId = new java.util.HashMap<>();
+        // Parse XML into DOM
+        Document doc = XmlBodyParser.parseXml(xmlText);
+        if (doc == null) {
+            // Fallback to plain syntax highlighting if parsing fails
+            String formattedXml = formatXml(xmlText);
+            return buildXmlWithSyntaxHighlighting(formattedXml, null, null);
+        }
+        
+        // Collect XML XPath patterns and find mutating nodes
+        Set<String> mutatingElementPaths = new HashSet<>();
+        Set<String> mutatingAttributePaths = new HashSet<>(); // Format: "elementPath@attrName"
+        java.util.Map<String, String> pathToAnchorId = new java.util.HashMap<>();
+        
+        XPathFactory xpathFactory = XPathFactory.newInstance();
+        XPath xpath = xpathFactory.newXPath();
         
         for (JsonNode field : mutatingFields) {
             if (field.has("fieldPath")) {
                 String fieldPath = field.get("fieldPath").asText();
                 if (fieldPath.startsWith("xml://")) {
                     String xpathPattern = fieldPath.substring(6); // Remove "xml://" prefix
-                    xmlPatterns.add(xpathPattern);
+                    
                     String sanitized = xpathPattern.replace("*", "-").replace("[", "-").replace("]", "-")
                             .replace("(", "-").replace(")", "-").replace("/", "-").replace("@", "-")
                             .replace("=", "-").replace("'", "-").replace("\"", "-").replace(" ", "-");
                     String anchorId = anchorPrefix + "-" + sanitized;
-                    patternToAnchorId.put(xpathPattern, anchorId);
+                    pathToAnchorId.put(xpathPattern, anchorId);
+                    
+                    try {
+                        // Evaluate XPath to find matching nodes
+                        NodeList nodes = (NodeList) xpath.evaluate(xpathPattern, doc, XPathConstants.NODESET);
+                        for (int i = 0; i < nodes.getLength(); i++) {
+                            Node node = nodes.item(i);
+                            if (node.getNodeType() == Node.ATTRIBUTE_NODE) {
+                                // Attribute node
+                                org.w3c.dom.Attr attr = (org.w3c.dom.Attr) node;
+                                Element owner = attr.getOwnerElement();
+                                if (owner != null) {
+                                    String elementPath = buildElementPath(owner);
+                                    String attrPath = elementPath + "@" + attr.getLocalName();
+                                    mutatingAttributePaths.add(attrPath);
+                                }
+                            } else if (node.getNodeType() == Node.ELEMENT_NODE) {
+                                // Element node - mark the element path
+                                Element element = (Element) node;
+                                String elementPath = buildElementPath(element);
+                                mutatingElementPaths.add(elementPath);
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.debug("Failed to evaluate XPath pattern {}: {}", xpathPattern, e.getMessage());
+                    }
                 }
             }
         }
         
-        if (xmlPatterns.isEmpty()) {
-            return syntaxHighlighted;
+        // Format XML and render with mutating field information
+        String formattedXml = formatXml(xmlText);
+        return buildXmlWithSyntaxHighlighting(formattedXml, mutatingElementPaths, mutatingAttributePaths, pathToAnchorId, anchorPrefix);
+    }
+    
+    /**
+     * Builds a path string for an element (e.g., "request/header/timestamp").
+     */
+    private static String buildElementPath(Element element) {
+        java.util.List<String> path = new java.util.ArrayList<>();
+        Node current = element;
+        while (current != null && current.getNodeType() == Node.ELEMENT_NODE) {
+            Element elem = (Element) current;
+            String localName = elem.getLocalName() != null ? elem.getLocalName() : elem.getNodeName();
+            path.add(0, localName);
+            current = elem.getParentNode();
         }
-        
-        // Apply mutating field highlighting on top of syntax highlighting
-        String highlighted = syntaxHighlighted;
-        for (String xpathPattern : xmlPatterns) {
-            highlighted = applyXmlHighlighting(highlighted, xpathPattern, patternToAnchorId.get(xpathPattern));
-        }
-        
-        return highlighted;
+        return String.join("/", path);
     }
     
     /**
      * Builds XML with syntax highlighting (tags, attributes, values in different colors).
+     * Overloaded version without mutating field support (for backward compatibility).
      */
-    private static String buildXmlWithSyntaxHighlighting(String xml) {
+    private static String buildXmlWithSyntaxHighlighting(String xml, Set<String> mutatingElementPaths, Set<String> mutatingAttributePaths) {
+        return buildXmlWithSyntaxHighlighting(xml, mutatingElementPaths, mutatingAttributePaths, null, null);
+    }
+    
+    /**
+     * Builds XML with syntax highlighting (tags, attributes, values in different colors).
+     * If mutatingElementPaths and mutatingAttributePaths are provided, wraps mutating values in red highlighting.
+     */
+    private static String buildXmlWithSyntaxHighlighting(String xml, Set<String> mutatingElementPaths, 
+            Set<String> mutatingAttributePaths, java.util.Map<String, String> pathToAnchorId, String anchorPrefix) {
         if (xml == null || xml.trim().isEmpty()) {
             return escapeHtml(xml);
+        }
+        
+        // Parse XML to track current element path and attributes
+        Document doc = XmlBodyParser.parseXml(xml);
+        java.util.Map<String, String> elementPathToAnchorId = new java.util.HashMap<>();
+        java.util.Map<String, String> attributePathToAnchorId = new java.util.HashMap<>();
+        
+        if (mutatingElementPaths != null && mutatingAttributePaths != null && pathToAnchorId != null && doc != null) {
+            // Build maps from element/attribute paths to anchor IDs
+            buildPathToAnchorIdMaps(doc, mutatingElementPaths, mutatingAttributePaths, pathToAnchorId, 
+                    elementPathToAnchorId, attributePathToAnchorId, anchorPrefix);
         }
         
         // Process line by line to preserve formatting
         String[] lines = xml.split("\n");
         StringBuilder result = new StringBuilder();
+        
+        // Track current element path while rendering
+        String currentElementPath = "";
         
         for (String line : lines) {
             if (line.trim().isEmpty()) {
@@ -772,20 +846,41 @@ public final class HtmlReportGenerator {
                     }
                     
                     String tagContent = line.substring(i, tagEnd + 1);
-                    String highlightedTag = highlightXmlTag(tagContent);
+                    String highlightedTag = highlightXmlTag(tagContent, currentElementPath, 
+                            mutatingElementPaths, mutatingAttributePaths, elementPathToAnchorId, attributePathToAnchorId);
                     highlightedLine.append(highlightedTag);
+                    
+                    // Update current element path (simplified - just track tag name for now)
+                    if (tagContent.startsWith("</")) {
+                        // Closing tag - pop from path
+                        int lastSlash = currentElementPath.lastIndexOf('/');
+                        if (lastSlash >= 0) {
+                            currentElementPath = currentElementPath.substring(0, lastSlash);
+                        } else {
+                            currentElementPath = "";
+                        }
+                    } else if (!tagContent.startsWith("<?") && !tagContent.endsWith("/>")) {
+                        // Opening tag - extract tag name
+                        String tagName = extractTagName(tagContent);
+                        if (tagName != null) {
+                            currentElementPath = currentElementPath.isEmpty() ? tagName : currentElementPath + "/" + tagName;
+                        }
+                    }
+                    
                     i = tagEnd + 1;
                 } else if (i < line.length() && line.charAt(i) != '<') {
                     // Text content between tags
                     int nextTag = line.indexOf('<', i);
                     if (nextTag == -1) {
                         String text = line.substring(i);
-                        highlightedLine.append("<span class=\"xml-text\">").append(escapeHtml(text)).append("</span>");
+                        String highlightedText = highlightXmlText(text, currentElementPath, mutatingElementPaths, elementPathToAnchorId);
+                        highlightedLine.append(highlightedText);
                         break;
                     } else {
                         String text = line.substring(i, nextTag);
                         if (!text.trim().isEmpty()) {
-                            highlightedLine.append("<span class=\"xml-text\">").append(escapeHtml(text)).append("</span>");
+                            String highlightedText = highlightXmlText(text, currentElementPath, mutatingElementPaths, elementPathToAnchorId);
+                            highlightedLine.append(highlightedText);
                         } else {
                             highlightedLine.append(escapeHtml(text));
                         }
@@ -803,9 +898,100 @@ public final class HtmlReportGenerator {
     }
     
     /**
-     * Highlights an XML tag with attributes.
+     * Extracts tag name from a tag string like "<request>" or "<header id='...'>".
      */
-    private static String highlightXmlTag(String tag) {
+    private static String extractTagName(String tag) {
+        if (tag.startsWith("</")) {
+            // Closing tag
+            int end = tag.indexOf('>');
+            if (end > 2) {
+                return tag.substring(2, end).trim();
+            }
+        } else if (tag.startsWith("<")) {
+            // Opening tag
+            int space = tag.indexOf(' ');
+            int end = tag.indexOf('>');
+            int endIndex = (space > 0 && space < end) ? space : end;
+            if (endIndex > 1) {
+                return tag.substring(1, endIndex).trim();
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Builds maps from element/attribute paths to anchor IDs by traversing the DOM.
+     */
+    private static void buildPathToAnchorIdMaps(Document doc, Set<String> mutatingElementPaths, 
+            Set<String> mutatingAttributePaths, java.util.Map<String, String> xpathToAnchorId,
+            java.util.Map<String, String> elementPathToAnchorId, 
+            java.util.Map<String, String> attributePathToAnchorId, String anchorPrefix) {
+        if (doc == null || doc.getDocumentElement() == null) {
+            return;
+        }
+        
+        XPathFactory xpathFactory = XPathFactory.newInstance();
+        XPath xpath = xpathFactory.newXPath();
+        
+        // For each XPath pattern, find matching nodes and map their paths to anchor IDs
+        for (java.util.Map.Entry<String, String> entry : xpathToAnchorId.entrySet()) {
+            String xpathPattern = entry.getKey();
+            String anchorId = entry.getValue();
+            
+            try {
+                NodeList nodes = (NodeList) xpath.evaluate(xpathPattern, doc, XPathConstants.NODESET);
+                for (int i = 0; i < nodes.getLength(); i++) {
+                    Node node = nodes.item(i);
+                    if (node.getNodeType() == Node.ATTRIBUTE_NODE) {
+                        org.w3c.dom.Attr attr = (org.w3c.dom.Attr) node;
+                        Element owner = attr.getOwnerElement();
+                        if (owner != null) {
+                            String elementPath = buildElementPath(owner);
+                            String attrPath = elementPath + "@" + attr.getLocalName();
+                            attributePathToAnchorId.put(attrPath, anchorId);
+                        }
+                    } else if (node.getNodeType() == Node.ELEMENT_NODE) {
+                        Element element = (Element) node;
+                        String elementPath = buildElementPath(element);
+                        elementPathToAnchorId.put(elementPath, anchorId);
+                    }
+                }
+            } catch (Exception e) {
+                logger.debug("Failed to build path map for XPath {}: {}", xpathPattern, e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Highlights XML text content, wrapping in mutating-field-line if it's a mutating field.
+     */
+    private static String highlightXmlText(String text, String currentElementPath, 
+            Set<String> mutatingElementPaths, java.util.Map<String, String> elementPathToAnchorId) {
+        if (text == null || text.trim().isEmpty()) {
+            return escapeHtml(text);
+        }
+        
+        String escaped = escapeHtml(text);
+        if (mutatingElementPaths != null && currentElementPath != null && mutatingElementPaths.contains(currentElementPath)) {
+            String anchorId = elementPathToAnchorId != null ? elementPathToAnchorId.get(currentElementPath) : null;
+            if (anchorId != null) {
+                return "<span class=\"xml-text\"><span id=\"" + escapeHtmlAttribute(anchorId) 
+                        + "\" class=\"mutating-field-line\" data-mutating-field=\"true\">" + escaped + "</span></span>";
+            } else {
+                return "<span class=\"xml-text\"><span class=\"mutating-field-line\" data-mutating-field=\"true\">" + escaped + "</span></span>";
+            }
+        }
+        return "<span class=\"xml-text\">" + escaped + "</span>";
+    }
+    
+    /**
+     * Highlights an XML tag with attributes.
+     * If mutatingAttributePaths is provided, wraps mutating attribute values in red highlighting.
+     */
+    private static String highlightXmlTag(String tag, String currentElementPath, 
+            Set<String> mutatingElementPaths, Set<String> mutatingAttributePaths,
+            java.util.Map<String, String> elementPathToAnchorId, 
+            java.util.Map<String, String> attributePathToAnchorId) {
         if (!tag.startsWith("<") || !tag.endsWith(">")) {
             return escapeHtml(tag);
         }
@@ -836,7 +1022,7 @@ public final class HtmlReportGenerator {
         // Highlight attributes
         if (!attributes.isEmpty()) {
             result.append(" ");
-            result.append(highlightXmlAttributes(attributes));
+            result.append(highlightXmlAttributes(attributes, currentElementPath, mutatingAttributePaths, attributePathToAnchorId));
         }
         
         if (selfClosing) {
@@ -849,8 +1035,10 @@ public final class HtmlReportGenerator {
     
     /**
      * Highlights XML attributes.
+     * If mutatingAttributePaths is provided, wraps mutating attribute values in red highlighting.
      */
-    private static String highlightXmlAttributes(String attributes) {
+    private static String highlightXmlAttributes(String attributes, String currentElementPath,
+            Set<String> mutatingAttributePaths, java.util.Map<String, String> attributePathToAnchorId) {
         // Pattern: name="value" or name='value'
         java.util.regex.Pattern attrPattern = java.util.regex.Pattern.compile("([a-zA-Z][a-zA-Z0-9_-]*)\\s*=\\s*([\"'])([^\"']*)\\2");
         java.util.regex.Matcher matcher = attrPattern.matcher(attributes);
@@ -872,7 +1060,33 @@ public final class HtmlReportGenerator {
             result.append("<span class=\"xml-attrname\">").append(escapeHtml(attrName)).append("</span>");
             result.append("<span class=\"xml-punctuation\">=</span>");
             result.append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
-            result.append("<span class=\"xml-attrvalue\">").append(escapeHtml(attrValue)).append("</span>");
+            
+            // Check if this attribute is mutating
+            boolean isMutating = false;
+            String anchorId = null;
+            if (mutatingAttributePaths != null && currentElementPath != null) {
+                String attrPath = currentElementPath + "@" + attrName;
+                isMutating = mutatingAttributePaths.contains(attrPath);
+                if (isMutating && attributePathToAnchorId != null) {
+                    anchorId = attributePathToAnchorId.get(attrPath);
+                }
+            }
+            
+            if (isMutating) {
+                // Wrap attribute value in mutating-field-line
+                result.append("<span class=\"xml-attrvalue\">");
+                if (anchorId != null) {
+                    result.append("<span id=\"").append(escapeHtmlAttribute(anchorId))
+                            .append("\" class=\"mutating-field-line\" data-mutating-field=\"true\">");
+                } else {
+                    result.append("<span class=\"mutating-field-line\" data-mutating-field=\"true\">");
+                }
+                result.append(escapeHtml(attrValue));
+                result.append("</span></span>");
+            } else {
+                result.append("<span class=\"xml-attrvalue\">").append(escapeHtml(attrValue)).append("</span>");
+            }
+            
             result.append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
             
             lastEnd = matcher.end();
@@ -886,81 +1100,6 @@ public final class HtmlReportGenerator {
         return result.toString();
     }
     
-    /**
-     * Applies highlighting to XML elements/attributes matching an XPath pattern.
-     * Uses regex to find and wrap matching content.
-     */
-    private static String applyXmlHighlighting(String xml, String xpathPattern, String anchorId) {
-        // Extract element name and attribute name from XPath pattern
-        // Pattern: //*[local-name()='request']/*[local-name()='header']/@*[local-name()='attr'] 
-        // or //*[local-name()='request']/*[local-name()='header']/*[local-name()='element']
-        String elementName = null;
-        String attributeName = null;
-        
-        if (xpathPattern.contains("@")) {
-            // Attribute pattern: //*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']
-            String[] parts = xpathPattern.split("/@");
-            if (parts.length == 2) {
-                String elementPart = parts[0];
-                String attrPart = parts[1];
-                
-                // Extract last element name from path: //*[local-name()='request']/*[local-name()='header']
-                // Get the last local-name() match
-                java.util.regex.Pattern elemPattern = java.util.regex.Pattern.compile("local-name\\(\\)='([^']+)'");
-                java.util.regex.Matcher elemMatcher = elemPattern.matcher(elementPart);
-                String lastElement = null;
-                while (elemMatcher.find()) {
-                    lastElement = elemMatcher.group(1);
-                }
-                elementName = lastElement;
-                
-                // Extract attribute name: @*[local-name()='id']
-                java.util.regex.Pattern attrPattern = java.util.regex.Pattern.compile("local-name\\(\\)='([^']+)'");
-                java.util.regex.Matcher attrMatcher = attrPattern.matcher(attrPart);
-                if (attrMatcher.find()) {
-                    attributeName = attrMatcher.group(1);
-                }
-                
-                if (elementName != null && attributeName != null) {
-                    // Find and highlight attribute value in syntax-highlighted XML
-                    // Pattern: <span class="xml-attrname">attrname</span><span class="xml-punctuation">=</span>...<span class="xml-attrvalue">value</span>
-                    String attrRegex = "(<span class=\"xml-attrname\">" + java.util.regex.Pattern.quote(escapeHtml(attributeName)) 
-                            + "</span><span class=\"xml-punctuation\">=</span><span class=\"xml-punctuation\">[\"']</span>)"
-                            + "(<span class=\"xml-attrvalue\">)([^<]+?)(</span>)"
-                            + "(<span class=\"xml-punctuation\">[\"']</span>)";
-                    xml = xml.replaceAll(attrRegex, 
-                            "$1$2<span id=\"" + escapeHtmlAttribute(anchorId) 
-                            + "\" class=\"mutating-field-line\" data-mutating-field=\"true\">$3</span>$4$5");
-                }
-            }
-        } else {
-            // Element pattern: //*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']
-            // Get the last element name
-            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("local-name\\(\\)='([^']+)'");
-            java.util.regex.Matcher matcher = pattern.matcher(xpathPattern);
-            String lastElement = null;
-            while (matcher.find()) {
-                lastElement = matcher.group(1);
-            }
-            elementName = lastElement;
-            
-            if (elementName != null) {
-                // Find and highlight element text content in syntax-highlighted XML
-                // Pattern: ...><span class="xml-text">value</span><...
-                String escapedTagname = escapeHtml(elementName);
-                String elemRegex = "(<span class=\"xml-tagname\">" + java.util.regex.Pattern.quote(escapedTagname) 
-                        + "</span>[^<]*<span class=\"xml-tag\">&gt;</span>)"
-                        + "(<span class=\"xml-text\">)([^<]+?)(</span>)"
-                        + "(<span class=\"xml-tag\">&lt;/</span><span class=\"xml-tagname\">" 
-                        + java.util.regex.Pattern.quote(escapedTagname) + "</span><span class=\"xml-tag\">&gt;</span>)";
-                xml = xml.replaceAll(elemRegex, 
-                        "$1$2<span id=\"" + escapeHtmlAttribute(anchorId) 
-                        + "\" class=\"mutating-field-line\" data-mutating-field=\"true\">$3</span>$4$5");
-            }
-        }
-        
-        return xml;
-    }
     
     /**
      * Formats XML with proper indentation.
