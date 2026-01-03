@@ -1,5 +1,5 @@
 {
-  "id" : "0c2c78ca-3de2-45f1-a125-6c981caf1bae",
+  "id" : "13d52db8-4f28-425f-ab37-7c80bf87b7e4",
   "name" : "graphql",
   "request" : {
     "url" : "/graphql",
@@ -14,15 +14,15 @@
     "status" : 200,
     "body" : "{\"data\":{\"country\":{\"capital\":\"Washington D.C.\",\"name\":\"United States\"}}}",
     "headers" : {
-      "date" : "Tue, 30 Dec 2025 21:50:47 GMT",
-      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=44;refill=29",
+      "date" : "Tue, 30 Dec 2025 21:16:07 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=44;refill=31",
       "vary" : "accept-encoding",
       "stellate-rate-limit-decision" : "pass",
       "access-control-allow-headers" : "*",
       "gcdn-cache" : "HIT",
-      "x-served-by" : "cache-muc13950-MUC",
+      "x-served-by" : "cache-par-lfpb1150053-PAR",
       "stellate-rate-limit-budget-required" : "6",
-      "x-cache-hits" : "30",
+      "x-cache-hits" : "111",
       "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
       "access-control-expose-headers" : "*",
       "access-control-allow-origin" : "*",
@@ -35,10 +35,10 @@
       "cache-control" : "public, s-maxage=2628000, stale-while-revalidate=2628000",
       "alt-svc" : "h3=\":443\"; ma=86400",
       "accept-ranges" : "bytes",
-      "age" : "330800"
+      "age" : "335122"
     }
   },
-  "uuid" : "0c2c78ca-3de2-45f1-a125-6c981caf1bae",
+  "uuid" : "13d52db8-4f28-425f-ab37-7c80bf87b7e4",
   "persistent" : true,
-  "insertionIndex" : 0
+  "insertionIndex" : 1
 }
