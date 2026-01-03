@@ -43,10 +43,12 @@ class PureJUnitTest {
             assertNotNull(response.body(), "Response body should not be null");
             assertTrue(response.body().contains("\"id\": 1") || response.body().contains("\"id\":1"), 
                     "Response should contain user id 1");
-        } catch (java.net.ConnectException e) {
-            fail("Failed to connect to WireMock at " + baseUrl + ". Make sure WireMock is running. Error: " + e.getMessage());
         } catch (java.io.IOException e) {
-            fail("HTTP request failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            if (e instanceof java.net.ConnectException) {
+                fail("Failed to connect to WireMock at " + baseUrl + ". Make sure WireMock is running. Error: " + e.getMessage());
+            } else {
+                fail("HTTP request failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            }
         } catch (Exception e) {
             fail("Unexpected error: " + e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage() : e.toString()));
         }

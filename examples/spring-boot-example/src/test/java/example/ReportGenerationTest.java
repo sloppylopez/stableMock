@@ -50,7 +50,7 @@ class ReportGenerationTest extends BaseStableMockTest {
             // Reports are generated after all tests complete, so we can't assert existence here
             // But we can verify the directory structure exists
             File stablemockDir = new File(testResourcesDir, "stablemock");
-            assertTrue(stablemockDir.exists() || stablemockDir.isDirectory(), 
+            assertTrue(stablemockDir.exists() && stablemockDir.isDirectory(), 
                     "StableMock directory should exist");
             
             // Verify test class directory exists
