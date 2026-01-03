@@ -1403,6 +1403,10 @@ public final class HtmlReportGenerator {
             return folderPath;
         }
         
+        // Detect original separator style
+        boolean usesBackslash = folderPath.contains("\\");
+        String separator = usesBackslash ? "\\" : "/";
+        
         // Normalize path separators to forward slash for processing
         String normalized = folderPath.replace("\\", "/");
         
@@ -1411,16 +1415,22 @@ public final class HtmlReportGenerator {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         
-        // Split by forward slash
-        String[] segments = normalized.split("/");
+        // Split by forward slash and filter out empty segments
+        String[] allSegments = normalized.split("/");
+        java.util.List<String> segments = new java.util.ArrayList<>();
+        for (String segment : allSegments) {
+            if (segment != null && !segment.trim().isEmpty()) {
+                segments.add(segment);
+            }
+        }
         
         // If we have 2 or fewer segments, return as is
-        if (segments.length <= 2) {
+        if (segments.size() <= 2) {
             return folderPath;
         }
         
-        // Return last 2 segments joined with backslash
-        return segments[segments.length - 2] + "\\" + segments[segments.length - 1];
+        // Return last 2 segments joined with original separator
+        return segments.get(segments.size() - 2) + separator + segments.get(segments.size() - 1);
     }
 
     private static String getCssStyles() {
