@@ -188,7 +188,7 @@ public final class RecordingReportGenerator {
                             requestInfo.incrementCount();
 
                             JsonNode responseNode = mappingJson.get("response");
-                            ObjectNode exampleNode = buildRequestExample(requestNode, responseNode, annotationDir);
+                            ObjectNode exampleNode = buildRequestExample(requestNode, responseNode, annotationDir, mappingFile);
                             if (exampleNode != null) {
                                 requestInfo.addExample(exampleNode);
                             }
@@ -287,16 +287,38 @@ public final class RecordingReportGenerator {
         return "/unknown";
     }
 
-    private static ObjectNode buildRequestExample(JsonNode requestNode, JsonNode responseNode, File annotationDir) {
+    private static ObjectNode buildRequestExample(JsonNode requestNode, JsonNode responseNode, File annotationDir, File mappingFile) {
         if (requestNode == null && responseNode == null) {
             return null;
         }
 
         ObjectNode exampleNode = objectMapper.createObjectNode();
+        
+        // Store mapping file name for reference
+        if (mappingFile != null) {
+            exampleNode.put("mappingFile", mappingFile.getName());
+        }
         if (requestNode != null) {
             ObjectNode requestExample = exampleNode.putObject("request");
             if (requestNode.has("headers") && requestNode.get("headers").isObject()) {
                 requestExample.set("headers", requestNode.get("headers"));
+            }
+
+            // Always preserve bodyFileName if it exists, even if body is also present
+            if (requestNode.has("bodyFileName")) {
+                String bodyFileName = requestNode.get("bodyFileName").asText();
+                requestExample.put("bodyFileName", bodyFileName);
+                // If body is not present, read from file
+                if (!requestNode.has("body") && !requestNode.has("bodyPatterns")) {
+                    String fileContents = readBodyFile(annotationDir, bodyFileName);
+                    if (fileContents != null) {
+                        requestExample.put("body", fileContents);
+                        JsonNode requestBodyJson = parseJsonSafely(fileContents);
+                        if (requestBodyJson != null) {
+                            requestExample.set("bodyJson", requestBodyJson);
+                        }
+                    }
+                }
             }
 
             String requestBody = extractRequestBody(requestNode);
@@ -305,6 +327,19 @@ public final class RecordingReportGenerator {
                 JsonNode requestBodyJson = parseJsonSafely(requestBody);
                 if (requestBodyJson != null) {
                     requestExample.set("bodyJson", requestBodyJson);
+                }
+                
+                // If bodyFileName is not set, try to find a matching file
+                if (!requestNode.has("bodyFileName")) {
+                    String matchingFileName = findMatchingBodyFile(annotationDir, requestBody);
+                    if (matchingFileName != null) {
+                        requestExample.put("bodyFileName", matchingFileName);
+                    } else {
+                        // Body is stored inline in the mapping file
+                        if (mappingFile != null) {
+                            requestExample.put("bodySource", "mapping:" + mappingFile.getName());
+                        }
+                    }
                 }
             }
         }
@@ -318,24 +353,50 @@ public final class RecordingReportGenerator {
                 responseExample.set("headers", responseNode.get("headers"));
             }
 
+            // Always preserve bodyFileName if it exists, even if body/jsonBody is also present
+            if (responseNode.has("bodyFileName")) {
+                String bodyFileName = responseNode.get("bodyFileName").asText();
+                responseExample.put("bodyFileName", bodyFileName);
+                // If body/jsonBody is not present, read from file
+                if (!responseNode.has("jsonBody") && !responseNode.has("body")) {
+                    String fileContents = readBodyFile(annotationDir, bodyFileName);
+                    if (fileContents != null) {
+                        responseExample.put("body", fileContents);
+                        JsonNode bodyJson = parseJsonSafely(fileContents);
+                        if (bodyJson != null) {
+                            responseExample.set("bodyJson", bodyJson);
+                        }
+                    }
+                }
+            }
+            
+            String responseBody = null;
             if (responseNode.has("jsonBody")) {
-                responseExample.set("bodyJson", responseNode.get("jsonBody"));
+                JsonNode jsonBody = responseNode.get("jsonBody");
+                responseExample.set("bodyJson", jsonBody);
+                try {
+                    responseBody = objectMapper.writeValueAsString(jsonBody);
+                } catch (IOException e) {
+                    responseBody = jsonBody.toString();
+                }
             } else if (responseNode.has("body")) {
-                String body = responseNode.get("body").asText();
-                responseExample.put("body", body);
-                JsonNode bodyJson = parseJsonSafely(body);
+                responseBody = responseNode.get("body").asText();
+                responseExample.put("body", responseBody);
+                JsonNode bodyJson = parseJsonSafely(responseBody);
                 if (bodyJson != null) {
                     responseExample.set("bodyJson", bodyJson);
                 }
-            } else if (responseNode.has("bodyFileName")) {
-                String bodyFileName = responseNode.get("bodyFileName").asText();
-                responseExample.put("bodyFileName", bodyFileName);
-                String fileContents = readBodyFile(annotationDir, bodyFileName);
-                if (fileContents != null) {
-                    responseExample.put("body", fileContents);
-                    JsonNode bodyJson = parseJsonSafely(fileContents);
-                    if (bodyJson != null) {
-                        responseExample.set("bodyJson", bodyJson);
+            }
+            
+            // If bodyFileName is not set, try to find a matching file
+            if (!responseNode.has("bodyFileName") && responseBody != null) {
+                String matchingFileName = findMatchingBodyFile(annotationDir, responseBody);
+                if (matchingFileName != null) {
+                    responseExample.put("bodyFileName", matchingFileName);
+                } else {
+                    // Body is stored inline in the mapping file
+                    if (mappingFile != null) {
+                        responseExample.put("bodySource", "mapping:" + mappingFile.getName());
                     }
                 }
             }
@@ -402,6 +463,85 @@ public final class RecordingReportGenerator {
         } catch (IOException e) {
             logger.debug("Failed to read response body file {}: {}", bodyFile.getAbsolutePath(), e.getMessage());
             return null;
+        }
+    }
+    
+    private static String findMatchingBodyFile(File annotationDir, String bodyContent) {
+        if (annotationDir == null || bodyContent == null || bodyContent.isBlank()) {
+            return null;
+        }
+        
+        // Normalize body content for comparison (handle JSON formatting differences)
+        String normalizedBody = normalizeBodyContent(bodyContent);
+        
+        // Check multiple possible locations for body files
+        java.util.List<File> possibleDirs = new java.util.ArrayList<>();
+        
+        // Primary location: annotationDir/__files
+        File filesDir = new File(annotationDir, "__files");
+        if (filesDir.exists() && filesDir.isDirectory()) {
+            possibleDirs.add(filesDir);
+        }
+        
+        // Check parent directories (for cases where files might be at class or base level)
+        File parentDir = annotationDir.getParentFile();
+        if (parentDir != null) {
+            File parentFilesDir = new File(parentDir, "__files");
+            if (parentFilesDir.exists() && parentFilesDir.isDirectory()) {
+                possibleDirs.add(parentFilesDir);
+            }
+            
+            // Check base directory
+            File baseDir = parentDir.getParentFile();
+            if (baseDir != null) {
+                File baseFilesDir = new File(baseDir, "__files");
+                if (baseFilesDir.exists() && baseFilesDir.isDirectory()) {
+                    possibleDirs.add(baseFilesDir);
+                }
+            }
+        }
+        
+        // Search all possible directories
+        for (File dir : possibleDirs) {
+            File[] files = dir.listFiles();
+            if (files == null) {
+                continue;
+            }
+            
+            for (File file : files) {
+                if (!file.isFile()) {
+                    continue;
+                }
+                
+                try {
+                    String fileContent = Files.readString(file.toPath());
+                    String normalizedFileContent = normalizeBodyContent(fileContent);
+                    
+                    if (normalizedBody.equals(normalizedFileContent)) {
+                        return file.getName();
+                    }
+                } catch (IOException e) {
+                    // Skip files we can't read
+                    continue;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    private static String normalizeBodyContent(String content) {
+        if (content == null) {
+            return "";
+        }
+        
+        // Try to parse as JSON and re-serialize to normalize formatting
+        try {
+            JsonNode jsonNode = objectMapper.readTree(content);
+            return objectMapper.writeValueAsString(jsonNode);
+        } catch (IOException e) {
+            // Not JSON, return trimmed content
+            return content.trim();
         }
     }
 

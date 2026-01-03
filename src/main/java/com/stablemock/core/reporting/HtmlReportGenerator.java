@@ -460,6 +460,16 @@ public final class HtmlReportGenerator {
                 JsonNode requestBodyJson = requestNode.get("bodyJson");
                 String requestBody = requestNode.has("body") ? requestNode.get("body").asText() : null;
                 renderBodyBlock(writer, "Body", requestBodyJson, requestBody, mutatingFields, detailsId + "-example-" + index);
+                if (requestNode.has("bodyFileName")) {
+                    writer.println("                            <div class=\"meta-info\">Body file: <code>"
+                            + escapeHtml(requestNode.get("bodyFileName").asText()) + "</code></div>");
+                } else if (requestNode.has("bodySource")) {
+                    String bodySource = requestNode.get("bodySource").asText();
+                    if (bodySource.startsWith("mapping:")) {
+                        writer.println("                            <div class=\"meta-info\">Body source: <code>"
+                                + escapeHtml(bodySource.substring(8)) + "</code> (stored inline)</div>");
+                    }
+                }
             }
             writer.println("                          </div>");
 
@@ -472,6 +482,12 @@ public final class HtmlReportGenerator {
                 if (responseNode.has("bodyFileName")) {
                     writer.println("                            <div class=\"meta-info\">Body file: <code>"
                             + escapeHtml(responseNode.get("bodyFileName").asText()) + "</code></div>");
+                } else if (responseNode.has("bodySource")) {
+                    String bodySource = responseNode.get("bodySource").asText();
+                    if (bodySource.startsWith("mapping:")) {
+                        writer.println("                            <div class=\"meta-info\">Body source: <code>"
+                                + escapeHtml(bodySource.substring(8)) + "</code> (stored inline)</div>");
+                    }
                 }
             }
             writer.println("                          </div>");
@@ -1450,26 +1466,6 @@ public final class HtmlReportGenerator {
               display: none;
             }
 
-            .mutating-field-value {
-              color: #f87171 !important;
-              background-color: rgba(239, 68, 68, 0.15) !important;
-              padding: 2px 4px;
-              border-radius: 3px;
-              font-weight: bold;
-            }
-
-            pre code .mutating-field-value,
-            code .mutating-field-value,
-            .language-json .mutating-field-value,
-            pre[class*="language-"] code .mutating-field-value,
-            .token .mutating-field-value,
-            span.mutating-field-value {
-              color: #f87171 !important;
-              background-color: rgba(239, 68, 68, 0.15) !important;
-              padding: 2px 4px !important;
-              border-radius: 3px !important;
-              font-weight: bold !important;
-            }
 
             code.json-no-prism {
               color: #d1d5db;
@@ -1499,30 +1495,14 @@ public final class HtmlReportGenerator {
               color: #d1d5db;
             }
 
-            code.json-no-prism .mutating-field-line {
+            .mutating-field-line {
               background-color: rgba(239, 68, 68, 0.15) !important;
               padding: 2px 4px !important;
               border-radius: 3px !important;
               display: inline !important;
               border-left: 3px solid #f87171 !important;
               margin: 0 !important;
-              margin-top: 0 !important;
-              margin-bottom: 0 !important;
-              padding-top: 0 !important;
-              padding-bottom: 0 !important;
               vertical-align: baseline !important;
-            }
-
-            code.json-no-prism .mutating-field-line * {
-              color: #f87171 !important;
-            }
-
-            .mutating-field-line {
-              background-color: rgba(239, 68, 68, 0.15) !important;
-              padding: 2px 4px !important;
-              border-radius: 3px !important;
-              display: inline-block !important;
-              border-left: 3px solid #f87171 !important;
             }
 
             .mutating-field-line *,
@@ -1542,14 +1522,6 @@ public final class HtmlReportGenerator {
               color: #f87171 !important;
             }
 
-            .mutating-field-value {
-              color: #f87171 !important;
-              background-color: rgba(239, 68, 68, 0.15) !important;
-              padding: 2px 4px !important;
-              border-radius: 3px !important;
-              font-weight: bold !important;
-              display: inline-block !important;
-            }
 
             .field-link {
               color: #E8A740;
@@ -1612,69 +1584,15 @@ public final class HtmlReportGenerator {
             }
 
             function highlightMutatingFields() {
-              document.querySelectorAll('.mutating-field-line, .mutating-field-value').forEach((span) => {
-                span.style.setProperty('background-color', 'rgba(239, 68, 68, 0.15)', 'important');
-                span.style.setProperty('padding', '2px 4px', 'important');
-                span.style.setProperty('border-radius', '3px', 'important');
-                if (span.classList.contains('mutating-field-line')) {
-                  span.style.setProperty('border-left', '3px solid #f87171', 'important');
-                }
-                
+              document.querySelectorAll('.mutating-field-line').forEach((span) => {
                 const tokens = span.querySelectorAll('.token');
                 tokens.forEach((token) => {
                   token.style.setProperty('color', '#f87171', 'important');
-                  token.style.removeProperty('background');
-                  token.classList.remove('token');
-                  token.classList.add('mutating-token');
                 });
-                
-                const allChildren = span.querySelectorAll('*');
-                allChildren.forEach((child) => {
-                  if (child.classList.contains('token')) {
-                    child.style.setProperty('color', '#f87171', 'important');
-                    child.style.setProperty('background-color', 'transparent', 'important');
-                  } else {
-                    child.style.setProperty('color', '#f87171', 'important');
-                  }
-                });
-                
-                const walker = document.createTreeWalker(span, NodeFilter.SHOW_ELEMENT);
-                let node;
-                while (node = walker.nextNode()) {
-                  if (node.classList && node.classList.contains('token')) {
-                    node.style.setProperty('color', '#f87171', 'important');
-                    node.style.setProperty('background-color', 'transparent', 'important');
-                  }
-                }
               });
             }
 
-            function injectMutatingFieldStyles() {
-              const style = document.createElement('style');
-              style.textContent = `
-                .mutating-field-line .token.string,
-                .mutating-field-line .token.property,
-                .mutating-field-line .token.punctuation,
-                .mutating-field-line .token.number,
-                .mutating-field-line .token.boolean,
-                .mutating-field-line .token.null,
-                .mutating-field-line .token.operator,
-                .mutating-field-line .token {
-                  color: #f87171 !important;
-                }
-                .mutating-field-line {
-                  background-color: rgba(239, 68, 68, 0.15) !important;
-                  border-left: 3px solid #f87171 !important;
-                  padding: 2px 4px !important;
-                  border-radius: 3px !important;
-                  display: inline-block !important;
-                }
-              `;
-              document.head.appendChild(style);
-            }
-
             function observeAndHighlight() {
-              injectMutatingFieldStyles();
               highlightMutatingFields();
               
               const observer = new MutationObserver(function(mutations) {
@@ -1684,9 +1602,7 @@ public final class HtmlReportGenerator {
               document.querySelectorAll('pre code').forEach((code) => {
                 observer.observe(code, {
                   childList: true,
-                  subtree: true,
-                  attributes: true,
-                  attributeFilter: ['class']
+                  subtree: true
                 });
               });
             }
@@ -1694,42 +1610,22 @@ public final class HtmlReportGenerator {
             if (document.readyState === 'loading') {
               document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(observeAndHighlight, 300);
-                setInterval(highlightMutatingFields, 300);
               });
             } else {
               setTimeout(observeAndHighlight, 300);
-              setInterval(highlightMutatingFields, 300);
             }
 
             if (typeof Prism !== 'undefined') {
-              const originalHighlight = Prism.highlight;
-              Prism.highlight = function(element, grammar, language) {
-                const result = originalHighlight.call(this, element, grammar, language);
-                setTimeout(function() {
-                  injectMutatingFieldStyles();
-                  highlightMutatingFields();
-                }, 150);
-                return result;
-              };
-              
               const originalHighlightAll = Prism.highlightAll;
               if (originalHighlightAll) {
                 Prism.highlightAll = function(async, callback, container) {
                   const result = originalHighlightAll.call(this, async, callback, container);
-                  setTimeout(function() {
-                    injectMutatingFieldStyles();
-                    highlightMutatingFields();
-                  }, 300);
+                  setTimeout(highlightMutatingFields, 300);
                   return result;
                 };
               }
               
-              setTimeout(function() {
-                injectMutatingFieldStyles();
-                highlightMutatingFields();
-              }, 500);
-            } else {
-              setTimeout(observeAndHighlight, 100);
+              setTimeout(highlightMutatingFields, 500);
             }
             """;
     }
