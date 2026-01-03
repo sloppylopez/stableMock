@@ -2,13 +2,23 @@ package com.stablemock.core.reporting;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stablemock.core.analysis.XmlBodyParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Generates a human-readable HTML report from the JSON recording report.
@@ -81,6 +91,7 @@ public final class HtmlReportGenerator {
 
                 writer.println("  <script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js\"></script>");
                 writer.println("  <script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js\"></script>");
+                writer.println("  <script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js\"></script>");
                 writer.println("  <script>");
                 writer.println(getScript());
                 writer.println("  </script>");
@@ -297,12 +308,21 @@ public final class HtmlReportGenerator {
                 
                 for (JsonNode field : detectedFields.get("dynamic_fields")) {
                     String fieldPath = field.has("field_path") ? field.get("field_path").asText() : "Unknown";
-                    String jsonPath = fieldPath.startsWith("json:") ? fieldPath.substring(5) : fieldPath;
+                    // Extract path for anchor ID generation (remove prefix for JSON, keep full path for XML/others)
+                    String pathForAnchor = fieldPath;
+                    if (fieldPath.startsWith("json:")) {
+                        pathForAnchor = fieldPath.substring(5);
+                    } else if (fieldPath.startsWith("xml://")) {
+                        // For XML, use the full XPath but sanitize it for anchor ID
+                        pathForAnchor = fieldPath;
+                    }
                     
                     // Generate anchor ID that matches the one in request body
                     String anchorId = null;
                     if (firstRequestDetailsId != null) {
-                        anchorId = firstRequestDetailsId + "-example-1-" + jsonPath.replace(".", "-").replace(":", "-");
+                        // Sanitize path for anchor ID (replace special chars with dashes)
+                        String sanitizedPath = pathForAnchor.replace(".", "-").replace(":", "-").replace("/", "-").replace("*", "-").replace("[", "-").replace("]", "-").replace("(", "-").replace(")", "-").replace("@", "-").replace("=", "-");
+                        anchorId = firstRequestDetailsId + "-example-1-" + sanitizedPath;
                     }
                     
                     writer.println("              <li>");
@@ -438,9 +458,44 @@ public final class HtmlReportGenerator {
                 writer.println("                            <div class=\"example-status\">Status: <span class=\"status-badge "
                         + statusClass(status) + "\">" + status + "</span></div>");
             }
-            writer.println("                          </div>");
-
+            
+            // Show body source/file once in header if both request and response come from same file
             JsonNode requestNode = example.get("request");
+            String bodySource = null;
+            String bodyFileName = null;
+            
+            // Check for bodySource (mapping: prefix) first
+            if (requestNode != null && requestNode.has("bodySource")) {
+                String source = requestNode.get("bodySource").asText();
+                if (source.startsWith("mapping:")) {
+                    bodySource = source.substring(8);
+                }
+            } else if (responseNode != null && responseNode.has("bodySource")) {
+                String source = responseNode.get("bodySource").asText();
+                if (source.startsWith("mapping:")) {
+                    bodySource = source.substring(8);
+                }
+            }
+            
+            // If no bodySource, check for bodyFileName
+            if (bodySource == null) {
+                if (requestNode != null && requestNode.has("bodyFileName")) {
+                    bodyFileName = requestNode.get("bodyFileName").asText();
+                } else if (responseNode != null && responseNode.has("bodyFileName")) {
+                    bodyFileName = responseNode.get("bodyFileName").asText();
+                }
+            }
+            
+            // Display in header
+            if (bodySource != null) {
+                writer.println("                            <div class=\"meta-info\">Body source: <code>"
+                        + escapeHtml(bodySource) + "</code> (stored inline)</div>");
+            } else if (bodyFileName != null) {
+                writer.println("                            <div class=\"meta-info\">Body file: <code>"
+                        + escapeHtml(bodyFileName) + "</code></div>");
+            }
+            
+            writer.println("                          </div>");
 
             writer.println("                          <div class=\"headers-block\">");
             writer.println("                            <div class=\"section-heading\">Headers</div>");
@@ -458,16 +513,7 @@ public final class HtmlReportGenerator {
                 JsonNode requestBodyJson = requestNode.get("bodyJson");
                 String requestBody = requestNode.has("body") ? requestNode.get("body").asText() : null;
                 renderBodyBlock(writer, "Body", requestBodyJson, requestBody, mutatingFields, detailsId + "-example-" + index);
-                if (requestNode.has("bodyFileName")) {
-                    writer.println("                            <div class=\"meta-info\">Body file: <code>"
-                            + escapeHtml(requestNode.get("bodyFileName").asText()) + "</code></div>");
-                } else if (requestNode.has("bodySource")) {
-                    String bodySource = requestNode.get("bodySource").asText();
-                    if (bodySource.startsWith("mapping:")) {
-                        writer.println("                            <div class=\"meta-info\">Body source: <code>"
-                                + escapeHtml(bodySource.substring(8)) + "</code> (stored inline)</div>");
-                    }
-                }
+                // bodySource/bodyFileName is now shown once in the example header
             }
             writer.println("                          </div>");
 
@@ -477,16 +523,7 @@ public final class HtmlReportGenerator {
                 JsonNode responseBodyJson = responseNode.get("bodyJson");
                 String responseBody = responseNode.has("body") ? responseNode.get("body").asText() : null;
                 renderBodyBlock(writer, "Body", responseBodyJson, responseBody, null, null);
-                if (responseNode.has("bodyFileName")) {
-                    writer.println("                            <div class=\"meta-info\">Body file: <code>"
-                            + escapeHtml(responseNode.get("bodyFileName").asText()) + "</code></div>");
-                } else if (responseNode.has("bodySource")) {
-                    String bodySource = responseNode.get("bodySource").asText();
-                    if (bodySource.startsWith("mapping:")) {
-                        writer.println("                            <div class=\"meta-info\">Body source: <code>"
-                                + escapeHtml(bodySource.substring(8)) + "</code> (stored inline)</div>");
-                    }
-                }
+                // bodySource/bodyFileName is now shown once in the example header
             }
             writer.println("                          </div>");
 
@@ -516,15 +553,54 @@ public final class HtmlReportGenerator {
                 ? prettyPrintJson(bodyJson)
                 : tryPrettyPrintJson(bodyText);
         boolean isJson = bodyJson != null || (bodyText != null && isJsonString(bodyText));
-        boolean hasMutatingFields = mutatingFields != null && mutatingFields.isArray() && mutatingFields.size() > 0 && bodyJson != null && anchorPrefix != null;
+        boolean isXml = bodyText != null && isXmlString(bodyText);
+        // Check if we have mutating fields - for JSON we need bodyJson, for XML we can use bodyText
+        boolean hasMutatingFields = mutatingFields != null && mutatingFields.isArray() && mutatingFields.size() > 0 && anchorPrefix != null
+                && (bodyJson != null || bodyText != null);
         
-        // Highlight mutating fields if provided
-        if (hasMutatingFields) {
-            body = highlightMutatingFields(body, bodyJson, mutatingFields, anchorPrefix);
+        // Debug logging for XML mutating fields
+        if (logger.isDebugEnabled() && isXml && mutatingFields != null && mutatingFields.isArray()) {
+            int xmlFieldCount = 0;
+            for (JsonNode field : mutatingFields) {
+                if (field.has("fieldPath")) {
+                    String fieldPath = field.get("fieldPath").asText();
+                    if (fieldPath.startsWith("xml:") || fieldPath.startsWith("xml://")) {
+                        xmlFieldCount++;
+                    }
+                }
+            }
+            logger.debug("XML body detected: isXml={}, hasMutatingFields={}, mutatingFields.size()={}, xmlFieldCount={}, anchorPrefix={}", 
+                    isXml, hasMutatingFields, mutatingFields.size(), xmlFieldCount, anchorPrefix);
         }
         
-        // Don't use Prism for code blocks with mutating fields - use our own styling instead
-        String codeClass = (isJson && !hasMutatingFields) ? "language-json" : (isJson ? "json-no-prism" : "");
+        // Highlight mutating fields if provided
+        if (hasMutatingFields && bodyJson != null) {
+            body = highlightMutatingFields(body, bodyJson, mutatingFields, anchorPrefix);
+        } else if (hasMutatingFields && isXml && bodyText != null) {
+            // For XML bodies, highlight mutating fields
+            body = highlightXmlMutatingFields(bodyText, mutatingFields, anchorPrefix);
+        } else if (isXml && bodyText != null) {
+            // For XML bodies without mutating fields, format and highlight syntax
+            String formattedXml = formatXml(bodyText);
+            body = buildXmlWithSyntaxHighlighting(formattedXml, null, null);
+        } else if (bodyText != null) {
+            // For plain text bodies, just escape HTML
+            body = escapeHtml(body);
+        }
+        
+        // Determine code class: use Prism for JSON/XML without mutating fields, custom styling with mutating fields
+        // Note: XML always uses xml-no-prism when buildXmlWithSyntaxHighlighting is used (with or without mutating fields)
+        String codeClass;
+        if (isJson && !hasMutatingFields) {
+            codeClass = "language-json";
+        } else if (isJson && hasMutatingFields) {
+            codeClass = "json-no-prism";
+        } else if (isXml) {
+            // XML always uses xml-no-prism because buildXmlWithSyntaxHighlighting adds custom spans
+            codeClass = "xml-no-prism";
+        } else {
+            codeClass = "";
+        }
         
         writer.println("                              <pre><code class=\"" + codeClass + "\">" + body + "</code></pre>");
         writer.println("                            </div>");
@@ -648,6 +724,544 @@ public final class HtmlReportGenerator {
         return null;
     }
     
+    /**
+     * Highlights mutating fields in XML by wrapping matching elements/attributes with spans.
+     * Uses regex-based matching for XPath patterns.
+     */
+    private static String highlightXmlMutatingFields(String xmlText, JsonNode mutatingFields, String anchorPrefix) {
+        if (mutatingFields == null || !mutatingFields.isArray() || mutatingFields.size() == 0) {
+            String formattedXml = formatXml(xmlText);
+            return buildXmlWithSyntaxHighlighting(formattedXml, null, null);
+        }
+        
+        // Parse XML into DOM
+        Document doc = XmlBodyParser.parseXml(xmlText);
+        if (doc == null) {
+            // Fallback to plain syntax highlighting if parsing fails
+            String formattedXml = formatXml(xmlText);
+            return buildXmlWithSyntaxHighlighting(formattedXml, null, null);
+        }
+        
+        // Collect XML XPath patterns and find mutating nodes
+        Set<String> mutatingElementPaths = new HashSet<>();
+        Set<String> mutatingAttributePaths = new HashSet<>(); // Format: "elementPath@attrName"
+        java.util.Map<String, String> pathToAnchorId = new java.util.HashMap<>();
+        
+        XPathFactory xpathFactory = XPathFactory.newInstance();
+        XPath xpath = xpathFactory.newXPath();
+        
+        for (JsonNode field : mutatingFields) {
+            if (field.has("fieldPath")) {
+                String fieldPath = field.get("fieldPath").asText();
+                if (fieldPath.startsWith("xml://")) {
+                    String xpathPattern = fieldPath.substring(6); // Remove "xml://" prefix
+                    
+                    String sanitized = xpathPattern.replace("*", "-").replace("[", "-").replace("]", "-")
+                            .replace("(", "-").replace(")", "-").replace("/", "-").replace("@", "-")
+                            .replace("=", "-").replace("'", "-").replace("\"", "-").replace(" ", "-");
+                    String anchorId = anchorPrefix + "-" + sanitized;
+                    pathToAnchorId.put(xpathPattern, anchorId);
+                    
+                    try {
+                        // Evaluate XPath to find matching nodes
+                        NodeList nodes = (NodeList) xpath.evaluate(xpathPattern, doc, XPathConstants.NODESET);
+                        for (int i = 0; i < nodes.getLength(); i++) {
+                            Node node = nodes.item(i);
+                            if (node.getNodeType() == Node.ATTRIBUTE_NODE) {
+                                // Attribute node
+                                org.w3c.dom.Attr attr = (org.w3c.dom.Attr) node;
+                                Element owner = attr.getOwnerElement();
+                                if (owner != null) {
+                                    String elementPath = buildElementPath(owner);
+                                    String attrPath = elementPath + "@" + getAttrName(attr);
+                                    mutatingAttributePaths.add(attrPath);
+                                }
+                            } else if (node.getNodeType() == Node.ELEMENT_NODE) {
+                                // Element node - mark the element path
+                                Element element = (Element) node;
+                                String elementPath = buildElementPath(element);
+                                mutatingElementPaths.add(elementPath);
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.debug("Failed to evaluate XPath pattern {}: {}", xpathPattern, e.getMessage());
+                    }
+                }
+            }
+        }
+        
+        // Build anchor ID map from XPath patterns to attribute paths
+        // This maps "request/header@id" -> anchorId for direct lookup during rendering
+        java.util.Map<String, String> elementAttributeToAnchorId = new java.util.HashMap<>();
+        for (java.util.Map.Entry<String, String> entry : pathToAnchorId.entrySet()) {
+            String xpathPattern = entry.getKey();
+            String anchorId = entry.getValue();
+            try {
+                NodeList nodes = (NodeList) xpath.evaluate(xpathPattern, doc, XPathConstants.NODESET);
+                for (int i = 0; i < nodes.getLength(); i++) {
+                    Node node = nodes.item(i);
+                    if (node.getNodeType() == Node.ATTRIBUTE_NODE) {
+                        org.w3c.dom.Attr attr = (org.w3c.dom.Attr) node;
+                        Element owner = attr.getOwnerElement();
+                        if (owner != null) {
+                            String elementPath = buildElementPath(owner);
+                            String attrPath = elementPath + "@" + getAttrName(attr);
+                            elementAttributeToAnchorId.put(attrPath, anchorId);
+                            if (logger.isTraceEnabled()) {
+                                logger.trace("Mapped attribute path '{}' to anchor ID '{}' (XPath: '{}', element: '{}', attr: '{}')", 
+                                        attrPath, anchorId, xpathPattern, elementPath, getAttrName(attr));
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.debug("Failed to build anchor map for XPath {}: {}", xpathPattern, e.getMessage());
+            }
+        }
+        
+        if (logger.isTraceEnabled() && !elementAttributeToAnchorId.isEmpty()) {
+            logger.trace("Built elementAttributeToAnchorId map with {} entries: {}", 
+                    elementAttributeToAnchorId.size(), elementAttributeToAnchorId.keySet());
+        }
+        if (logger.isTraceEnabled() && !mutatingAttributePaths.isEmpty()) {
+            logger.trace("Built mutatingAttributePaths set with {} entries: {}", 
+                    mutatingAttributePaths.size(), mutatingAttributePaths);
+        }
+        
+        // Format XML and render with mutating field information
+        // Use the same DOM document for rendering to ensure path consistency
+        String formattedXml = formatXml(xmlText);
+        return buildXmlWithSyntaxHighlighting(formattedXml, doc, mutatingElementPaths, mutatingAttributePaths, 
+                pathToAnchorId, anchorPrefix, elementAttributeToAnchorId);
+    }
+    
+    /**
+     * Builds a path string for an element (e.g., "request/header/timestamp").
+     */
+    private static String buildElementPath(Element element) {
+        java.util.List<String> path = new java.util.ArrayList<>();
+        Node current = element;
+        while (current != null && current.getNodeType() == Node.ELEMENT_NODE) {
+            Element elem = (Element) current;
+            String localName = elem.getLocalName() != null ? elem.getLocalName() : elem.getNodeName();
+            path.add(0, localName);
+            current = elem.getParentNode();
+        }
+        return String.join("/", path);
+    }
+    
+    /**
+     * Gets the attribute name, handling non-namespace-aware parsers where getLocalName() returns null.
+     */
+    private static String getAttrName(org.w3c.dom.Attr attr) {
+        return (attr.getLocalName() != null ? attr.getLocalName() : attr.getName());
+    }
+    
+    /**
+     * Builds XML with syntax highlighting (tags, attributes, values in different colors).
+     * Overloaded version without mutating field support (for backward compatibility).
+     */
+    private static String buildXmlWithSyntaxHighlighting(String xml, Set<String> mutatingElementPaths, Set<String> mutatingAttributePaths) {
+        return buildXmlWithSyntaxHighlighting(xml, null, mutatingElementPaths, mutatingAttributePaths, null, null, null);
+    }
+    
+    /**
+     * Builds XML with syntax highlighting (tags, attributes, values in different colors).
+     * If mutatingElementPaths and mutatingAttributePaths are provided, wraps mutating values in red highlighting.
+     * @param doc The DOM document (can be null, will parse if needed)
+     * @param elementAttributeToAnchorId Map from "elementPath@attrName" to anchor ID for direct lookup
+     */
+    private static String buildXmlWithSyntaxHighlighting(String xml, Document doc, Set<String> mutatingElementPaths, 
+            Set<String> mutatingAttributePaths, java.util.Map<String, String> pathToAnchorId, String anchorPrefix,
+            java.util.Map<String, String> elementAttributeToAnchorId) {
+        if (xml == null || xml.trim().isEmpty()) {
+            return escapeHtml(xml);
+        }
+        
+        // Parse XML if not provided
+        if (doc == null) {
+            doc = XmlBodyParser.parseXml(xml);
+        }
+        
+        java.util.Map<String, String> elementPathToAnchorId = new java.util.HashMap<>();
+        // Use the passed-in map if available, otherwise build it
+        java.util.Map<String, String> attributePathToAnchorId = elementAttributeToAnchorId != null ? 
+                elementAttributeToAnchorId : new java.util.HashMap<>();
+        
+        if (mutatingElementPaths != null && mutatingAttributePaths != null && pathToAnchorId != null && doc != null) {
+            // Build maps from element paths to anchor IDs
+            // Only build attribute map if it wasn't passed in (already built)
+            if (elementAttributeToAnchorId == null) {
+                buildPathToAnchorIdMaps(doc, mutatingElementPaths, mutatingAttributePaths, pathToAnchorId, 
+                        elementPathToAnchorId, attributePathToAnchorId, anchorPrefix);
+            } else {
+                // Just build element path map, attributes already done
+                buildPathToAnchorIdMaps(doc, mutatingElementPaths, mutatingAttributePaths, pathToAnchorId, 
+                        elementPathToAnchorId, new java.util.HashMap<>(), anchorPrefix);
+            }
+        }
+        
+        // Process line by line to preserve formatting
+        String[] lines = xml.split("\n");
+        StringBuilder result = new StringBuilder();
+        
+        // Track current element path while rendering
+        String currentElementPath = "";
+        
+        for (String line : lines) {
+            if (line.trim().isEmpty()) {
+                result.append(line).append("\n");
+                continue;
+            }
+            
+            // Process the line character by character to build highlighted version
+            StringBuilder highlightedLine = new StringBuilder();
+            int i = 0;
+            while (i < line.length()) {
+                if (line.charAt(i) == '<') {
+                    // Found opening tag - highlight until >
+                    int tagEnd = line.indexOf('>', i);
+                    if (tagEnd == -1) {
+                        highlightedLine.append(escapeHtml(line.substring(i)));
+                        break;
+                    }
+                    
+                    String tagContent = line.substring(i, tagEnd + 1);
+                    
+                    // Update current element path BEFORE rendering (so attributes use correct path)
+                    String elementPathForTag = currentElementPath;
+                    if (tagContent.startsWith("</")) {
+                        // Closing tag - pop from path
+                        int lastSlash = currentElementPath.lastIndexOf('/');
+                        if (lastSlash >= 0) {
+                            currentElementPath = currentElementPath.substring(0, lastSlash);
+                        } else {
+                            currentElementPath = "";
+                        }
+                        elementPathForTag = currentElementPath; // Use updated path for closing tag
+                    } else if (!tagContent.startsWith("<?") && !tagContent.endsWith("/>")) {
+                        // Opening tag - extract tag name and update path BEFORE rendering
+                        String tagName = extractTagName(tagContent);
+                        if (tagName != null) {
+                            elementPathForTag = currentElementPath.isEmpty() ? tagName : currentElementPath + "/" + tagName;
+                            // Update currentElementPath for text content that follows
+                            currentElementPath = elementPathForTag;
+                        }
+                    }
+                    
+                    String highlightedTag = highlightXmlTag(tagContent, elementPathForTag, 
+                            mutatingElementPaths, mutatingAttributePaths, elementPathToAnchorId, attributePathToAnchorId);
+                    highlightedLine.append(highlightedTag);
+                    
+                    i = tagEnd + 1;
+                } else if (i < line.length() && line.charAt(i) != '<') {
+                    // Text content between tags
+                    int nextTag = line.indexOf('<', i);
+                    if (nextTag == -1) {
+                        String text = line.substring(i);
+                        String highlightedText = highlightXmlText(text, currentElementPath, mutatingElementPaths, elementPathToAnchorId);
+                        highlightedLine.append(highlightedText);
+                        break;
+                    } else {
+                        String text = line.substring(i, nextTag);
+                        if (!text.trim().isEmpty()) {
+                            String highlightedText = highlightXmlText(text, currentElementPath, mutatingElementPaths, elementPathToAnchorId);
+                            highlightedLine.append(highlightedText);
+                        } else {
+                            highlightedLine.append(escapeHtml(text));
+                        }
+                        i = nextTag;
+                    }
+                } else {
+                    i++;
+                }
+            }
+            
+            result.append(highlightedLine.toString()).append("\n");
+        }
+        
+        return result.toString().trim();
+    }
+    
+    /**
+     * Extracts tag name from a tag string like "<request>" or "<header id='...'>".
+     */
+    private static String extractTagName(String tag) {
+        if (tag.startsWith("</")) {
+            // Closing tag
+            int end = tag.indexOf('>');
+            if (end > 2) {
+                return tag.substring(2, end).trim();
+            }
+        } else if (tag.startsWith("<")) {
+            // Opening tag
+            int space = tag.indexOf(' ');
+            int end = tag.indexOf('>');
+            int endIndex = (space > 0 && space < end) ? space : end;
+            if (endIndex > 1) {
+                return tag.substring(1, endIndex).trim();
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Builds maps from element/attribute paths to anchor IDs by traversing the DOM.
+     */
+    private static void buildPathToAnchorIdMaps(Document doc, Set<String> mutatingElementPaths, 
+            Set<String> mutatingAttributePaths, java.util.Map<String, String> xpathToAnchorId,
+            java.util.Map<String, String> elementPathToAnchorId, 
+            java.util.Map<String, String> attributePathToAnchorId, String anchorPrefix) {
+        if (doc == null || doc.getDocumentElement() == null) {
+            return;
+        }
+        
+        XPathFactory xpathFactory = XPathFactory.newInstance();
+        XPath xpath = xpathFactory.newXPath();
+        
+        // For each XPath pattern, find matching nodes and map their paths to anchor IDs
+        for (java.util.Map.Entry<String, String> entry : xpathToAnchorId.entrySet()) {
+            String xpathPattern = entry.getKey();
+            String anchorId = entry.getValue();
+            
+            try {
+                NodeList nodes = (NodeList) xpath.evaluate(xpathPattern, doc, XPathConstants.NODESET);
+                for (int i = 0; i < nodes.getLength(); i++) {
+                    Node node = nodes.item(i);
+                    if (node.getNodeType() == Node.ATTRIBUTE_NODE) {
+                        org.w3c.dom.Attr attr = (org.w3c.dom.Attr) node;
+                        Element owner = attr.getOwnerElement();
+                        if (owner != null) {
+                            String elementPath = buildElementPath(owner);
+                            String attrPath = elementPath + "@" + getAttrName(attr);
+                            attributePathToAnchorId.put(attrPath, anchorId);
+                        }
+                    } else if (node.getNodeType() == Node.ELEMENT_NODE) {
+                        Element element = (Element) node;
+                        String elementPath = buildElementPath(element);
+                        elementPathToAnchorId.put(elementPath, anchorId);
+                    }
+                }
+            } catch (Exception e) {
+                logger.debug("Failed to build path map for XPath {}: {}", xpathPattern, e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Highlights XML text content, wrapping in mutating-field-line if it's a mutating field.
+     */
+    private static String highlightXmlText(String text, String currentElementPath, 
+            Set<String> mutatingElementPaths, java.util.Map<String, String> elementPathToAnchorId) {
+        if (text == null || text.trim().isEmpty()) {
+            return escapeHtml(text);
+        }
+        
+        String escaped = escapeHtml(text);
+        if (mutatingElementPaths != null && currentElementPath != null && mutatingElementPaths.contains(currentElementPath)) {
+            String anchorId = elementPathToAnchorId != null ? elementPathToAnchorId.get(currentElementPath) : null;
+            if (anchorId != null) {
+                return "<span class=\"xml-text\"><span id=\"" + escapeHtmlAttribute(anchorId) 
+                        + "\" class=\"mutating-field-line\" data-mutating-field=\"true\">" + escaped + "</span></span>";
+            } else {
+                return "<span class=\"xml-text\"><span class=\"mutating-field-line\" data-mutating-field=\"true\">" + escaped + "</span></span>";
+            }
+        }
+        return "<span class=\"xml-text\">" + escaped + "</span>";
+    }
+    
+    /**
+     * Highlights an XML tag with attributes.
+     * If mutatingAttributePaths is provided, wraps mutating attribute values in red highlighting.
+     * @param elementPathForTag The path of the element being rendered (e.g., "request/header"), 
+     *                          which is the correct path for attributes within this tag.
+     */
+    private static String highlightXmlTag(String tag, String elementPathForTag, 
+            Set<String> mutatingElementPaths, Set<String> mutatingAttributePaths,
+            java.util.Map<String, String> elementPathToAnchorId, 
+            java.util.Map<String, String> attributePathToAnchorId) {
+        if (!tag.startsWith("<") || !tag.endsWith(">")) {
+            return escapeHtml(tag);
+        }
+        
+        StringBuilder result = new StringBuilder();
+        result.append("<span class=\"xml-tag\">").append(escapeHtml("<")).append("</span>");
+        
+        // Check if it's a closing tag
+        if (tag.startsWith("</")) {
+            String tagname = tag.substring(2, tag.length() - 1).trim();
+            result.append("<span class=\"xml-tag\">/</span>");
+            result.append("<span class=\"xml-tagname\">").append(escapeHtml(tagname)).append("</span>");
+            result.append("<span class=\"xml-tag\">").append(escapeHtml(">")).append("</span>");
+            return result.toString();
+        }
+        
+        // Check if it's self-closing
+        boolean selfClosing = tag.endsWith("/>");
+        String tagContent = tag.substring(1, selfClosing ? tag.length() - 2 : tag.length() - 1);
+        
+        // Split tag name and attributes
+        String[] parts = tagContent.split("\\s+", 2);
+        String tagname = parts[0];
+        String attributes = parts.length > 1 ? parts[1] : "";
+        
+        result.append("<span class=\"xml-tagname\">").append(escapeHtml(tagname)).append("</span>");
+        
+        // Highlight attributes using elementPathForTag (the path of THIS element, not the parent)
+        // This is critical: attributes belong to the element being opened, not the parent path
+        if (!attributes.isEmpty()) {
+            result.append(" ");
+            result.append(highlightXmlAttributes(attributes, elementPathForTag, mutatingAttributePaths, attributePathToAnchorId));
+        }
+        
+        if (selfClosing) {
+            result.append("<span class=\"xml-tag\">/</span>");
+        }
+        result.append("<span class=\"xml-tag\">").append(escapeHtml(">")).append("</span>");
+        
+        return result.toString();
+    }
+    
+    /**
+     * Highlights XML attributes.
+     * If mutatingAttributePaths is provided, wraps mutating attribute values in red highlighting.
+     */
+    private static String highlightXmlAttributes(String attributes, String currentElementPath,
+            Set<String> mutatingAttributePaths, java.util.Map<String, String> attributePathToAnchorId) {
+        if (attributes == null || attributes.isBlank()) {
+            return "";
+        }
+        
+        // Pattern: name="value" or name='value'
+        // Supports XML attribute names with colons, underscores, hyphens, and dots (e.g., xml:lang, data-id)
+        java.util.regex.Pattern attrPattern = java.util.regex.Pattern.compile("([a-zA-Z_:][a-zA-Z0-9_.:-]*)\\s*=\\s*([\"'])(.*?)\\2");
+        java.util.regex.Matcher matcher = attrPattern.matcher(attributes);
+        
+        StringBuilder result = new StringBuilder();
+        int lastEnd = 0;
+        
+        while (matcher.find()) {
+            // Append text before this attribute match (whitespace, etc.)
+            if (matcher.start() > lastEnd) {
+                result.append(escapeHtml(attributes.substring(lastEnd, matcher.start())));
+            }
+            
+            // Extract attribute components
+            String attrName = matcher.group(1);
+            String quote = matcher.group(2);
+            String attrValue = matcher.group(3);
+            
+            // Render attribute name with leading space
+            result.append(" ")
+                  .append("<span class=\"xml-attrname\">").append(escapeHtml(attrName)).append("</span>");
+            
+            // Render equals sign and opening quote
+            result.append("<span class=\"xml-punctuation\">=</span>")
+                  .append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
+            
+            // Check if this attribute is mutating
+            boolean isMutating = false;
+            String anchorId = null;
+            if (currentElementPath != null && !currentElementPath.isEmpty()) {
+                String attrPath = currentElementPath + "@" + attrName;
+                
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Checking attribute path '{}' (element: '{}', attr: '{}')", 
+                            attrPath, currentElementPath, attrName);
+                    if (attributePathToAnchorId != null && !attributePathToAnchorId.isEmpty()) {
+                        logger.trace("Available attribute paths in map: {}", attributePathToAnchorId.keySet());
+                    }
+                    if (mutatingAttributePaths != null && !mutatingAttributePaths.isEmpty()) {
+                        logger.trace("Available attribute paths in set: {}", mutatingAttributePaths);
+                    }
+                }
+                
+                // Check anchor map first - if path exists, it's mutating and we have the anchor ID
+                if (attributePathToAnchorId != null && !attributePathToAnchorId.isEmpty()) {
+                    anchorId = attributePathToAnchorId.get(attrPath);
+                    isMutating = (anchorId != null);
+                }
+                
+                // Fallback: check the set
+                if (!isMutating && mutatingAttributePaths != null) {
+                    isMutating = mutatingAttributePaths.contains(attrPath);
+                }
+                
+                if (logger.isTraceEnabled() && isMutating) {
+                    logger.trace("Attribute path '{}' matched as mutating (anchorId: '{}')", attrPath, anchorId);
+                }
+            }
+            
+            // Always wrap attribute value in xml-attrvalue span for proper CSS styling
+            // Then wrap mutating values in mutating-field-line for red highlighting
+            result.append("<span class=\"xml-attrvalue\">");
+            if (isMutating) {
+                // Mutating attribute: wrap value in mutating-field-line with optional anchor ID
+                result.append("<span");
+                if (anchorId != null) {
+                    result.append(" id=\"").append(escapeHtmlAttribute(anchorId)).append("\"");
+                }
+                result.append(" class=\"mutating-field-line\" data-mutating-field=\"true\">")
+                      .append(escapeHtml(attrValue))
+                      .append("</span>");
+            } else {
+                // Non-mutating attribute: just the value
+                result.append(escapeHtml(attrValue));
+            }
+            result.append("</span>");
+            
+            result.append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
+            
+            lastEnd = matcher.end();
+        }
+        
+        // Add remaining text
+        if (lastEnd < attributes.length()) {
+            result.append(escapeHtml(attributes.substring(lastEnd)));
+        }
+        
+        return result.toString();
+    }
+    
+    
+    /**
+     * Formats XML with proper indentation.
+     */
+    private static String formatXml(String xml) {
+        if (xml == null || xml.trim().isEmpty()) {
+            return xml;
+        }
+        try {
+            // Simple XML formatting - add line breaks and indentation
+            // First, normalize whitespace and add line breaks between tags
+            String normalized = xml.trim().replaceAll(">\\s+<", "><");
+            String formatted = normalized.replaceAll("><", ">\n<");
+            String[] lines = formatted.split("\n");
+            StringBuilder result = new StringBuilder();
+            int indent = 0;
+            for (String line : lines) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                
+                // Decrease indent before closing tags
+                if (line.startsWith("</")) {
+                    indent = Math.max(0, indent - 1);
+                }
+                
+                result.append("  ".repeat(Math.max(0, indent)));
+                result.append(line).append("\n");
+                
+                // Increase indent after opening tags (but not self-closing or closing tags)
+                if (line.startsWith("<") && !line.startsWith("</") && !line.endsWith("/>") && !line.contains("</")) {
+                    indent++;
+                }
+            }
+            return result.toString().trim();
+        } catch (Exception e) {
+            return xml; // Return original if formatting fails
+        }
+    }
+    
     private static boolean isJsonString(String text) {
         if (text == null || text.isBlank()) {
             return false;
@@ -655,6 +1269,14 @@ public final class HtmlReportGenerator {
         String trimmed = text.trim();
         return (trimmed.startsWith("{") && trimmed.endsWith("}")) 
             || (trimmed.startsWith("[") && trimmed.endsWith("]"));
+    }
+    
+    private static boolean isXmlString(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        String trimmed = text.trim();
+        return trimmed.startsWith("<") && trimmed.endsWith(">");
     }
 
     private static int countRequests(JsonNode testMethod) {
@@ -1380,6 +2002,11 @@ public final class HtmlReportGenerator {
               white-space: pre-wrap;
             }
             
+            pre.pre-long {
+              overflow-y: auto;
+              max-height: 400px;
+            }
+            
             pre code {
               background: transparent;
               padding: 0;
@@ -1464,6 +2091,47 @@ public final class HtmlReportGenerator {
 
             code.json-no-prism .json-punctuation {
               color: #d1d5db;
+            }
+
+            code.xml-no-prism {
+              color: #d1d5db;
+            }
+
+            code.xml-no-prism .xml-tag {
+              color: #9ca3af;
+            }
+
+            code.xml-no-prism .xml-tagname {
+              color: #F5C97A;
+            }
+
+            code.xml-no-prism .xml-attrname {
+              color: #E8A740;
+            }
+
+            code.xml-no-prism .xml-attrvalue {
+              color: #4ade80;
+            }
+
+            code.xml-no-prism .xml-text {
+              color: #4ade80;
+            }
+
+            code.xml-no-prism .xml-punctuation {
+              color: #9ca3af;
+            }
+
+            code.xml-no-prism .mutating-field-line {
+              background-color: rgba(239, 68, 68, 0.15) !important;
+              color: #f87171 !important;
+            }
+
+            code.xml-no-prism .mutating-field-line * {
+              color: #f87171 !important;
+            }
+
+            code.language-markup {
+              color: #fbbf24;
             }
 
             .mutating-field-line {
@@ -1563,6 +2231,22 @@ public final class HtmlReportGenerator {
               });
             }
 
+            function applyLongResponseScrolling() {
+              document.querySelectorAll('pre').forEach((pre) => {
+                const code = pre.querySelector('code');
+                if (!code) return;
+                
+                // Count lines by counting newline characters in text content
+                const text = code.textContent || code.innerText || '';
+                const lineCount = (text.match(/\\n/g) || []).length + 1;
+                
+                // Apply scrolling if more than 26 lines
+                if (lineCount > 26) {
+                  pre.classList.add('pre-long');
+                }
+              });
+            }
+
             function observeAndHighlight() {
               highlightMutatingFields();
               
@@ -1581,9 +2265,11 @@ public final class HtmlReportGenerator {
             if (document.readyState === 'loading') {
               document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(observeAndHighlight, 300);
+                setTimeout(applyLongResponseScrolling, 300);
               });
             } else {
               setTimeout(observeAndHighlight, 300);
+              setTimeout(applyLongResponseScrolling, 300);
             }
 
             if (typeof Prism !== 'undefined') {

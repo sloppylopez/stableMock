@@ -1,0 +1,44 @@
+{
+  "id" : "230334fa-019b-40f3-b6ac-39f5a6dd86cc",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\n  \"order\": {\n    \"id\": \"order-123\",\n    \"items\": [\n      {\n        \"productId\": \"prod-1\",\n        \"quantity\": 2,\n        \"metadata\": {\n          \"timestamp\": \"2026-01-03T23:37:09.169802600Z\",\n          \"sessionId\": \"59394f8c-5e69-4ee0-a39e-b5c9d47d3ea2\"\n        }\n      }\n    ],\n    \"payment\": {\n      \"transactionId\": \"3011f80e-ad0e-456f-92a6-d181c4ae7a91\",\n      \"timestamp\": \"2026-01-03T23:37:09.169802600Z\"\n    }\n  },\n  \"requestId\": \"2c1dea08-41b8-402f-bfdd-2c55d3968289\"\n}\n",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9b8652825b4003c9-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1767483443",
+      "x-ratelimit-remaining" : "983",
+      "pragma" : "no-cache",
+      "Date" : "Sat, 03 Jan 2026 23:37:08 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=%2F5mYfioKcCHx5uXGRZ7Q%2FQKUsCeEl%2FED%2BAPoLBP12V8%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1767483428\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=%2F5mYfioKcCHx5uXGRZ7Q%2FQKUsCeEl%2FED%2BAPoLBP12V8%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1767483428\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "230334fa-019b-40f3-b6ac-39f5a6dd86cc",
+  "persistent" : true,
+  "insertionIndex" : 0
+}

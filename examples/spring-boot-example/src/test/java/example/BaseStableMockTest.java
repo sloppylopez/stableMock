@@ -137,6 +137,10 @@ public abstract class BaseStableMockTest {
      * This method reads the annotations and maps URLs to property names, eliminating the need
      * to manually register each property in @DynamicPropertySource.
      * 
+     * Note: While @DynamicPropertySource methods are repetitive across test classes,
+     * Spring requires them to be static methods in the test class itself (not inherited).
+     * This helper method reduces the boilerplate by handling the annotation reading logic.
+     * 
      * Usage:
      * <pre>
      * {@code

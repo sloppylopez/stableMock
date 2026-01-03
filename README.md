@@ -27,10 +27,23 @@ Built for JUnit 5. Works offline. Free & open source.
 
 **Note:** StableMock is currently in active development and testing. The jar has not been deployed to Maven Central yet. We are ensuring everything works correctly and fixing bugs before the initial release. For now, you'll need to build from source or use a local installation.
 
+**Gradle:**
 ```gradle
 dependencies {
     testImplementation 'com.stablemock:stablemock:1.0-SNAPSHOT'
 }
+```
+
+**Maven:**
+```xml
+<dependencies>
+    <dependency>
+        <groupId>com.stablemock</groupId>
+        <artifactId>stablemock</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
 ```
 
 ### 2. Record Mode (First Time)
@@ -52,6 +65,54 @@ Run offline integration tests using recorded WireMock stubs:
 ```
 
 Tests will use the saved WireMock stubs instead of calling the real service, enabling fast, reliable offline integration tests that mock external APIs.
+
+## Pure JUnit 5 Usage (Non-Spring)
+
+StableMock works as a general JUnit 5 extension without requiring Spring Boot. For pure JUnit tests, you access WireMock URLs via system properties.
+
+### Minimal Example
+
+```java
+import com.stablemock.U;
+import org.junit.jupiter.api.Test;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+@U(urls = { "https://api.example.com" })
+class MyPureJUnitTest {
+
+    @Test
+    void testApiCall(int port) {
+        // Port is injected as a parameter, or get base URL from system property
+        String baseUrl = System.getProperty("stablemock.baseUrl");
+        
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/endpoint"))
+                .GET()
+                .build();
+        
+        HttpResponse<String> response = client.send(request, 
+                HttpResponse.BodyHandlers.ofString());
+        
+        assertEquals(200, response.statusCode());
+    }
+}
+```
+
+### How It Works
+
+1. **StableMock starts WireMock** in `beforeEach()` and sets:
+   - `stablemock.port` - The WireMock proxy port
+   - `stablemock.baseUrl` - `http://localhost:${stablemock.port}`
+
+2. **Test method receives port** as a parameter (optional)
+
+3. **Your code** reads `stablemock.baseUrl` from system properties or uses the injected port
+
+**Note:** The `properties` attribute is optional for non-Spring Boot tests. It's only needed when using Spring Boot with `autoRegisterProperties()`.
 
 ## Spring Boot Integration
 

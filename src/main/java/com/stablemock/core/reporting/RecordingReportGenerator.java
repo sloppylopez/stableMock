@@ -197,7 +197,7 @@ public final class RecordingReportGenerator {
                             JsonNode bodyPatterns = requestNode.get("bodyPatterns");
                             if (bodyPatterns != null && bodyPatterns.isArray()) {
                                 for (JsonNode bodyPattern : bodyPatterns) {
-                                    if (bodyPattern.has("equalToJson") || bodyPattern.has("equalTo")) {
+                                    if (bodyPattern.has("equalToJson") || bodyPattern.has("equalTo") || bodyPattern.has("equalToXml")) {
                                         // This request has a body - we can note it
                                         requestInfo.setHasBody(true);
                                     }
@@ -226,16 +226,31 @@ public final class RecordingReportGenerator {
                     
                     // Map mutating fields to this endpoint if detected-fields.json exists
                     // Only include fields for requests that have bodies (POST, PUT, PATCH, etc.)
+                    // IMPORTANT: Include ALL field types (JSON, XML, GraphQL) - no filtering by type
                     if (detectedFieldsFile.exists() && requestInfo.hasBody) {
                         try {
                             JsonNode detectedFieldsJson = objectMapper.readTree(detectedFieldsFile);
                             JsonNode dynamicFieldsNode = detectedFieldsJson.get("dynamic_fields");
                             if (dynamicFieldsNode != null && dynamicFieldsNode.isArray()) {
                                 ArrayNode mutatingFieldsArray = requestNode.putArray("mutatingFields");
+                                int jsonFieldCount = 0;
+                                int xmlFieldCount = 0;
+                                int otherFieldCount = 0;
+                                
                                 for (JsonNode fieldNode : dynamicFieldsNode) {
                                     String fieldPath = fieldNode.has("field_path") ? 
                                             fieldNode.get("field_path").asText() : null;
                                     if (fieldPath != null) {
+                                        // Count field types for logging
+                                        if (fieldPath.startsWith("json:")) {
+                                            jsonFieldCount++;
+                                        } else if (fieldPath.startsWith("xml:") || fieldPath.startsWith("xml://")) {
+                                            xmlFieldCount++;
+                                        } else {
+                                            otherFieldCount++;
+                                        }
+                                        
+                                        // Add ALL fields to the report (JSON, XML, GraphQL, etc.) - no filtering
                                         ObjectNode mutatingFieldNode = mutatingFieldsArray.addObject();
                                         mutatingFieldNode.put("fieldPath", fieldPath);
                                         
@@ -244,6 +259,12 @@ public final class RecordingReportGenerator {
                                             fieldNode.get("sample_values").forEach(sample -> samplesArray.add(sample.asText()));
                                         }
                                     }
+                                }
+                                
+                                if (logger.isDebugEnabled() && mutatingFieldsArray.size() > 0) {
+                                    logger.debug("Added {} mutating fields to report for {} {} ({} JSON, {} XML, {} other)", 
+                                            mutatingFieldsArray.size(), requestInfo.method, requestInfo.url, 
+                                            jsonFieldCount, xmlFieldCount, otherFieldCount);
                                 }
                             }
                         } catch (IOException e) {
@@ -413,6 +434,10 @@ public final class RecordingReportGenerator {
             for (JsonNode bodyPattern : requestNode.get("bodyPatterns")) {
                 if (bodyPattern.has("equalToJson")) {
                     JsonNode bodyNode = bodyPattern.get("equalToJson");
+                    return bodyNode.isTextual() ? bodyNode.asText() : bodyNode.toString();
+                }
+                if (bodyPattern.has("equalToXml")) {
+                    JsonNode bodyNode = bodyPattern.get("equalToXml");
                     return bodyNode.isTextual() ? bodyNode.asText() : bodyNode.toString();
                 }
                 if (bodyPattern.has("equalTo")) {
