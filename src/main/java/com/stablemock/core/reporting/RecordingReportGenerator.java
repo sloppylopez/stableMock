@@ -226,16 +226,31 @@ public final class RecordingReportGenerator {
                     
                     // Map mutating fields to this endpoint if detected-fields.json exists
                     // Only include fields for requests that have bodies (POST, PUT, PATCH, etc.)
+                    // IMPORTANT: Include ALL field types (JSON, XML, GraphQL) - no filtering by type
                     if (detectedFieldsFile.exists() && requestInfo.hasBody) {
                         try {
                             JsonNode detectedFieldsJson = objectMapper.readTree(detectedFieldsFile);
                             JsonNode dynamicFieldsNode = detectedFieldsJson.get("dynamic_fields");
                             if (dynamicFieldsNode != null && dynamicFieldsNode.isArray()) {
                                 ArrayNode mutatingFieldsArray = requestNode.putArray("mutatingFields");
+                                int jsonFieldCount = 0;
+                                int xmlFieldCount = 0;
+                                int otherFieldCount = 0;
+                                
                                 for (JsonNode fieldNode : dynamicFieldsNode) {
                                     String fieldPath = fieldNode.has("field_path") ? 
                                             fieldNode.get("field_path").asText() : null;
                                     if (fieldPath != null) {
+                                        // Count field types for logging
+                                        if (fieldPath.startsWith("json:")) {
+                                            jsonFieldCount++;
+                                        } else if (fieldPath.startsWith("xml:") || fieldPath.startsWith("xml://")) {
+                                            xmlFieldCount++;
+                                        } else {
+                                            otherFieldCount++;
+                                        }
+                                        
+                                        // Add ALL fields to the report (JSON, XML, GraphQL, etc.) - no filtering
                                         ObjectNode mutatingFieldNode = mutatingFieldsArray.addObject();
                                         mutatingFieldNode.put("fieldPath", fieldPath);
                                         
@@ -244,6 +259,12 @@ public final class RecordingReportGenerator {
                                             fieldNode.get("sample_values").forEach(sample -> samplesArray.add(sample.asText()));
                                         }
                                     }
+                                }
+                                
+                                if (logger.isDebugEnabled() && mutatingFieldsArray.size() > 0) {
+                                    logger.debug("Added {} mutating fields to report for {} {} ({} JSON, {} XML, {} other)", 
+                                            mutatingFieldsArray.size(), requestInfo.method, requestInfo.url, 
+                                            jsonFieldCount, xmlFieldCount, otherFieldCount);
                                 }
                             }
                         } catch (IOException e) {

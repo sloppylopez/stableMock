@@ -558,6 +558,21 @@ public final class HtmlReportGenerator {
         boolean hasMutatingFields = mutatingFields != null && mutatingFields.isArray() && mutatingFields.size() > 0 && anchorPrefix != null
                 && (bodyJson != null || bodyText != null);
         
+        // Debug logging for XML mutating fields
+        if (logger.isDebugEnabled() && isXml && mutatingFields != null && mutatingFields.isArray()) {
+            int xmlFieldCount = 0;
+            for (JsonNode field : mutatingFields) {
+                if (field.has("fieldPath")) {
+                    String fieldPath = field.get("fieldPath").asText();
+                    if (fieldPath.startsWith("xml:") || fieldPath.startsWith("xml://")) {
+                        xmlFieldCount++;
+                    }
+                }
+            }
+            logger.debug("XML body detected: isXml={}, hasMutatingFields={}, mutatingFields.size()={}, xmlFieldCount={}, anchorPrefix={}", 
+                    isXml, hasMutatingFields, mutatingFields.size(), xmlFieldCount, anchorPrefix);
+        }
+        
         // Highlight mutating fields if provided
         if (hasMutatingFields && bodyJson != null) {
             body = highlightMutatingFields(body, bodyJson, mutatingFields, anchorPrefix);
@@ -754,7 +769,7 @@ public final class HtmlReportGenerator {
                                 Element owner = attr.getOwnerElement();
                                 if (owner != null) {
                                     String elementPath = buildElementPath(owner);
-                                    String attrPath = elementPath + "@" + attr.getLocalName();
+                                    String attrPath = elementPath + "@" + getAttrName(attr);
                                     mutatingAttributePaths.add(attrPath);
                                 }
                             } else if (node.getNodeType() == Node.ELEMENT_NODE) {
@@ -771,9 +786,49 @@ public final class HtmlReportGenerator {
             }
         }
         
+        // Build anchor ID map from XPath patterns to attribute paths
+        // This maps "request/header@id" -> anchorId for direct lookup during rendering
+        java.util.Map<String, String> elementAttributeToAnchorId = new java.util.HashMap<>();
+        for (java.util.Map.Entry<String, String> entry : pathToAnchorId.entrySet()) {
+            String xpathPattern = entry.getKey();
+            String anchorId = entry.getValue();
+            try {
+                NodeList nodes = (NodeList) xpath.evaluate(xpathPattern, doc, XPathConstants.NODESET);
+                for (int i = 0; i < nodes.getLength(); i++) {
+                    Node node = nodes.item(i);
+                    if (node.getNodeType() == Node.ATTRIBUTE_NODE) {
+                        org.w3c.dom.Attr attr = (org.w3c.dom.Attr) node;
+                        Element owner = attr.getOwnerElement();
+                        if (owner != null) {
+                            String elementPath = buildElementPath(owner);
+                            String attrPath = elementPath + "@" + getAttrName(attr);
+                            elementAttributeToAnchorId.put(attrPath, anchorId);
+                            if (logger.isTraceEnabled()) {
+                                logger.trace("Mapped attribute path '{}' to anchor ID '{}' (XPath: '{}', element: '{}', attr: '{}')", 
+                                        attrPath, anchorId, xpathPattern, elementPath, getAttrName(attr));
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.debug("Failed to build anchor map for XPath {}: {}", xpathPattern, e.getMessage());
+            }
+        }
+        
+        if (logger.isTraceEnabled() && !elementAttributeToAnchorId.isEmpty()) {
+            logger.trace("Built elementAttributeToAnchorId map with {} entries: {}", 
+                    elementAttributeToAnchorId.size(), elementAttributeToAnchorId.keySet());
+        }
+        if (logger.isTraceEnabled() && !mutatingAttributePaths.isEmpty()) {
+            logger.trace("Built mutatingAttributePaths set with {} entries: {}", 
+                    mutatingAttributePaths.size(), mutatingAttributePaths);
+        }
+        
         // Format XML and render with mutating field information
+        // Use the same DOM document for rendering to ensure path consistency
         String formattedXml = formatXml(xmlText);
-        return buildXmlWithSyntaxHighlighting(formattedXml, mutatingElementPaths, mutatingAttributePaths, pathToAnchorId, anchorPrefix);
+        return buildXmlWithSyntaxHighlighting(formattedXml, doc, mutatingElementPaths, mutatingAttributePaths, 
+                pathToAnchorId, anchorPrefix, elementAttributeToAnchorId);
     }
     
     /**
@@ -792,32 +847,54 @@ public final class HtmlReportGenerator {
     }
     
     /**
+     * Gets the attribute name, handling non-namespace-aware parsers where getLocalName() returns null.
+     */
+    private static String getAttrName(org.w3c.dom.Attr attr) {
+        return (attr.getLocalName() != null ? attr.getLocalName() : attr.getName());
+    }
+    
+    /**
      * Builds XML with syntax highlighting (tags, attributes, values in different colors).
      * Overloaded version without mutating field support (for backward compatibility).
      */
     private static String buildXmlWithSyntaxHighlighting(String xml, Set<String> mutatingElementPaths, Set<String> mutatingAttributePaths) {
-        return buildXmlWithSyntaxHighlighting(xml, mutatingElementPaths, mutatingAttributePaths, null, null);
+        return buildXmlWithSyntaxHighlighting(xml, null, mutatingElementPaths, mutatingAttributePaths, null, null, null);
     }
     
     /**
      * Builds XML with syntax highlighting (tags, attributes, values in different colors).
      * If mutatingElementPaths and mutatingAttributePaths are provided, wraps mutating values in red highlighting.
+     * @param doc The DOM document (can be null, will parse if needed)
+     * @param elementAttributeToAnchorId Map from "elementPath@attrName" to anchor ID for direct lookup
      */
-    private static String buildXmlWithSyntaxHighlighting(String xml, Set<String> mutatingElementPaths, 
-            Set<String> mutatingAttributePaths, java.util.Map<String, String> pathToAnchorId, String anchorPrefix) {
+    private static String buildXmlWithSyntaxHighlighting(String xml, Document doc, Set<String> mutatingElementPaths, 
+            Set<String> mutatingAttributePaths, java.util.Map<String, String> pathToAnchorId, String anchorPrefix,
+            java.util.Map<String, String> elementAttributeToAnchorId) {
         if (xml == null || xml.trim().isEmpty()) {
             return escapeHtml(xml);
         }
         
-        // Parse XML to track current element path and attributes
-        Document doc = XmlBodyParser.parseXml(xml);
+        // Parse XML if not provided
+        if (doc == null) {
+            doc = XmlBodyParser.parseXml(xml);
+        }
+        
         java.util.Map<String, String> elementPathToAnchorId = new java.util.HashMap<>();
-        java.util.Map<String, String> attributePathToAnchorId = new java.util.HashMap<>();
+        // Use the passed-in map if available, otherwise build it
+        java.util.Map<String, String> attributePathToAnchorId = elementAttributeToAnchorId != null ? 
+                elementAttributeToAnchorId : new java.util.HashMap<>();
         
         if (mutatingElementPaths != null && mutatingAttributePaths != null && pathToAnchorId != null && doc != null) {
-            // Build maps from element/attribute paths to anchor IDs
-            buildPathToAnchorIdMaps(doc, mutatingElementPaths, mutatingAttributePaths, pathToAnchorId, 
-                    elementPathToAnchorId, attributePathToAnchorId, anchorPrefix);
+            // Build maps from element paths to anchor IDs
+            // Only build attribute map if it wasn't passed in (already built)
+            if (elementAttributeToAnchorId == null) {
+                buildPathToAnchorIdMaps(doc, mutatingElementPaths, mutatingAttributePaths, pathToAnchorId, 
+                        elementPathToAnchorId, attributePathToAnchorId, anchorPrefix);
+            } else {
+                // Just build element path map, attributes already done
+                buildPathToAnchorIdMaps(doc, mutatingElementPaths, mutatingAttributePaths, pathToAnchorId, 
+                        elementPathToAnchorId, new java.util.HashMap<>(), anchorPrefix);
+            }
         }
         
         // Process line by line to preserve formatting
@@ -846,11 +923,9 @@ public final class HtmlReportGenerator {
                     }
                     
                     String tagContent = line.substring(i, tagEnd + 1);
-                    String highlightedTag = highlightXmlTag(tagContent, currentElementPath, 
-                            mutatingElementPaths, mutatingAttributePaths, elementPathToAnchorId, attributePathToAnchorId);
-                    highlightedLine.append(highlightedTag);
                     
-                    // Update current element path (simplified - just track tag name for now)
+                    // Update current element path BEFORE rendering (so attributes use correct path)
+                    String elementPathForTag = currentElementPath;
                     if (tagContent.startsWith("</")) {
                         // Closing tag - pop from path
                         int lastSlash = currentElementPath.lastIndexOf('/');
@@ -859,13 +934,20 @@ public final class HtmlReportGenerator {
                         } else {
                             currentElementPath = "";
                         }
+                        elementPathForTag = currentElementPath; // Use updated path for closing tag
                     } else if (!tagContent.startsWith("<?") && !tagContent.endsWith("/>")) {
-                        // Opening tag - extract tag name
+                        // Opening tag - extract tag name and update path BEFORE rendering
                         String tagName = extractTagName(tagContent);
                         if (tagName != null) {
-                            currentElementPath = currentElementPath.isEmpty() ? tagName : currentElementPath + "/" + tagName;
+                            elementPathForTag = currentElementPath.isEmpty() ? tagName : currentElementPath + "/" + tagName;
+                            // Update currentElementPath for text content that follows
+                            currentElementPath = elementPathForTag;
                         }
                     }
+                    
+                    String highlightedTag = highlightXmlTag(tagContent, elementPathForTag, 
+                            mutatingElementPaths, mutatingAttributePaths, elementPathToAnchorId, attributePathToAnchorId);
+                    highlightedLine.append(highlightedTag);
                     
                     i = tagEnd + 1;
                 } else if (i < line.length() && line.charAt(i) != '<') {
@@ -947,7 +1029,7 @@ public final class HtmlReportGenerator {
                         Element owner = attr.getOwnerElement();
                         if (owner != null) {
                             String elementPath = buildElementPath(owner);
-                            String attrPath = elementPath + "@" + attr.getLocalName();
+                            String attrPath = elementPath + "@" + getAttrName(attr);
                             attributePathToAnchorId.put(attrPath, anchorId);
                         }
                     } else if (node.getNodeType() == Node.ELEMENT_NODE) {
@@ -987,8 +1069,10 @@ public final class HtmlReportGenerator {
     /**
      * Highlights an XML tag with attributes.
      * If mutatingAttributePaths is provided, wraps mutating attribute values in red highlighting.
+     * @param elementPathForTag The path of the element being rendered (e.g., "request/header"), 
+     *                          which is the correct path for attributes within this tag.
      */
-    private static String highlightXmlTag(String tag, String currentElementPath, 
+    private static String highlightXmlTag(String tag, String elementPathForTag, 
             Set<String> mutatingElementPaths, Set<String> mutatingAttributePaths,
             java.util.Map<String, String> elementPathToAnchorId, 
             java.util.Map<String, String> attributePathToAnchorId) {
@@ -1019,10 +1103,11 @@ public final class HtmlReportGenerator {
         
         result.append("<span class=\"xml-tagname\">").append(escapeHtml(tagname)).append("</span>");
         
-        // Highlight attributes
+        // Highlight attributes using elementPathForTag (the path of THIS element, not the parent)
+        // This is critical: attributes belong to the element being opened, not the parent path
         if (!attributes.isEmpty()) {
             result.append(" ");
-            result.append(highlightXmlAttributes(attributes, currentElementPath, mutatingAttributePaths, attributePathToAnchorId));
+            result.append(highlightXmlAttributes(attributes, elementPathForTag, mutatingAttributePaths, attributePathToAnchorId));
         }
         
         if (selfClosing) {
@@ -1039,53 +1124,87 @@ public final class HtmlReportGenerator {
      */
     private static String highlightXmlAttributes(String attributes, String currentElementPath,
             Set<String> mutatingAttributePaths, java.util.Map<String, String> attributePathToAnchorId) {
+        if (attributes == null || attributes.isBlank()) {
+            return "";
+        }
+        
         // Pattern: name="value" or name='value'
-        java.util.regex.Pattern attrPattern = java.util.regex.Pattern.compile("([a-zA-Z][a-zA-Z0-9_-]*)\\s*=\\s*([\"'])([^\"']*)\\2");
+        // Supports XML attribute names with colons, underscores, hyphens, and dots (e.g., xml:lang, data-id)
+        java.util.regex.Pattern attrPattern = java.util.regex.Pattern.compile("([a-zA-Z_:][a-zA-Z0-9_.:-]*)\\s*=\\s*([\"'])(.*?)\\2");
         java.util.regex.Matcher matcher = attrPattern.matcher(attributes);
         
         StringBuilder result = new StringBuilder();
         int lastEnd = 0;
         
         while (matcher.find()) {
-            // Add text before the match
+            // Append text before this attribute match (whitespace, etc.)
             if (matcher.start() > lastEnd) {
                 result.append(escapeHtml(attributes.substring(lastEnd, matcher.start())));
             }
             
-            // Highlight the attribute
+            // Extract attribute components
             String attrName = matcher.group(1);
             String quote = matcher.group(2);
             String attrValue = matcher.group(3);
             
-            result.append("<span class=\"xml-attrname\">").append(escapeHtml(attrName)).append("</span>");
-            result.append("<span class=\"xml-punctuation\">=</span>");
-            result.append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
+            // Render attribute name with leading space
+            result.append(" ")
+                  .append("<span class=\"xml-attrname\">").append(escapeHtml(attrName)).append("</span>");
+            
+            // Render equals sign and opening quote
+            result.append("<span class=\"xml-punctuation\">=</span>")
+                  .append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
             
             // Check if this attribute is mutating
             boolean isMutating = false;
             String anchorId = null;
-            if (mutatingAttributePaths != null && currentElementPath != null) {
+            if (currentElementPath != null && !currentElementPath.isEmpty()) {
                 String attrPath = currentElementPath + "@" + attrName;
-                isMutating = mutatingAttributePaths.contains(attrPath);
-                if (isMutating && attributePathToAnchorId != null) {
+                
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Checking attribute path '{}' (element: '{}', attr: '{}')", 
+                            attrPath, currentElementPath, attrName);
+                    if (attributePathToAnchorId != null && !attributePathToAnchorId.isEmpty()) {
+                        logger.trace("Available attribute paths in map: {}", attributePathToAnchorId.keySet());
+                    }
+                    if (mutatingAttributePaths != null && !mutatingAttributePaths.isEmpty()) {
+                        logger.trace("Available attribute paths in set: {}", mutatingAttributePaths);
+                    }
+                }
+                
+                // Check anchor map first - if path exists, it's mutating and we have the anchor ID
+                if (attributePathToAnchorId != null && !attributePathToAnchorId.isEmpty()) {
                     anchorId = attributePathToAnchorId.get(attrPath);
+                    isMutating = (anchorId != null);
+                }
+                
+                // Fallback: check the set
+                if (!isMutating && mutatingAttributePaths != null) {
+                    isMutating = mutatingAttributePaths.contains(attrPath);
+                }
+                
+                if (logger.isTraceEnabled() && isMutating) {
+                    logger.trace("Attribute path '{}' matched as mutating (anchorId: '{}')", attrPath, anchorId);
                 }
             }
             
+            // Always wrap attribute value in xml-attrvalue span for proper CSS styling
+            // Then wrap mutating values in mutating-field-line for red highlighting
+            result.append("<span class=\"xml-attrvalue\">");
             if (isMutating) {
-                // Wrap attribute value in mutating-field-line
-                result.append("<span class=\"xml-attrvalue\">");
+                // Mutating attribute: wrap value in mutating-field-line with optional anchor ID
+                result.append("<span");
                 if (anchorId != null) {
-                    result.append("<span id=\"").append(escapeHtmlAttribute(anchorId))
-                            .append("\" class=\"mutating-field-line\" data-mutating-field=\"true\">");
-                } else {
-                    result.append("<span class=\"mutating-field-line\" data-mutating-field=\"true\">");
+                    result.append(" id=\"").append(escapeHtmlAttribute(anchorId)).append("\"");
                 }
-                result.append(escapeHtml(attrValue));
-                result.append("</span></span>");
+                result.append(" class=\"mutating-field-line\" data-mutating-field=\"true\">")
+                      .append(escapeHtml(attrValue))
+                      .append("</span>");
             } else {
-                result.append("<span class=\"xml-attrvalue\">").append(escapeHtml(attrValue)).append("</span>");
+                // Non-mutating attribute: just the value
+                result.append(escapeHtml(attrValue));
             }
+            result.append("</span>");
             
             result.append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
             
