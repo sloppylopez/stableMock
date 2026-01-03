@@ -12,11 +12,13 @@ import com.github.tomakehurst.wiremock.matching.UrlPattern;
 import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
+import com.github.tomakehurst.wiremock.common.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 
 /**
@@ -376,9 +378,9 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                         
                         // Create mappings for each request with proper state transitions
                         // Serialize base mapping to JSON and rebuild to create copies
+                        // Use WireMock's Json class to ensure proper serialization format
                         try {
-                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                            String baseMappingJson = mapper.writeValueAsString(baseMapping);
+                            String baseMappingJson = Json.write(baseMapping);
                             
                             for (int i = 0; i < eventIndices.size(); i++) {
                                 StubMapping scenarioMapping = StubMapping.buildFrom(baseMappingJson);
@@ -433,10 +435,11 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             File[] jsonFiles = testMethodMappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
             if (jsonFiles != null && jsonFiles.length > 0) {
                 logger.info("=== RECORDING: Found {} existing mapping file(s) to merge ===", jsonFiles.length);
-                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 for (File mappingFile : jsonFiles) {
                     try {
-                        StubMapping existingMapping = StubMapping.buildFrom(mapper.readTree(mappingFile).toString());
+                        // Read file content directly as string to preserve WireMock's JSON format
+                        String mappingJson = new String(Files.readAllBytes(mappingFile.toPath()));
+                        StubMapping existingMapping = StubMapping.buildFrom(mappingJson);
                         existingMappings.add(existingMapping);
                         logger.info("  Loaded existing mapping: {} ({} {})", mappingFile.getName(),
                             existingMapping.getRequest().getMethod().getName(),
