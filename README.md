@@ -15,9 +15,9 @@
 
 **StableMock**
 
-Auto-record APIs to WireMock stubs. JUnit 5. Zero config.
+A JUnit 5 extension for zero-config HTTP mocking that auto-records external APIs to WireMock stubs.
 
-Stop hand-writing mocks for flaky external APIs. StableMock records real HTTP calls during your tests, turns them into WireMock stubs, and replays them reliably — even when request data changes.
+Stop hand-writing mocks for flaky external APIs. StableMock is a JUnit 5 extension that records real HTTP calls during your tests, automatically converts them to WireMock stubs, and replays them reliably — even when request data changes. Perfect for offline integration tests that mock external APIs without configuration.
 
 Built for JUnit 5. Works offline. Free & open source.
 
@@ -41,17 +41,17 @@ Record HTTP interactions by proxying to the real service:
 ./gradlew test "-Dstablemock.mode=RECORD"
 ```
 
-This saves responses as stub mappings in `src/test/resources/stablemock/<TestClass>/<testMethod>/`.
+This automatically generates WireMock stubs and saves them as stub mappings in `src/test/resources/stablemock/<TestClass>/<testMethod>/`.
 
 ### 3. Playback Mode (Default)
 
-Run tests using recorded mocks:
+Run offline integration tests using recorded WireMock stubs:
 
 ```bash
 ./gradlew test
 ```
 
-Tests will use the saved mappings instead of calling the real service.
+Tests will use the saved WireMock stubs instead of calling the real service, enabling fast, reliable offline integration tests that mock external APIs.
 
 ## Spring Boot Integration
 
