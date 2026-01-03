@@ -81,6 +81,7 @@ public final class HtmlReportGenerator {
 
                 writer.println("  <script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js\"></script>");
                 writer.println("  <script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js\"></script>");
+                writer.println("  <script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js\"></script>");
                 writer.println("  <script>");
                 writer.println(getScript());
                 writer.println("  </script>");
@@ -542,20 +543,35 @@ public final class HtmlReportGenerator {
                 ? prettyPrintJson(bodyJson)
                 : tryPrettyPrintJson(bodyText);
         boolean isJson = bodyJson != null || (bodyText != null && isJsonString(bodyText));
+        boolean isXml = bodyText != null && isXmlString(bodyText);
         // Check if we have mutating fields - for JSON we need bodyJson, for XML we can use bodyText
         boolean hasMutatingFields = mutatingFields != null && mutatingFields.isArray() && mutatingFields.size() > 0 && anchorPrefix != null
                 && (bodyJson != null || bodyText != null);
         
-        // Highlight mutating fields if provided (only works for JSON currently)
+        // Highlight mutating fields if provided
         if (hasMutatingFields && bodyJson != null) {
             body = highlightMutatingFields(body, bodyJson, mutatingFields, anchorPrefix);
-        } else if (hasMutatingFields && bodyText != null) {
-            // For XML/text bodies, just escape HTML (highlighting XML would require XML parsing)
+        } else if (hasMutatingFields && isXml && bodyText != null) {
+            // For XML bodies, highlight mutating fields
+            body = highlightXmlMutatingFields(bodyText, mutatingFields, anchorPrefix);
+        } else if (bodyText != null) {
+            // For plain text bodies, just escape HTML
             body = escapeHtml(body);
         }
         
-        // Don't use Prism for code blocks with mutating fields - use our own styling instead
-        String codeClass = (isJson && !hasMutatingFields) ? "language-json" : (isJson ? "json-no-prism" : "");
+        // Determine code class: use Prism for JSON/XML without mutating fields, custom styling with mutating fields
+        String codeClass;
+        if (isJson && !hasMutatingFields) {
+            codeClass = "language-json";
+        } else if (isJson && hasMutatingFields) {
+            codeClass = "json-no-prism";
+        } else if (isXml && !hasMutatingFields) {
+            codeClass = "language-markup";
+        } else if (isXml && hasMutatingFields) {
+            codeClass = "xml-no-prism";
+        } else {
+            codeClass = "";
+        }
         
         writer.println("                              <pre><code class=\"" + codeClass + "\">" + body + "</code></pre>");
         writer.println("                            </div>");
@@ -679,6 +695,311 @@ public final class HtmlReportGenerator {
         return null;
     }
     
+    /**
+     * Highlights mutating fields in XML by wrapping matching elements/attributes with spans.
+     * Uses regex-based matching for XPath patterns.
+     */
+    private static String highlightXmlMutatingFields(String xmlText, JsonNode mutatingFields, String anchorPrefix) {
+        String formattedXml = formatXml(xmlText);
+        
+        // First, apply syntax highlighting to XML (tags, attributes, values)
+        String syntaxHighlighted = buildXmlWithSyntaxHighlighting(formattedXml);
+        
+        if (mutatingFields == null || !mutatingFields.isArray() || mutatingFields.size() == 0) {
+            return syntaxHighlighted;
+        }
+        
+        // Collect XML XPath patterns
+        java.util.List<String> xmlPatterns = new java.util.ArrayList<>();
+        java.util.Map<String, String> patternToAnchorId = new java.util.HashMap<>();
+        
+        for (JsonNode field : mutatingFields) {
+            if (field.has("fieldPath")) {
+                String fieldPath = field.get("fieldPath").asText();
+                if (fieldPath.startsWith("xml://")) {
+                    String xpathPattern = fieldPath.substring(6); // Remove "xml://" prefix
+                    xmlPatterns.add(xpathPattern);
+                    String sanitized = xpathPattern.replace("*", "-").replace("[", "-").replace("]", "-")
+                            .replace("(", "-").replace(")", "-").replace("/", "-").replace("@", "-")
+                            .replace("=", "-").replace("'", "-").replace("\"", "-").replace(" ", "-");
+                    String anchorId = anchorPrefix + "-" + sanitized;
+                    patternToAnchorId.put(xpathPattern, anchorId);
+                }
+            }
+        }
+        
+        if (xmlPatterns.isEmpty()) {
+            return syntaxHighlighted;
+        }
+        
+        // Apply mutating field highlighting on top of syntax highlighting
+        String highlighted = syntaxHighlighted;
+        for (String xpathPattern : xmlPatterns) {
+            highlighted = applyXmlHighlighting(highlighted, xpathPattern, patternToAnchorId.get(xpathPattern));
+        }
+        
+        return highlighted;
+    }
+    
+    /**
+     * Builds XML with syntax highlighting (tags, attributes, values in different colors).
+     */
+    private static String buildXmlWithSyntaxHighlighting(String xml) {
+        if (xml == null || xml.trim().isEmpty()) {
+            return escapeHtml(xml);
+        }
+        
+        // Process line by line to preserve formatting
+        String[] lines = xml.split("\n");
+        StringBuilder result = new StringBuilder();
+        
+        for (String line : lines) {
+            if (line.trim().isEmpty()) {
+                result.append(line).append("\n");
+                continue;
+            }
+            
+            // Process the line character by character to build highlighted version
+            StringBuilder highlightedLine = new StringBuilder();
+            int i = 0;
+            while (i < line.length()) {
+                if (line.charAt(i) == '<') {
+                    // Found opening tag - highlight until >
+                    int tagEnd = line.indexOf('>', i);
+                    if (tagEnd == -1) {
+                        highlightedLine.append(escapeHtml(line.substring(i)));
+                        break;
+                    }
+                    
+                    String tagContent = line.substring(i, tagEnd + 1);
+                    String highlightedTag = highlightXmlTag(tagContent);
+                    highlightedLine.append(highlightedTag);
+                    i = tagEnd + 1;
+                } else if (i < line.length() && line.charAt(i) != '<') {
+                    // Text content between tags
+                    int nextTag = line.indexOf('<', i);
+                    if (nextTag == -1) {
+                        String text = line.substring(i);
+                        highlightedLine.append("<span class=\"xml-text\">").append(escapeHtml(text)).append("</span>");
+                        break;
+                    } else {
+                        String text = line.substring(i, nextTag);
+                        if (!text.trim().isEmpty()) {
+                            highlightedLine.append("<span class=\"xml-text\">").append(escapeHtml(text)).append("</span>");
+                        } else {
+                            highlightedLine.append(escapeHtml(text));
+                        }
+                        i = nextTag;
+                    }
+                } else {
+                    i++;
+                }
+            }
+            
+            result.append(highlightedLine.toString()).append("\n");
+        }
+        
+        return result.toString().trim();
+    }
+    
+    /**
+     * Highlights an XML tag with attributes.
+     */
+    private static String highlightXmlTag(String tag) {
+        if (!tag.startsWith("<") || !tag.endsWith(">")) {
+            return escapeHtml(tag);
+        }
+        
+        StringBuilder result = new StringBuilder();
+        result.append("<span class=\"xml-tag\">").append(escapeHtml("<")).append("</span>");
+        
+        // Check if it's a closing tag
+        if (tag.startsWith("</")) {
+            String tagname = tag.substring(2, tag.length() - 1).trim();
+            result.append("<span class=\"xml-tag\">/</span>");
+            result.append("<span class=\"xml-tagname\">").append(escapeHtml(tagname)).append("</span>");
+            result.append("<span class=\"xml-tag\">").append(escapeHtml(">")).append("</span>");
+            return result.toString();
+        }
+        
+        // Check if it's self-closing
+        boolean selfClosing = tag.endsWith("/>");
+        String tagContent = tag.substring(1, selfClosing ? tag.length() - 2 : tag.length() - 1);
+        
+        // Split tag name and attributes
+        String[] parts = tagContent.split("\\s+", 2);
+        String tagname = parts[0];
+        String attributes = parts.length > 1 ? parts[1] : "";
+        
+        result.append("<span class=\"xml-tagname\">").append(escapeHtml(tagname)).append("</span>");
+        
+        // Highlight attributes
+        if (!attributes.isEmpty()) {
+            result.append(" ");
+            result.append(highlightXmlAttributes(attributes));
+        }
+        
+        if (selfClosing) {
+            result.append("<span class=\"xml-tag\">/</span>");
+        }
+        result.append("<span class=\"xml-tag\">").append(escapeHtml(">")).append("</span>");
+        
+        return result.toString();
+    }
+    
+    /**
+     * Highlights XML attributes.
+     */
+    private static String highlightXmlAttributes(String attributes) {
+        // Pattern: name="value" or name='value'
+        java.util.regex.Pattern attrPattern = java.util.regex.Pattern.compile("([a-zA-Z][a-zA-Z0-9_-]*)\\s*=\\s*([\"'])([^\"']*)\\2");
+        java.util.regex.Matcher matcher = attrPattern.matcher(attributes);
+        
+        StringBuilder result = new StringBuilder();
+        int lastEnd = 0;
+        
+        while (matcher.find()) {
+            // Add text before the match
+            if (matcher.start() > lastEnd) {
+                result.append(escapeHtml(attributes.substring(lastEnd, matcher.start())));
+            }
+            
+            // Highlight the attribute
+            String attrName = matcher.group(1);
+            String quote = matcher.group(2);
+            String attrValue = matcher.group(3);
+            
+            result.append("<span class=\"xml-attrname\">").append(escapeHtml(attrName)).append("</span>");
+            result.append("<span class=\"xml-punctuation\">=</span>");
+            result.append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
+            result.append("<span class=\"xml-attrvalue\">").append(escapeHtml(attrValue)).append("</span>");
+            result.append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
+            
+            lastEnd = matcher.end();
+        }
+        
+        // Add remaining text
+        if (lastEnd < attributes.length()) {
+            result.append(escapeHtml(attributes.substring(lastEnd)));
+        }
+        
+        return result.toString();
+    }
+    
+    /**
+     * Applies highlighting to XML elements/attributes matching an XPath pattern.
+     * Uses regex to find and wrap matching content.
+     */
+    private static String applyXmlHighlighting(String xml, String xpathPattern, String anchorId) {
+        // Extract element name and attribute name from XPath pattern
+        // Pattern: //*[local-name()='request']/*[local-name()='header']/@*[local-name()='attr'] 
+        // or //*[local-name()='request']/*[local-name()='header']/*[local-name()='element']
+        String elementName = null;
+        String attributeName = null;
+        
+        if (xpathPattern.contains("@")) {
+            // Attribute pattern: //*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']
+            String[] parts = xpathPattern.split("/@");
+            if (parts.length == 2) {
+                String elementPart = parts[0];
+                String attrPart = parts[1];
+                
+                // Extract last element name from path: //*[local-name()='request']/*[local-name()='header']
+                // Get the last local-name() match
+                java.util.regex.Pattern elemPattern = java.util.regex.Pattern.compile("local-name\\(\\)='([^']+)'");
+                java.util.regex.Matcher elemMatcher = elemPattern.matcher(elementPart);
+                String lastElement = null;
+                while (elemMatcher.find()) {
+                    lastElement = elemMatcher.group(1);
+                }
+                elementName = lastElement;
+                
+                // Extract attribute name: @*[local-name()='id']
+                java.util.regex.Pattern attrPattern = java.util.regex.Pattern.compile("local-name\\(\\)='([^']+)'");
+                java.util.regex.Matcher attrMatcher = attrPattern.matcher(attrPart);
+                if (attrMatcher.find()) {
+                    attributeName = attrMatcher.group(1);
+                }
+                
+                if (elementName != null && attributeName != null) {
+                    // Find and highlight attribute value in syntax-highlighted XML
+                    // Pattern: <span class="xml-attrname">attrname</span><span class="xml-punctuation">=</span>...<span class="xml-attrvalue">value</span>
+                    String attrRegex = "(<span class=\"xml-attrname\">" + java.util.regex.Pattern.quote(escapeHtml(attributeName)) 
+                            + "</span><span class=\"xml-punctuation\">=</span><span class=\"xml-punctuation\">[\"']</span>)"
+                            + "(<span class=\"xml-attrvalue\">)([^<]+?)(</span>)"
+                            + "(<span class=\"xml-punctuation\">[\"']</span>)";
+                    xml = xml.replaceAll(attrRegex, 
+                            "$1$2<span id=\"" + escapeHtmlAttribute(anchorId) 
+                            + "\" class=\"mutating-field-line\" data-mutating-field=\"true\">$3</span>$4$5");
+                }
+            }
+        } else {
+            // Element pattern: //*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']
+            // Get the last element name
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("local-name\\(\\)='([^']+)'");
+            java.util.regex.Matcher matcher = pattern.matcher(xpathPattern);
+            String lastElement = null;
+            while (matcher.find()) {
+                lastElement = matcher.group(1);
+            }
+            elementName = lastElement;
+            
+            if (elementName != null) {
+                // Find and highlight element text content in syntax-highlighted XML
+                // Pattern: ...><span class="xml-text">value</span><...
+                String escapedTagname = escapeHtml(elementName);
+                String elemRegex = "(<span class=\"xml-tagname\">" + java.util.regex.Pattern.quote(escapedTagname) 
+                        + "</span>[^<]*<span class=\"xml-tag\">&gt;</span>)"
+                        + "(<span class=\"xml-text\">)([^<]+?)(</span>)"
+                        + "(<span class=\"xml-tag\">&lt;/</span><span class=\"xml-tagname\">" 
+                        + java.util.regex.Pattern.quote(escapedTagname) + "</span><span class=\"xml-tag\">&gt;</span>)";
+                xml = xml.replaceAll(elemRegex, 
+                        "$1$2<span id=\"" + escapeHtmlAttribute(anchorId) 
+                        + "\" class=\"mutating-field-line\" data-mutating-field=\"true\">$3</span>$4$5");
+            }
+        }
+        
+        return xml;
+    }
+    
+    /**
+     * Formats XML with proper indentation.
+     */
+    private static String formatXml(String xml) {
+        if (xml == null || xml.trim().isEmpty()) {
+            return xml;
+        }
+        try {
+            // Simple XML formatting - add line breaks and indentation
+            // First, normalize whitespace and add line breaks between tags
+            String normalized = xml.trim().replaceAll(">\\s+<", "><");
+            String formatted = normalized.replaceAll("><", ">\n<");
+            String[] lines = formatted.split("\n");
+            StringBuilder result = new StringBuilder();
+            int indent = 0;
+            for (String line : lines) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                
+                // Decrease indent before closing tags
+                if (line.startsWith("</")) {
+                    indent = Math.max(0, indent - 1);
+                }
+                
+                result.append("  ".repeat(Math.max(0, indent)));
+                result.append(line).append("\n");
+                
+                // Increase indent after opening tags (but not self-closing or closing tags)
+                if (line.startsWith("<") && !line.startsWith("</") && !line.endsWith("/>") && !line.contains("</")) {
+                    indent++;
+                }
+            }
+            return result.toString().trim();
+        } catch (Exception e) {
+            return xml; // Return original if formatting fails
+        }
+    }
+    
     private static boolean isJsonString(String text) {
         if (text == null || text.isBlank()) {
             return false;
@@ -686,6 +1007,14 @@ public final class HtmlReportGenerator {
         String trimmed = text.trim();
         return (trimmed.startsWith("{") && trimmed.endsWith("}")) 
             || (trimmed.startsWith("[") && trimmed.endsWith("]"));
+    }
+    
+    private static boolean isXmlString(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        String trimmed = text.trim();
+        return trimmed.startsWith("<") && trimmed.endsWith(">");
     }
 
     private static int countRequests(JsonNode testMethod) {
@@ -1500,6 +1829,47 @@ public final class HtmlReportGenerator {
 
             code.json-no-prism .json-punctuation {
               color: #d1d5db;
+            }
+
+            code.xml-no-prism {
+              color: #d1d5db;
+            }
+
+            code.xml-no-prism .xml-tag {
+              color: #9ca3af;
+            }
+
+            code.xml-no-prism .xml-tagname {
+              color: #60a5fa;
+            }
+
+            code.xml-no-prism .xml-attrname {
+              color: #E8A740;
+            }
+
+            code.xml-no-prism .xml-attrvalue {
+              color: #4ade80;
+            }
+
+            code.xml-no-prism .xml-text {
+              color: #d1d5db;
+            }
+
+            code.xml-no-prism .xml-punctuation {
+              color: #9ca3af;
+            }
+
+            code.xml-no-prism .mutating-field-line {
+              background-color: rgba(239, 68, 68, 0.15) !important;
+              color: #f87171 !important;
+            }
+
+            code.xml-no-prism .mutating-field-line * {
+              color: #f87171 !important;
+            }
+
+            code.language-markup {
+              color: #fbbf24;
             }
 
             .mutating-field-line {
