@@ -297,12 +297,21 @@ public final class HtmlReportGenerator {
                 
                 for (JsonNode field : detectedFields.get("dynamic_fields")) {
                     String fieldPath = field.has("field_path") ? field.get("field_path").asText() : "Unknown";
-                    String jsonPath = fieldPath.startsWith("json:") ? fieldPath.substring(5) : fieldPath;
+                    // Extract path for anchor ID generation (remove prefix for JSON, keep full path for XML/others)
+                    String pathForAnchor = fieldPath;
+                    if (fieldPath.startsWith("json:")) {
+                        pathForAnchor = fieldPath.substring(5);
+                    } else if (fieldPath.startsWith("xml://")) {
+                        // For XML, use the full XPath but sanitize it for anchor ID
+                        pathForAnchor = fieldPath;
+                    }
                     
                     // Generate anchor ID that matches the one in request body
                     String anchorId = null;
                     if (firstRequestDetailsId != null) {
-                        anchorId = firstRequestDetailsId + "-example-1-" + jsonPath.replace(".", "-").replace(":", "-");
+                        // Sanitize path for anchor ID (replace special chars with dashes)
+                        String sanitizedPath = pathForAnchor.replace(".", "-").replace(":", "-").replace("/", "-").replace("*", "-").replace("[", "-").replace("]", "-").replace("(", "-").replace(")", "-").replace("@", "-").replace("=", "-");
+                        anchorId = firstRequestDetailsId + "-example-1-" + sanitizedPath;
                     }
                     
                     writer.println("              <li>");
@@ -533,11 +542,16 @@ public final class HtmlReportGenerator {
                 ? prettyPrintJson(bodyJson)
                 : tryPrettyPrintJson(bodyText);
         boolean isJson = bodyJson != null || (bodyText != null && isJsonString(bodyText));
-        boolean hasMutatingFields = mutatingFields != null && mutatingFields.isArray() && mutatingFields.size() > 0 && bodyJson != null && anchorPrefix != null;
+        // Check if we have mutating fields - for JSON we need bodyJson, for XML we can use bodyText
+        boolean hasMutatingFields = mutatingFields != null && mutatingFields.isArray() && mutatingFields.size() > 0 && anchorPrefix != null
+                && (bodyJson != null || bodyText != null);
         
-        // Highlight mutating fields if provided
-        if (hasMutatingFields) {
+        // Highlight mutating fields if provided (only works for JSON currently)
+        if (hasMutatingFields && bodyJson != null) {
             body = highlightMutatingFields(body, bodyJson, mutatingFields, anchorPrefix);
+        } else if (hasMutatingFields && bodyText != null) {
+            // For XML/text bodies, just escape HTML (highlighting XML would require XML parsing)
+            body = escapeHtml(body);
         }
         
         // Don't use Prism for code blocks with mutating fields - use our own styling instead

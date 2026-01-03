@@ -197,7 +197,7 @@ public final class RecordingReportGenerator {
                             JsonNode bodyPatterns = requestNode.get("bodyPatterns");
                             if (bodyPatterns != null && bodyPatterns.isArray()) {
                                 for (JsonNode bodyPattern : bodyPatterns) {
-                                    if (bodyPattern.has("equalToJson") || bodyPattern.has("equalTo")) {
+                                    if (bodyPattern.has("equalToJson") || bodyPattern.has("equalTo") || bodyPattern.has("equalToXml")) {
                                         // This request has a body - we can note it
                                         requestInfo.setHasBody(true);
                                     }
@@ -413,6 +413,10 @@ public final class RecordingReportGenerator {
             for (JsonNode bodyPattern : requestNode.get("bodyPatterns")) {
                 if (bodyPattern.has("equalToJson")) {
                     JsonNode bodyNode = bodyPattern.get("equalToJson");
+                    return bodyNode.isTextual() ? bodyNode.asText() : bodyNode.toString();
+                }
+                if (bodyPattern.has("equalToXml")) {
+                    JsonNode bodyNode = bodyPattern.get("equalToXml");
                     return bodyNode.isTextual() ? bodyNode.asText() : bodyNode.toString();
                 }
                 if (bodyPattern.has("equalTo")) {
