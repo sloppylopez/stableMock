@@ -579,20 +579,24 @@ public final class HtmlReportGenerator {
         } else if (hasMutatingFields && isXml && bodyText != null) {
             // For XML bodies, highlight mutating fields
             body = highlightXmlMutatingFields(bodyText, mutatingFields, anchorPrefix);
+        } else if (isXml && bodyText != null) {
+            // For XML bodies without mutating fields, format and highlight syntax
+            String formattedXml = formatXml(bodyText);
+            body = buildXmlWithSyntaxHighlighting(formattedXml, null, null);
         } else if (bodyText != null) {
             // For plain text bodies, just escape HTML
             body = escapeHtml(body);
         }
         
         // Determine code class: use Prism for JSON/XML without mutating fields, custom styling with mutating fields
+        // Note: XML always uses xml-no-prism when buildXmlWithSyntaxHighlighting is used (with or without mutating fields)
         String codeClass;
         if (isJson && !hasMutatingFields) {
             codeClass = "language-json";
         } else if (isJson && hasMutatingFields) {
             codeClass = "json-no-prism";
-        } else if (isXml && !hasMutatingFields) {
-            codeClass = "language-markup";
-        } else if (isXml && hasMutatingFields) {
+        } else if (isXml) {
+            // XML always uses xml-no-prism because buildXmlWithSyntaxHighlighting adds custom spans
             codeClass = "xml-no-prism";
         } else {
             codeClass = "";
