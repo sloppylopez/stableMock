@@ -2102,7 +2102,7 @@ public final class HtmlReportGenerator {
             }
 
             code.xml-no-prism .xml-tagname {
-              color: #60a5fa;
+              color: #F5C97A;
             }
 
             code.xml-no-prism .xml-attrname {
@@ -2114,7 +2114,7 @@ public final class HtmlReportGenerator {
             }
 
             code.xml-no-prism .xml-text {
-              color: #d1d5db;
+              color: #4ade80;
             }
 
             code.xml-no-prism .xml-punctuation {
