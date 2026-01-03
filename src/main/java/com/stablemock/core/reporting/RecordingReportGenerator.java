@@ -238,8 +238,6 @@ public final class RecordingReportGenerator {
                                     if (fieldPath != null) {
                                         ObjectNode mutatingFieldNode = mutatingFieldsArray.addObject();
                                         mutatingFieldNode.put("fieldPath", fieldPath);
-                                        mutatingFieldNode.put("confidence", 
-                                                fieldNode.has("confidence") ? fieldNode.get("confidence").asText() : "UNKNOWN");
                                         
                                         if (fieldNode.has("sample_values") && fieldNode.get("sample_values").isArray()) {
                                             ArrayNode samplesArray = mutatingFieldNode.putArray("sampleValues");

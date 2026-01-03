@@ -167,7 +167,7 @@ class GraphQLTest extends BaseStableMockTest {
     void testGraphQLMutationWithDynamicFields() throws InterruptedException {
         // GraphQL mutation with dynamic fields (timestamps, IDs)
         // Note: countries.trevorblades.com doesn't support mutations, so we'll simulate
-        // a mutation-like query with dynamic metadata fields
+        // a mutation-like query with dynamic metadata fields as top-level JSON fields
         // Flow: Test -> Controller -> ThirdPartyService -> GraphQLClient -> countries.trevorblades.com
         
         String timestamp1 = java.time.Instant.now().toString();
@@ -175,12 +175,12 @@ class GraphQLTest extends BaseStableMockTest {
         
         String mutation1 = String.format("""
             {
-              "query": "query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }",
+              "query": "query GetCountry($code: ID!) { country(code: $code) { name capital } }",
               "variables": {
-                "code": "US",
-                "timestamp": "%s",
-                "requestId": "%s"
-              }
+                "code": "US"
+              },
+              "timestamp": "%s",
+              "requestId": "%s"
             }
             """, timestamp1, requestId1);
 
@@ -190,6 +190,8 @@ class GraphQLTest extends BaseStableMockTest {
         ResponseEntity<String> response1Entity = restTemplate.postForEntity("/api/graphql", request1, String.class);
         String response1 = response1Entity.getBody();
         assertNotNull(response1, "First response should not be null");
+        assertTrue(response1.contains("country") || response1.contains("name"),
+                "Response should contain GraphQL data. Got: " + preview(response1));
 
         Thread.sleep(50); // Small delay to ensure values change
 
@@ -198,12 +200,12 @@ class GraphQLTest extends BaseStableMockTest {
         
         String mutation2 = String.format("""
             {
-              "query": "query GetCountry($code: ID!, $timestamp: String!, $requestId: String!) { country(code: $code) { name capital } }",
+              "query": "query GetCountry($code: ID!) { country(code: $code) { name capital } }",
               "variables": {
-                "code": "US",
-                "timestamp": "%s",
-                "requestId": "%s"
-              }
+                "code": "US"
+              },
+              "timestamp": "%s",
+              "requestId": "%s"
             }
             """, timestamp2, requestId2);
 
@@ -211,11 +213,13 @@ class GraphQLTest extends BaseStableMockTest {
         ResponseEntity<String> response2Entity = restTemplate.postForEntity("/api/graphql", request2, String.class);
         String response2 = response2Entity.getBody();
         assertNotNull(response2, "Second response should not be null");
+        assertTrue(response2.contains("country") || response2.contains("name"),
+                "Response should contain GraphQL data. Got: " + preview(response2));
 
         // Verify that the mutations are different (dynamic fields changed)
         assertNotEquals(mutation1, mutation2, "GraphQL mutations should differ due to dynamic fields");
 
-        // In RECORD mode, json:variables.timestamp and json:variables.requestId should be detected as mutating fields
+        // In RECORD mode, json:timestamp and json:requestId should be detected as mutating fields
         // In PLAYBACK mode, both requests should match the same stub despite different dynamic values
         String mode = System.getProperty("stablemock.mode", "PLAYBACK");
         if (!"RECORD".equalsIgnoreCase(mode)) {

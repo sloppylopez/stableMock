@@ -297,7 +297,6 @@ public final class HtmlReportGenerator {
                 
                 for (JsonNode field : detectedFields.get("dynamic_fields")) {
                     String fieldPath = field.has("field_path") ? field.get("field_path").asText() : "Unknown";
-                    String confidence = field.has("confidence") ? field.get("confidence").asText() : "UNKNOWN";
                     String jsonPath = fieldPath.startsWith("json:") ? fieldPath.substring(5) : fieldPath;
                     
                     // Generate anchor ID that matches the one in request body
@@ -312,7 +311,6 @@ public final class HtmlReportGenerator {
                     } else {
                         writer.println("                <code class=\"field-path\">" + escapeHtml(fieldPath) + "</code>");
                     }
-                    writer.println("                <span class=\"confidence confidence-" + confidence.toLowerCase() + "\">" + escapeHtml(confidence) + "</span>");
                     
                     if (field.has("sample_values") && field.get("sample_values").isArray()) {
                         writer.println("                <details>");
@@ -1156,33 +1154,6 @@ public final class HtmlReportGenerator {
             .field-path {
               font-weight: bold;
               color: #E8A740;
-            }
-            
-            .confidence {
-              display: inline-block;
-              padding: 2px 8px;
-              border-radius: 12px;
-              font-size: 0.75em;
-              font-weight: bold;
-              margin-left: 10px;
-            }
-            
-            .confidence-high {
-              background-color: rgba(34, 197, 94, 0.2);
-              color: #4ade80;
-              border: 1px solid rgba(34, 197, 94, 0.4);
-            }
-            
-            .confidence-medium {
-              background-color: rgba(232, 167, 64, 0.2);
-              color: #F5C97A;
-              border: 1px solid rgba(232, 167, 64, 0.4);
-            }
-            
-            .confidence-low {
-              background-color: rgba(239, 68, 68, 0.2);
-              color: #f87171;
-              border: 1px solid rgba(239, 68, 68, 0.4);
             }
             
             .sample-values {

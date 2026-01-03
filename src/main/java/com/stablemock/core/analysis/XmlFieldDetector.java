@@ -75,7 +75,6 @@ public final class XmlFieldDetector {
                         sampleValues.add(values.get(i));
                     }
 
-                    String confidence = ConfidenceCalculator.calculateConfidence(values.size());
                     // Generate XPath pattern for WireMock XML matching
                     // Handle both elements and attributes
                     String xpathPattern;
@@ -93,11 +92,11 @@ public final class XmlFieldDetector {
                     String xmlPath = "xml:" + xpathPattern;
 
                     result.addDynamicField(new DetectionResult.DynamicField(
-                            xmlPath, confidence, sampleValues));
+                            xmlPath, sampleValues));
                     result.addIgnorePattern(xmlPath);
 
-                    logger.info("Detected dynamic XML field: {} (confidence: {}, samples: {})",
-                            xmlPath, confidence, sampleValues.size());
+                    logger.info("Detected dynamic XML field: {} (samples: {})",
+                            xmlPath, sampleValues.size());
                 }
             }
         }
