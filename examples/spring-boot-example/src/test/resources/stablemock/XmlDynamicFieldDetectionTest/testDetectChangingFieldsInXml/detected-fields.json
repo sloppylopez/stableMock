@@ -1,23 +1,23 @@
 {
   "testClass" : "XmlDynamicFieldDetectionTest",
   "testMethod" : "testDetectChangingFieldsInXml",
-  "detectedAt" : "2026-01-03T23:37:09.890163600Z",
+  "detectedAt" : "2026-01-03T23:49:28.537653500Z",
   "analyzed_requests_count" : 2,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']",
-    "sample_values" : [ "b8dee4dd-d98d-4c0b-b842-b5a0b1008faa", "cfcfbcdb-7b70-4f2f-8a3e-13c3e741746f" ]
+    "sample_values" : [ "a4cf32b4-5392-42ae-9917-708c5d20eb65", "469b4eab-0924-46ee-9f85-5e4639767811" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']",
-    "sample_values" : [ "b8dee4dd-d98d-4c0b-b842-b5a0b1008faa", "cfcfbcdb-7b70-4f2f-8a3e-13c3e741746f" ]
+    "sample_values" : [ "a4cf32b4-5392-42ae-9917-708c5d20eb65", "469b4eab-0924-46ee-9f85-5e4639767811" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']",
-    "sample_values" : [ "1.1767483429123", "1.1767483428479" ]
+    "sample_values" : [ "1.1767484167759", "1.1767484167199" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']",
-    "sample_values" : [ "9aa45d26-bbc7-4af7-9509-33f0b685f2b7", "f595658e-3c46-4ab6-bd5f-a0860097d98b" ]
+    "sample_values" : [ "b1d101db-c3d8-4d09-8bf8-701348b374fd", "39984b2c-b36d-4c09-8a29-fe7702270e84" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']",
-    "sample_values" : [ "2026-01-03T23:37:09.123730600Z", "2026-01-03T23:37:08.479916600Z" ]
+    "sample_values" : [ "2026-01-03T23:49:27.759691200Z", "2026-01-03T23:49:27.199143100Z" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']" ]
 }

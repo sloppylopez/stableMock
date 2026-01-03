@@ -1,0 +1,44 @@
+{
+  "id" : "0e4e22d0-e301-44e2-afad-7ed973ec539a",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2026-01-03T23:49:27.156825200Z\",\"requestId\":\"61d8ead8-50ba-4dee-b982-6004411071e3\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9b866487abc33f23-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1767484223",
+      "x-ratelimit-remaining" : "995",
+      "pragma" : "no-cache",
+      "Date" : "Sat, 03 Jan 2026 23:49:26 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=1L2lpY9uZIgnvFhlR7bH%2BDb4QXqFiLVlASKg7E2Wf%2Fk%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1767484166\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=1L2lpY9uZIgnvFhlR7bH%2BDb4QXqFiLVlASKg7E2Wf%2Fk%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1767484166\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "0e4e22d0-e301-44e2-afad-7ed973ec539a",
+  "persistent" : true,
+  "insertionIndex" : 1
+}
