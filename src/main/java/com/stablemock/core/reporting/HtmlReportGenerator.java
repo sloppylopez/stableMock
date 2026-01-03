@@ -509,8 +509,8 @@ public final class HtmlReportGenerator {
             body = highlightMutatingFields(body, bodyJson, mutatingFields, anchorPrefix);
         }
         
-        // Don't use Prism for code blocks with mutating fields to avoid tokenization issues
-        String codeClass = (isJson && !hasMutatingFields) ? "language-json" : "";
+        // Don't use Prism for code blocks with mutating fields - use our own styling instead
+        String codeClass = (isJson && !hasMutatingFields) ? "language-json" : (isJson ? "json-no-prism" : "");
         
         writer.println("                              <pre><code class=\"" + codeClass + "\">" + body + "</code></pre>");
         writer.println("                            </div>");
@@ -557,7 +557,7 @@ public final class HtmlReportGenerator {
         
         if (node.isObject()) {
             StringBuilder sb = new StringBuilder();
-            sb.append("{\n");
+            sb.append("<span class=\"json-punctuation\">{</span>\n");
             java.util.Iterator<java.util.Map.Entry<String, JsonNode>> fields = node.fields();
             boolean first = true;
             while (fields.hasNext()) {
@@ -566,19 +566,20 @@ public final class HtmlReportGenerator {
                 JsonNode value = entry.getValue();
                 
                 if (!first) {
-                    sb.append(",\n");
+                    sb.append("<span class=\"json-punctuation\">,</span>\n");
                 }
                 first = false;
                 
                 String fieldPath = currentPath.isEmpty() ? key : currentPath + "." + key;
-                boolean isMutating = mutatingPaths.contains(fieldPath);
-                String anchorId = isMutating ? pathToAnchorId.get(fieldPath) : null;
+                boolean isMutating = isPathMutating(fieldPath, mutatingPaths);
+                String anchorId = isMutating ? findAnchorIdForPath(fieldPath, mutatingPaths, pathToAnchorId) : null;
                 
-                sb.append(nextIndentStr).append("\"").append(escapeHtml(key)).append("\" : ");
-                
+                sb.append(nextIndentStr);
                 if (isMutating && anchorId != null) {
-                    sb.append("<span id=\"").append(escapeHtmlAttribute(anchorId)).append("\" class=\"mutating-field-value\">");
+                    sb.append("<span id=\"").append(escapeHtmlAttribute(anchorId)).append("\" class=\"mutating-field-line\" data-mutating-field=\"true\">");
                 }
+                
+                sb.append("<span class=\"json-property\">\"").append(escapeHtml(key)).append("\"</span> <span class=\"json-punctuation\">:</span> ");
                 
                 String valueStr = buildJsonWithHighlights(value, mutatingPaths, pathToAnchorId, fieldPath, indent + 1);
                 sb.append(valueStr);
@@ -587,19 +588,20 @@ public final class HtmlReportGenerator {
                     sb.append("</span>");
                 }
             }
-            sb.append("\n").append(indentStr).append("}");
+            sb.append("\n").append(indentStr).append("<span class=\"json-punctuation\">}</span>");
             return sb.toString();
         } else if (node.isArray()) {
             StringBuilder sb = new StringBuilder();
-            sb.append("[\n");
+            sb.append("<span class=\"json-punctuation\">[</span>\n");
             for (int i = 0; i < node.size(); i++) {
                 if (i > 0) {
-                    sb.append(",\n");
+                    sb.append("<span class=\"json-punctuation\">,</span>\n");
                 }
                 sb.append(nextIndentStr);
-                sb.append(buildJsonWithHighlights(node.get(i), mutatingPaths, pathToAnchorId, currentPath, indent + 1));
+                String arrayPath = currentPath + "[" + i + "]";
+                sb.append(buildJsonWithHighlights(node.get(i), mutatingPaths, pathToAnchorId, arrayPath, indent + 1));
             }
-            sb.append("\n").append(indentStr).append("]");
+            sb.append("\n").append(indentStr).append("<span class=\"json-punctuation\">]</span>");
             return sb.toString();
         } else {
             return formatJsonValue(node);
@@ -608,15 +610,28 @@ public final class HtmlReportGenerator {
     
     private static String formatJsonValue(JsonNode value) {
         if (value.isTextual()) {
-            return "\"" + escapeHtml(value.asText()) + "\"";
+            return "<span class=\"json-string\">\"" + escapeHtml(value.asText()) + "\"</span>";
         } else if (value.isNumber()) {
-            return value.toString();
+            return "<span class=\"json-number\">" + value.toString() + "</span>";
         } else if (value.isBoolean()) {
-            return value.asBoolean() ? "true" : "false";
+            return "<span class=\"json-boolean\">" + (value.asBoolean() ? "true" : "false") + "</span>";
         } else if (value.isNull()) {
-            return "null";
+            return "<span class=\"json-null\">null</span>";
         }
         return escapeHtml(value.toString());
+    }
+    
+    private static boolean isPathMutating(String currentPath, java.util.Set<String> mutatingPaths) {
+        // Only exact match - don't highlight parent objects/arrays
+        return mutatingPaths.contains(currentPath);
+    }
+    
+    private static String findAnchorIdForPath(String currentPath, java.util.Set<String> mutatingPaths, java.util.Map<String, String> pathToAnchorId) {
+        // Only return anchor ID for exact matches
+        if (mutatingPaths.contains(currentPath) && pathToAnchorId.containsKey(currentPath)) {
+            return pathToAnchorId.get(currentPath);
+        }
+        return null;
     }
     
     private static boolean isJsonString(String text) {
@@ -1456,25 +1471,84 @@ public final class HtmlReportGenerator {
               font-weight: bold !important;
             }
 
-            .mutating-field-value .token,
-            .mutating-field-value .token.string,
-            .mutating-field-value .token.number,
-            .mutating-field-value .token.boolean,
-            .mutating-field-value .token.null {
-              color: #f87171 !important;
-              background-color: rgba(239, 68, 68, 0.15) !important;
-            }
-
-            pre code:not([class*="language-"]) {
+            code.json-no-prism {
               color: #d1d5db;
             }
 
-            pre code:not([class*="language-"]) .mutating-field-value {
+            code.json-no-prism .json-property {
+              color: #E8A740;
+            }
+
+            code.json-no-prism .json-string {
+              color: #4ade80;
+            }
+
+            code.json-no-prism .json-number {
+              color: #60a5fa;
+            }
+
+            code.json-no-prism .json-boolean {
+              color: #a78bfa;
+            }
+
+            code.json-no-prism .json-null {
+              color: #9ca3af;
+            }
+
+            code.json-no-prism .json-punctuation {
+              color: #d1d5db;
+            }
+
+            code.json-no-prism .mutating-field-line {
+              background-color: rgba(239, 68, 68, 0.15) !important;
+              padding: 2px 4px !important;
+              border-radius: 3px !important;
+              display: inline !important;
+              border-left: 3px solid #f87171 !important;
+              margin: 0 !important;
+              margin-top: 0 !important;
+              margin-bottom: 0 !important;
+              padding-top: 0 !important;
+              padding-bottom: 0 !important;
+              vertical-align: baseline !important;
+            }
+
+            code.json-no-prism .mutating-field-line * {
+              color: #f87171 !important;
+            }
+
+            .mutating-field-line {
+              background-color: rgba(239, 68, 68, 0.15) !important;
+              padding: 2px 4px !important;
+              border-radius: 3px !important;
+              display: inline-block !important;
+              border-left: 3px solid #f87171 !important;
+            }
+
+            .mutating-field-line *,
+            .mutating-field-line .token,
+            .mutating-field-line .token.string,
+            .mutating-field-line .token.property,
+            .mutating-field-line .token.punctuation,
+            .mutating-field-line .token.number,
+            .mutating-field-line .token.boolean,
+            .mutating-field-line .token.null,
+            code .mutating-field-line,
+            code .mutating-field-line *,
+            code .mutating-field-line .token,
+            pre code .mutating-field-line,
+            pre code .mutating-field-line *,
+            pre code .mutating-field-line .token {
+              color: #f87171 !important;
+            }
+
+            .mutating-field-value {
               color: #f87171 !important;
               background-color: rgba(239, 68, 68, 0.15) !important;
-              padding: 2px 4px;
-              border-radius: 3px;
-              font-weight: bold;
+              padding: 2px 4px !important;
+              border-radius: 3px !important;
+              font-weight: bold !important;
+              display: inline-block !important;
             }
 
             .field-link {
@@ -1535,6 +1609,127 @@ public final class HtmlReportGenerator {
                 const visibleMethods = testClass.querySelectorAll('.test-method:not(.is-filtered-out)');
                 testClass.classList.toggle('is-filtered-out', visibleMethods.length === 0 && filterValue !== '');
               });
+            }
+
+            function highlightMutatingFields() {
+              document.querySelectorAll('.mutating-field-line, .mutating-field-value').forEach((span) => {
+                span.style.setProperty('background-color', 'rgba(239, 68, 68, 0.15)', 'important');
+                span.style.setProperty('padding', '2px 4px', 'important');
+                span.style.setProperty('border-radius', '3px', 'important');
+                if (span.classList.contains('mutating-field-line')) {
+                  span.style.setProperty('border-left', '3px solid #f87171', 'important');
+                }
+                
+                const tokens = span.querySelectorAll('.token');
+                tokens.forEach((token) => {
+                  token.style.setProperty('color', '#f87171', 'important');
+                  token.style.removeProperty('background');
+                  token.classList.remove('token');
+                  token.classList.add('mutating-token');
+                });
+                
+                const allChildren = span.querySelectorAll('*');
+                allChildren.forEach((child) => {
+                  if (child.classList.contains('token')) {
+                    child.style.setProperty('color', '#f87171', 'important');
+                    child.style.setProperty('background-color', 'transparent', 'important');
+                  } else {
+                    child.style.setProperty('color', '#f87171', 'important');
+                  }
+                });
+                
+                const walker = document.createTreeWalker(span, NodeFilter.SHOW_ELEMENT);
+                let node;
+                while (node = walker.nextNode()) {
+                  if (node.classList && node.classList.contains('token')) {
+                    node.style.setProperty('color', '#f87171', 'important');
+                    node.style.setProperty('background-color', 'transparent', 'important');
+                  }
+                }
+              });
+            }
+
+            function injectMutatingFieldStyles() {
+              const style = document.createElement('style');
+              style.textContent = `
+                .mutating-field-line .token.string,
+                .mutating-field-line .token.property,
+                .mutating-field-line .token.punctuation,
+                .mutating-field-line .token.number,
+                .mutating-field-line .token.boolean,
+                .mutating-field-line .token.null,
+                .mutating-field-line .token.operator,
+                .mutating-field-line .token {
+                  color: #f87171 !important;
+                }
+                .mutating-field-line {
+                  background-color: rgba(239, 68, 68, 0.15) !important;
+                  border-left: 3px solid #f87171 !important;
+                  padding: 2px 4px !important;
+                  border-radius: 3px !important;
+                  display: inline-block !important;
+                }
+              `;
+              document.head.appendChild(style);
+            }
+
+            function observeAndHighlight() {
+              injectMutatingFieldStyles();
+              highlightMutatingFields();
+              
+              const observer = new MutationObserver(function(mutations) {
+                highlightMutatingFields();
+              });
+              
+              document.querySelectorAll('pre code').forEach((code) => {
+                observer.observe(code, {
+                  childList: true,
+                  subtree: true,
+                  attributes: true,
+                  attributeFilter: ['class']
+                });
+              });
+            }
+
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(observeAndHighlight, 300);
+                setInterval(highlightMutatingFields, 300);
+              });
+            } else {
+              setTimeout(observeAndHighlight, 300);
+              setInterval(highlightMutatingFields, 300);
+            }
+
+            if (typeof Prism !== 'undefined') {
+              const originalHighlight = Prism.highlight;
+              Prism.highlight = function(element, grammar, language) {
+                const result = originalHighlight.call(this, element, grammar, language);
+                setTimeout(function() {
+                  injectMutatingFieldStyles();
+                  highlightMutatingFields();
+                }, 150);
+                return result;
+              };
+              
+              const originalHighlightAll = Prism.highlightAll;
+              if (originalHighlightAll) {
+                Prism.highlightAll = function(async, callback, container) {
+                  const result = originalHighlightAll.call(this, async, callback, container);
+                  setTimeout(function() {
+                    injectMutatingFieldStyles();
+                    highlightMutatingFields();
+                  }, 300);
+                  return result;
+                };
+              }
+              
+              setTimeout(function() {
+                injectMutatingFieldStyles();
+                highlightMutatingFields();
+              }, 500);
+            } else {
+              setTimeout(observeAndHighlight, 100);
             }
             """;
     }
