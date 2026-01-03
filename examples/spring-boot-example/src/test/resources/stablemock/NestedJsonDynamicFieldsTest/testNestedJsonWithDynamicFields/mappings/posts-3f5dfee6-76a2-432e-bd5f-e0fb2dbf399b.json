@@ -1,0 +1,44 @@
+{
+  "id" : "3f5dfee6-76a2-432e-bd5f-e0fb2dbf399b",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\n  \"order\": {\n    \"id\": \"order-123\",\n    \"items\": [\n      {\n        \"productId\": \"prod-1\",\n        \"quantity\": 2,\n        \"metadata\": {\n          \"timestamp\": \"2026-01-03T23:23:20.231122300Z\",\n          \"sessionId\": \"d7d6df74-5ddb-4f7b-a873-c57b1ccc441e\"\n        }\n      }\n    ],\n    \"payment\": {\n      \"transactionId\": \"bac4ec6b-f19c-4f13-9ce2-91a22f4251d6\",\n      \"timestamp\": \"2026-01-03T23:23:20.231122300Z\"\n    }\n  },\n  \"requestId\": \"9ab57e74-192b-4964-951d-e362bac88e06\"\n}\n",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9b863e4588e6b176-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1767482603",
+      "x-ratelimit-remaining" : "987",
+      "pragma" : "no-cache",
+      "Date" : "Sat, 03 Jan 2026 23:23:19 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=aHNtfRtnJYiLBLdiiJUrjDFuQMa4DX%2BJ%2Fq37fpxxnqA%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1767482599\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=aHNtfRtnJYiLBLdiiJUrjDFuQMa4DX%2BJ%2Fq37fpxxnqA%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1767482599\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "3f5dfee6-76a2-432e-bd5f-e0fb2dbf399b",
+  "persistent" : true,
+  "insertionIndex" : 0
+}
