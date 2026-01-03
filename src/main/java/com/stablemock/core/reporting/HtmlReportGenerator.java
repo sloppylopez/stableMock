@@ -270,6 +270,22 @@ public final class HtmlReportGenerator {
         writer.println("        <details class=\"annotation-section\">");
         writer.println("          <summary>" + escapeHtml(annotationTitle) + "</summary>");
         
+        // Find first request with examples for anchor links (calculate ID without incrementing counter)
+        String firstRequestDetailsId = null;
+        if (annotation.has("requests")) {
+            JsonNode requests = annotation.get("requests");
+            if (requests.isArray() && requests.size() > 0) {
+                for (JsonNode request : requests) {
+                    boolean hasExamples = request.has("examples") && request.get("examples").isArray()
+                            && request.get("examples").size() > 0;
+                    if (hasExamples) {
+                        firstRequestDetailsId = "request-details-" + globalRequestDetailsCounter;
+                        break;
+                    }
+                }
+            }
+        }
+        
         // Detected fields and ignore patterns
         if (annotation.has("detectedFields")) {
             JsonNode detectedFields = annotation.get("detectedFields");
@@ -282,9 +298,20 @@ public final class HtmlReportGenerator {
                 for (JsonNode field : detectedFields.get("dynamic_fields")) {
                     String fieldPath = field.has("field_path") ? field.get("field_path").asText() : "Unknown";
                     String confidence = field.has("confidence") ? field.get("confidence").asText() : "UNKNOWN";
+                    String jsonPath = fieldPath.startsWith("json:") ? fieldPath.substring(5) : fieldPath;
+                    
+                    // Generate anchor ID that matches the one in request body
+                    String anchorId = null;
+                    if (firstRequestDetailsId != null) {
+                        anchorId = firstRequestDetailsId + "-example-1-" + jsonPath.replace(".", "-").replace(":", "-");
+                    }
                     
                     writer.println("              <li>");
-                    writer.println("                <code class=\"field-path\">" + escapeHtml(fieldPath) + "</code>");
+                    if (anchorId != null) {
+                        writer.println("                <code class=\"field-path\"><a href=\"#" + escapeHtmlAttribute(anchorId) + "\" class=\"field-link\">" + escapeHtml(fieldPath) + "</a></code>");
+                    } else {
+                        writer.println("                <code class=\"field-path\">" + escapeHtml(fieldPath) + "</code>");
+                    }
                     writer.println("                <span class=\"confidence confidence-" + confidence.toLowerCase() + "\">" + escapeHtml(confidence) + "</span>");
                     
                     if (field.has("sample_values") && field.get("sample_values").isArray()) {
@@ -379,7 +406,8 @@ public final class HtmlReportGenerator {
                         writer.println("                  <tr class=\"details-row\" id=\"" + escapeHtmlAttribute(detailsId) + "\">");
                         writer.println("                    <td colspan=\"6\">");
                         writer.println("                      <div class=\"details-content\">");
-                        renderRequestDetails(writer, request.get("examples"));
+                        JsonNode mutatingFields = request.has("mutatingFields") ? request.get("mutatingFields") : null;
+                        renderRequestDetails(writer, request.get("examples"), mutatingFields, detailsId);
                         writer.println("                      </div>");
                         writer.println("                    </td>");
                         writer.println("                  </tr>");
@@ -396,7 +424,7 @@ public final class HtmlReportGenerator {
         writer.println("        </details>");
     }
 
-    private static void renderRequestDetails(PrintWriter writer, JsonNode examples) {
+    private static void renderRequestDetails(PrintWriter writer, JsonNode examples, JsonNode mutatingFields, String detailsId) {
         if (examples == null || !examples.isArray() || examples.size() == 0) {
             return;
         }
@@ -431,7 +459,7 @@ public final class HtmlReportGenerator {
             if (requestNode != null) {
                 JsonNode requestBodyJson = requestNode.get("bodyJson");
                 String requestBody = requestNode.has("body") ? requestNode.get("body").asText() : null;
-                renderBodyBlock(writer, "Body", requestBodyJson, requestBody);
+                renderBodyBlock(writer, "Body", requestBodyJson, requestBody, mutatingFields, detailsId + "-example-" + index);
             }
             writer.println("                          </div>");
 
@@ -440,7 +468,7 @@ public final class HtmlReportGenerator {
             if (responseNode != null) {
                 JsonNode responseBodyJson = responseNode.get("bodyJson");
                 String responseBody = responseNode.has("body") ? responseNode.get("body").asText() : null;
-                renderBodyBlock(writer, "Body", responseBodyJson, responseBody);
+                renderBodyBlock(writer, "Body", responseBodyJson, responseBody, null, null);
                 if (responseNode.has("bodyFileName")) {
                     writer.println("                            <div class=\"meta-info\">Body file: <code>"
                             + escapeHtml(responseNode.get("bodyFileName").asText()) + "</code></div>");
@@ -463,7 +491,7 @@ public final class HtmlReportGenerator {
         writer.println("                            </div>");
     }
 
-    private static void renderBodyBlock(PrintWriter writer, String title, JsonNode bodyJson, String bodyText) {
+    private static void renderBodyBlock(PrintWriter writer, String title, JsonNode bodyJson, String bodyText, JsonNode mutatingFields, String anchorPrefix) {
         if ((bodyJson == null || bodyJson.isMissingNode() || bodyJson.isNull())
                 && (bodyText == null || bodyText.isBlank())) {
             return;
@@ -474,9 +502,121 @@ public final class HtmlReportGenerator {
                 ? prettyPrintJson(bodyJson)
                 : tryPrettyPrintJson(bodyText);
         boolean isJson = bodyJson != null || (bodyText != null && isJsonString(bodyText));
-        String codeClass = isJson ? "language-json" : "";
-        writer.println("                              <pre><code class=\"" + codeClass + "\">" + escapeHtml(body) + "</code></pre>");
+        boolean hasMutatingFields = mutatingFields != null && mutatingFields.isArray() && mutatingFields.size() > 0 && bodyJson != null && anchorPrefix != null;
+        
+        // Highlight mutating fields if provided
+        if (hasMutatingFields) {
+            body = highlightMutatingFields(body, bodyJson, mutatingFields, anchorPrefix);
+        }
+        
+        // Don't use Prism for code blocks with mutating fields to avoid tokenization issues
+        String codeClass = (isJson && !hasMutatingFields) ? "language-json" : "";
+        
+        writer.println("                              <pre><code class=\"" + codeClass + "\">" + body + "</code></pre>");
         writer.println("                            </div>");
+    }
+    
+    private static String highlightMutatingFields(String jsonString, JsonNode bodyJson, JsonNode mutatingFields, String anchorPrefix) {
+        if (mutatingFields == null || !mutatingFields.isArray() || mutatingFields.size() == 0) {
+            return escapeHtml(jsonString);
+        }
+        
+        // Collect all mutating field paths
+        java.util.Set<String> jsonPaths = new java.util.HashSet<>();
+        java.util.Map<String, String> pathToAnchorId = new java.util.HashMap<>();
+        
+        for (JsonNode field : mutatingFields) {
+            if (field.has("fieldPath")) {
+                String fieldPath = field.get("fieldPath").asText();
+                if (fieldPath.startsWith("json:")) {
+                    String jsonPath = fieldPath.substring(5);
+                    jsonPaths.add(jsonPath);
+                    String anchorId = anchorPrefix + "-" + jsonPath.replace(".", "-").replace(":", "-");
+                    pathToAnchorId.put(jsonPath, anchorId);
+                }
+            }
+        }
+        
+        if (jsonPaths.isEmpty()) {
+            return escapeHtml(jsonString);
+        }
+        
+        // Build JSON with highlights by traversing the structure
+        return buildJsonWithHighlights(bodyJson, jsonPaths, pathToAnchorId, "");
+    }
+    
+    private static String buildJsonWithHighlights(JsonNode node, java.util.Set<String> mutatingPaths, 
+                                                   java.util.Map<String, String> pathToAnchorId, String currentPath) {
+        return buildJsonWithHighlights(node, mutatingPaths, pathToAnchorId, currentPath, 0);
+    }
+    
+    private static String buildJsonWithHighlights(JsonNode node, java.util.Set<String> mutatingPaths, 
+                                                   java.util.Map<String, String> pathToAnchorId, String currentPath, int indent) {
+        String indentStr = "  ".repeat(indent);
+        String nextIndentStr = "  ".repeat(indent + 1);
+        
+        if (node.isObject()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("{\n");
+            java.util.Iterator<java.util.Map.Entry<String, JsonNode>> fields = node.fields();
+            boolean first = true;
+            while (fields.hasNext()) {
+                java.util.Map.Entry<String, JsonNode> entry = fields.next();
+                String key = entry.getKey();
+                JsonNode value = entry.getValue();
+                
+                if (!first) {
+                    sb.append(",\n");
+                }
+                first = false;
+                
+                String fieldPath = currentPath.isEmpty() ? key : currentPath + "." + key;
+                boolean isMutating = mutatingPaths.contains(fieldPath);
+                String anchorId = isMutating ? pathToAnchorId.get(fieldPath) : null;
+                
+                sb.append(nextIndentStr).append("\"").append(escapeHtml(key)).append("\" : ");
+                
+                if (isMutating && anchorId != null) {
+                    sb.append("<span id=\"").append(escapeHtmlAttribute(anchorId)).append("\" class=\"mutating-field-value\">");
+                }
+                
+                String valueStr = buildJsonWithHighlights(value, mutatingPaths, pathToAnchorId, fieldPath, indent + 1);
+                sb.append(valueStr);
+                
+                if (isMutating && anchorId != null) {
+                    sb.append("</span>");
+                }
+            }
+            sb.append("\n").append(indentStr).append("}");
+            return sb.toString();
+        } else if (node.isArray()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[\n");
+            for (int i = 0; i < node.size(); i++) {
+                if (i > 0) {
+                    sb.append(",\n");
+                }
+                sb.append(nextIndentStr);
+                sb.append(buildJsonWithHighlights(node.get(i), mutatingPaths, pathToAnchorId, currentPath, indent + 1));
+            }
+            sb.append("\n").append(indentStr).append("]");
+            return sb.toString();
+        } else {
+            return formatJsonValue(node);
+        }
+    }
+    
+    private static String formatJsonValue(JsonNode value) {
+        if (value.isTextual()) {
+            return "\"" + escapeHtml(value.asText()) + "\"";
+        } else if (value.isNumber()) {
+            return value.toString();
+        } else if (value.isBoolean()) {
+            return value.asBoolean() ? "true" : "false";
+        } else if (value.isNull()) {
+            return "null";
+        }
+        return escapeHtml(value.toString());
     }
     
     private static boolean isJsonString(String text) {
@@ -1293,6 +1433,59 @@ public final class HtmlReportGenerator {
 
             .is-filtered-out {
               display: none;
+            }
+
+            .mutating-field-value {
+              color: #f87171 !important;
+              background-color: rgba(239, 68, 68, 0.15) !important;
+              padding: 2px 4px;
+              border-radius: 3px;
+              font-weight: bold;
+            }
+
+            pre code .mutating-field-value,
+            code .mutating-field-value,
+            .language-json .mutating-field-value,
+            pre[class*="language-"] code .mutating-field-value,
+            .token .mutating-field-value,
+            span.mutating-field-value {
+              color: #f87171 !important;
+              background-color: rgba(239, 68, 68, 0.15) !important;
+              padding: 2px 4px !important;
+              border-radius: 3px !important;
+              font-weight: bold !important;
+            }
+
+            .mutating-field-value .token,
+            .mutating-field-value .token.string,
+            .mutating-field-value .token.number,
+            .mutating-field-value .token.boolean,
+            .mutating-field-value .token.null {
+              color: #f87171 !important;
+              background-color: rgba(239, 68, 68, 0.15) !important;
+            }
+
+            pre code:not([class*="language-"]) {
+              color: #d1d5db;
+            }
+
+            pre code:not([class*="language-"]) .mutating-field-value {
+              color: #f87171 !important;
+              background-color: rgba(239, 68, 68, 0.15) !important;
+              padding: 2px 4px;
+              border-radius: 3px;
+              font-weight: bold;
+            }
+
+            .field-link {
+              color: #E8A740;
+              text-decoration: none;
+              border-bottom: 1px dotted rgba(232, 167, 64, 0.5);
+            }
+
+            .field-link:hover {
+              color: #F5C97A;
+              border-bottom: 1px solid rgba(232, 167, 64, 0.8);
             }
             """;
     }
