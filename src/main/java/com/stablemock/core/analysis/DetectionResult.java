@@ -62,6 +62,6 @@ public class DetectionResult {
     /**
      * Represents a single dynamic field that was detected.
      */
-    public record DynamicField(String fieldPath, String confidence, List<String> sampleValues) {
+    public record DynamicField(String fieldPath, List<String> sampleValues) {
     }
 }

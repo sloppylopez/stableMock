@@ -79,7 +79,6 @@ public final class AnalysisResultStorage {
             for (DetectionResult.DynamicField field : result.getDynamicFields()) {
                 ObjectNode fieldNode = dynamicFieldsArray.addObject();
                 fieldNode.put("field_path", field.fieldPath());
-                fieldNode.put("confidence", field.confidence());
 
                 ArrayNode samplesArray = fieldNode.putArray("sample_values");
                 for (String sample : field.sampleValues()) {

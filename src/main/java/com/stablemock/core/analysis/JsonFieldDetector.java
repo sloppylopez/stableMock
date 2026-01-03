@@ -121,15 +121,14 @@ public final class JsonFieldDetector {
                                 sampleValues = sampleValues.subList(0, 3);
                             }
 
-                            String confidence = ConfidenceCalculator.calculateConfidence(fieldValues.size());
                             String jsonPath = "json:" + currentPath;
 
                             result.addDynamicField(new DetectionResult.DynamicField(
-                                    jsonPath, confidence, sampleValues));
+                                    jsonPath, sampleValues));
                             result.addIgnorePattern(jsonPath);
 
-                            logger.info("Detected dynamic JSON field: {} (confidence: {}, samples: {})",
-                                    jsonPath, confidence, sampleValues.size());
+                            logger.info("Detected dynamic JSON field: {} (samples: {})",
+                                    jsonPath, sampleValues.size());
                         }
                     } else if (fieldValues.get(0).isObject() || fieldValues.get(0).isArray()) {
                         // Values are same, but recurse to check nested structure

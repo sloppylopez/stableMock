@@ -111,23 +111,6 @@ class XmlFieldDetectorTest {
         assertTrue(foundId, "Should detect id field as changing");
     }
 
-    @Test
-    void testDetectDynamicFieldsInXml_ConfidenceLevels() {
-        DetectionResult result = new DetectionResult("TestClass", "testMethod", 5);
-        
-        List<String> xmlBodies = List.of(
-            "<root><timestamp>2025-01-01T10:00:00Z</timestamp></root>",
-            "<root><timestamp>2025-01-01T10:00:01Z</timestamp></root>",
-            "<root><timestamp>2025-01-01T10:00:02Z</timestamp></root>",
-            "<root><timestamp>2025-01-01T10:00:03Z</timestamp></root>",
-            "<root><timestamp>2025-01-01T10:00:04Z</timestamp></root>"
-        );
-        
-        XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
-        
-        assertEquals(1, result.getDynamicFields().size());
-        assertEquals("HIGH", result.getDynamicFields().get(0).confidence());
-    }
 
     @Test
     void testDetectDynamicFieldsInXml_SampleValuesLimit() {

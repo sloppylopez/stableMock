@@ -154,23 +154,6 @@ class JsonFieldDetectorTest {
         assertEquals("json:id", result.getDynamicFields().get(0).fieldPath());
     }
 
-    @Test
-    void testDetectDynamicFieldsInJson_ConfidenceLevels() throws Exception {
-        DetectionResult result = new DetectionResult("TestClass", "testMethod", 5);
-        
-        List<JsonNode> bodies = List.of(
-            objectMapper.readTree("{\"timestamp\":\"2025-01-01T10:00:00Z\"}"),
-            objectMapper.readTree("{\"timestamp\":\"2025-01-01T10:00:01Z\"}"),
-            objectMapper.readTree("{\"timestamp\":\"2025-01-01T10:00:02Z\"}"),
-            objectMapper.readTree("{\"timestamp\":\"2025-01-01T10:00:03Z\"}"),
-            objectMapper.readTree("{\"timestamp\":\"2025-01-01T10:00:04Z\"}")
-        );
-        
-        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
-        
-        assertEquals(1, result.getDynamicFields().size());
-        assertEquals("HIGH", result.getDynamicFields().get(0).confidence());
-    }
 
     @Test
     void testDetectDynamicFieldsInJson_SampleValuesLimit() throws Exception {

@@ -268,7 +268,6 @@ After running tests multiple times, check `.stablemock-analysis/<TestClass>/<tes
   "dynamic_fields": [
     {
       "field_path": "timestamp",
-      "confidence": "HIGH",
       "sample_values": ["2025-01-01T10:00:00Z", "2025-01-01T10:00:01Z", "2025-01-01T10:00:02Z"]
     }
   ],
