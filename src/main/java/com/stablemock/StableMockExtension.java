@@ -577,6 +577,14 @@ public class StableMockExtension
                 System.clearProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i);
                 System.clearProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i);
             }
+            // Give servers time to release ports before next test class starts
+            // This is critical in CI/pipeline environments where tests run quickly
+            try {
+                Thread.sleep(200); // Increased delay for better port release in CI
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.warn("Interrupted while waiting for port release in afterAll");
+            }
             classStore.putServers(null);
             classStore.putPorts(null);
         }
@@ -584,6 +592,13 @@ public class StableMockExtension
         WireMockServer server = classStore.getServer();
         if (server != null) {
             server.stop();
+            // Give server time to release port before next test class starts
+            try {
+                Thread.sleep(200); // Increased delay for better port release in CI
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.warn("Interrupted while waiting for port release in afterAll");
+            }
             classStore.removeServer();
             classStore.removePort();
         }
