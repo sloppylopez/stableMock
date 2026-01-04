@@ -1,14 +1,14 @@
 {
   "testClass" : "ManualIgnorePatternsTest",
   "testMethod" : "testManualIgnorePatternsWork",
-  "detectedAt" : "2026-01-04T01:35:12.353186800Z",
+  "detectedAt" : "2026-01-04T01:39:14.534056200Z",
   "analyzed_requests_count" : 4,
   "dynamic_fields" : [ {
     "field_path" : "json:timestamp",
-    "sample_values" : [ "2026-01-04T01:34:38.089369100Z", "2026-01-04T01:34:37.635167400Z", "2026-01-04T01:35:11.724940600Z" ]
+    "sample_values" : [ "2026-01-04T01:38:38.600619400Z", "2026-01-04T01:38:38.244188500Z", "2026-01-04T01:39:13.899282200Z" ]
   }, {
     "field_path" : "json:requestId",
-    "sample_values" : [ "1c726e70-36dd-48b8-9344-07f421840e40", "61c3be3a-2b13-4c7a-bfc0-f9eff7844083", "be56e467-58d9-426e-a106-2c52a73c1428" ]
+    "sample_values" : [ "b7d9b83a-c853-42cc-a7ae-17ea2a6a2ecd", "202f01ed-f7f2-4b6d-89be-a1ea9f6479b5", "b518f5a8-bcc7-4444-9d07-df549a491f04" ]
   } ],
   "ignore_patterns" : [ "json:timestamp", "json:requestId" ]
 }
