@@ -1,12 +1,12 @@
 {
-  "generatedAt" : "2026-01-04T17:27:01.007398291Z",
-  "baseDirectory" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock",
-  "triggeredBy" : "SpringBootIntegrationTest",
+  "generatedAt" : "2026-01-04T18:07:43.998013700Z",
+  "baseDirectory" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock",
+  "triggeredBy" : "RecordingReportGeneratorTest",
   "testClasses" : [ {
     "testClass" : "DynamicFieldDetectionTest",
     "testMethods" : [ {
       "testMethod" : "testDetectChangingFields",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\DynamicFieldDetectionTest\\testDetectChangingFields",
       "annotation" : {
         "detectedFields" : {
           "testClass" : "DynamicFieldDetectionTest",
@@ -135,7 +135,7 @@
     "testClass" : "GraphQLTest",
     "testMethods" : [ {
       "testMethod" : "testGraphQLQuery",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQuery",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\GraphQLTest\\testGraphQLQuery",
       "annotation" : {
         "requests" : [ {
           "method" : "POST",
@@ -940,7 +940,7 @@
       }
     }, {
       "testMethod" : "testGraphQLQueryWithChangingVariables",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithChangingVariables",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\GraphQLTest\\testGraphQLQueryWithChangingVariables",
       "annotation" : {
         "detectedFields" : {
           "testClass" : "GraphQLTest",
@@ -1066,7 +1066,7 @@
       }
     }, {
       "testMethod" : "testGraphQLQueryWithGB",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithGB",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\GraphQLTest\\testGraphQLQueryWithGB",
       "annotation" : {
         "requests" : [ {
           "method" : "POST",
@@ -1128,7 +1128,7 @@
       }
     }, {
       "testMethod" : "testGraphQLQueryWithVariables",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithVariables",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\GraphQLTest\\testGraphQLQueryWithVariables",
       "annotation" : {
         "requests" : [ {
           "method" : "POST",
@@ -1192,7 +1192,7 @@
     "testClass" : "ManualIgnorePatternsTest",
     "testMethods" : [ {
       "testMethod" : "testManualIgnorePatternsWork",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/ManualIgnorePatternsTest/testManualIgnorePatternsWork",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\ManualIgnorePatternsTest\\testManualIgnorePatternsWork",
       "annotation" : {
         "detectedFields" : {
           "testClass" : "ManualIgnorePatternsTest",
@@ -1321,7 +1321,7 @@
     "testClass" : "MultipleAnnotationTest",
     "testMethods" : [ {
       "testMethod" : "testMultipleAnnotationsRecordSeparately",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationTest/testMultipleAnnotationsRecordSeparately",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\MultipleAnnotationTest\\testMultipleAnnotationsRecordSeparately",
       "annotations" : [ {
         "annotationIndex" : 0,
         "requests" : [ {
@@ -1519,7 +1519,7 @@
       } ]
     }, {
       "testMethod" : "testMultipleAnnotationsWork",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationTest/testMultipleAnnotationsWork",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\MultipleAnnotationTest\\testMultipleAnnotationsWork",
       "annotations" : [ {
         "annotationIndex" : 0,
         "requests" : [ {
@@ -1720,7 +1720,7 @@
     "testClass" : "MultipleAnnotationXmlTest",
     "testMethods" : [ {
       "testMethod" : "testMultipleAnnotationsWorkWithXml",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationXmlTest/testMultipleAnnotationsWorkWithXml",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\MultipleAnnotationXmlTest\\testMultipleAnnotationsWorkWithXml",
       "annotations" : [ {
         "annotationIndex" : 0,
         "requests" : [ {
@@ -1935,7 +1935,7 @@
     "testClass" : "NestedJsonDynamicFieldsTest",
     "testMethods" : [ {
       "testMethod" : "testNestedJsonWithDynamicFields",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\NestedJsonDynamicFieldsTest\\testNestedJsonWithDynamicFields",
       "annotation" : {
         "detectedFields" : {
           "testClass" : "NestedJsonDynamicFieldsTest",
@@ -2104,7 +2104,7 @@
     "testClass" : "PaginationTest",
     "testMethods" : [ {
       "testMethod" : "testPagination",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/PaginationTest/testPagination",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\PaginationTest\\testPagination",
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
@@ -4784,7 +4784,7 @@
     "testClass" : "PureJUnitTest",
     "testMethods" : [ {
       "testMethod" : "testPureJUnitWithStableMock",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\PureJUnitTest\\testPureJUnitWithStableMock",
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
@@ -5024,7 +5024,7 @@
       }
     }, {
       "testMethod" : "testPureJUnitWithSystemProperty",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithSystemProperty",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\PureJUnitTest\\testPureJUnitWithSystemProperty",
       "annotation" : {
         "requests" : [ ]
       }
@@ -5033,7 +5033,7 @@
     "testClass" : "QueryParametersDynamicFieldsTest",
     "testMethods" : [ {
       "testMethod" : "testGetWithChangingQueryParams",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\QueryParametersDynamicFieldsTest\\testGetWithChangingQueryParams",
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
@@ -6118,7 +6118,7 @@
     "testClass" : "RepeatableUAnnotationsTest",
     "testMethods" : [ {
       "testMethod" : "testRepeatableAnnotationsRecordSeparately",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/RepeatableUAnnotationsTest/testRepeatableAnnotationsRecordSeparately",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\RepeatableUAnnotationsTest\\testRepeatableAnnotationsRecordSeparately",
       "annotations" : [ {
         "annotationIndex" : 0,
         "requests" : [ {
@@ -6316,7 +6316,7 @@
       } ]
     }, {
       "testMethod" : "testRepeatableAnnotationsWork",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/RepeatableUAnnotationsTest/testRepeatableAnnotationsWork",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\RepeatableUAnnotationsTest\\testRepeatableAnnotationsWork",
       "annotations" : [ {
         "annotationIndex" : 0,
         "requests" : [ {
@@ -6517,7 +6517,7 @@
     "testClass" : "ReportGenerationTest",
     "testMethods" : [ {
       "testMethod" : "testReportFilesGenerated",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/ReportGenerationTest/testReportFilesGenerated",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\ReportGenerationTest\\testReportFilesGenerated",
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
@@ -6585,7 +6585,7 @@
       }
     }, {
       "testMethod" : "testReportGenerationAfterRecording",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/ReportGenerationTest/testReportGenerationAfterRecording",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\ReportGenerationTest\\testReportGenerationAfterRecording",
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
@@ -6656,7 +6656,7 @@
     "testClass" : "ShowMatchesTest",
     "testMethods" : [ {
       "testMethod" : "testShowMatchesEnabled",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/ShowMatchesTest/testShowMatchesEnabled",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\ShowMatchesTest\\testShowMatchesEnabled",
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
@@ -6724,7 +6724,7 @@
       }
     }, {
       "testMethod" : "testShowMatchesWithMismatch",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/ShowMatchesTest/testShowMatchesWithMismatch",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\ShowMatchesTest\\testShowMatchesWithMismatch",
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
@@ -6795,7 +6795,7 @@
     "testClass" : "SpringBootIntegrationTest",
     "testMethods" : [ {
       "testMethod" : "testCreatePostViaController",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testCreatePostViaController",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testCreatePostViaController",
       "annotation" : {
         "requests" : [ {
           "method" : "POST",
@@ -6851,7 +6851,7 @@
       }
     }, {
       "testMethod" : "testGetUser2ViaController",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUser2ViaController",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testGetUser2ViaController",
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
@@ -6919,7 +6919,7 @@
       }
     }, {
       "testMethod" : "testGetUser3ViaController",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUser3ViaController",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testGetUser3ViaController",
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
@@ -6987,7 +6987,7 @@
       }
     }, {
       "testMethod" : "testGetUserViaController",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUserViaController",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\SpringBootIntegrationTest\\testGetUserViaController",
       "annotation" : {
         "requests" : [ {
           "method" : "GET",
@@ -7058,7 +7058,7 @@
     "testClass" : "XmlDynamicFieldDetectionTest",
     "testMethods" : [ {
       "testMethod" : "testDetectChangingFieldsInXml",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/XmlDynamicFieldDetectionTest/testDetectChangingFieldsInXml",
+      "folderPath" : "K:\\dev2\\stablemock\\examples\\spring-boot-example\\src\\test\\resources\\stablemock\\XmlDynamicFieldDetectionTest\\testDetectChangingFieldsInXml",
       "annotation" : {
         "detectedFields" : {
           "testClass" : "XmlDynamicFieldDetectionTest",
