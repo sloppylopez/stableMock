@@ -413,19 +413,49 @@ com.stablemock/
 
 ## Gradle Plugin Tasks
 
+**Important:** These tasks must be run in **your project** (where you've applied the `com.stablemock` plugin), **not** in the root `stablemock` project directory.
+
+### Typical Workflow
+
+The recommended workflow for using StableMock is:
+
+1. **Clean existing recordings** (start fresh):
+   ```bash
+   ./gradlew cleanStableMock
+   ```
+
+2. **Record HTTP interactions** (first run - makes real API calls):
+   ```bash
+   ./gradlew stableMockRecord
+   ```
+
+3. **Playback using recorded mocks** (subsequent runs - uses recorded data):
+   ```bash
+   ./gradlew stableMockPlayback
+   ```
+
+4. **Generate recording report** (optional - view detailed recording information):
+   ```bash
+   ./gradlew stableMockReport
+   ```
+
+### Available Tasks
+
 ```bash
-# Record mode
-./gradlew stableMockRecord
-
-# Playback mode (default)
-./gradlew stableMockPlayback
-
-# Clean recordings
+# Clean recordings and analysis data
 ./gradlew cleanStableMock
 
-# Generate recording report
-./gradlew generateStableMockReport
+# Record mode - Run tests and record HTTP interactions
+./gradlew stableMockRecord
+
+# Playback mode - Run tests using recorded mocks (default mode)
+./gradlew stableMockPlayback
+
+# Generate recording report from existing recordings
+./gradlew stableMockReport
 ```
+
+**Note:** The `stableMockRecord` task automatically runs `cleanStableMock` before recording, so you don't need to clean manually unless you want a fresh start.
 
 ## Recording Report
 
@@ -451,7 +481,7 @@ The report includes:
 You can also generate the report manually using the Gradle task:
 
 ```bash
-./gradlew generateStableMockReport
+./gradlew stableMockReport
 ```
 
 This is useful when you want to regenerate the report without running tests, or to generate reports for existing recordings.
