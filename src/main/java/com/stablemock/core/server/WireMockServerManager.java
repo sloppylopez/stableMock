@@ -250,6 +250,15 @@ public final class WireMockServerManager {
 
                 WireMockServer server = new WireMockServer(config);
                 server.start();
+                
+                // Add catch-all stub to return 404 instead of proxying when no mapping matches
+                // This prevents WireMock from trying to proxy to the real API in playback mode
+                server.stubFor(
+                    WireMock.any(WireMock.anyUrl())
+                        .atPriority(1000) // Low priority - only matches if no other stub matches
+                        .willReturn(WireMock.aResponse()
+                            .withStatus(404)
+                            .withBody("No matching stub mapping found")));
 
                 if (attempt > 0) {
                     logger.info("Playback mode started on port {} (retry attempt {}) after port conflict, loading mappings from {}", 

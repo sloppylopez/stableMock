@@ -84,18 +84,32 @@ class QueryParametersDynamicFieldsTest extends BaseStableMockTest {
         } else {
             // In PLAYBACK mode: Read actual values from recorded mappings
             // This ensures the test works even after re-recording with build.ps1
-            Map<String, String> params1 = readQueryParamsFromMappings("testGetWithChangingQueryParams", 1);
-            Map<String, String> params2 = readQueryParamsFromMappings("testGetWithChangingQueryParams", 2);
-            
-            page1 = Integer.parseInt(params1.get("page"));
-            limit1 = Integer.parseInt(params1.get("limit"));
-            timestamp1 = params1.get("timestamp");
-            correlationId1 = params1.get("correlationId");
-            
-            page2 = Integer.parseInt(params2.get("page"));
-            limit2 = Integer.parseInt(params2.get("limit"));
-            timestamp2 = params2.get("timestamp");
-            correlationId2 = params2.get("correlationId");
+            try {
+                Map<String, String> params1 = readQueryParamsFromMappings("testGetWithChangingQueryParams", 1);
+                Map<String, String> params2 = readQueryParamsFromMappings("testGetWithChangingQueryParams", 2);
+                
+                page1 = Integer.parseInt(params1.get("page"));
+                limit1 = Integer.parseInt(params1.get("limit"));
+                timestamp1 = params1.get("timestamp");
+                correlationId1 = params1.get("correlationId");
+                
+                page2 = Integer.parseInt(params2.get("page"));
+                limit2 = Integer.parseInt(params2.get("limit"));
+                timestamp2 = params2.get("timestamp");
+                correlationId2 = params2.get("correlationId");
+                
+                // Validate that we got all required parameters
+                if (params1.get("page") == null || params1.get("limit") == null || 
+                    params1.get("timestamp") == null || params1.get("correlationId") == null ||
+                    params2.get("page") == null || params2.get("limit") == null || 
+                    params2.get("timestamp") == null || params2.get("correlationId") == null) {
+                    throw new RuntimeException("Failed to read all required query parameters from mappings. " +
+                            "params1: " + params1 + ", params2: " + params2);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to read query parameters from mappings in playback mode. " +
+                        "Make sure mappings exist and were recorded correctly. Error: " + e.getMessage(), e);
+            }
         }
         
         // First call: Call Spring Boot controller endpoint with query parameters
@@ -144,11 +158,31 @@ class QueryParametersDynamicFieldsTest extends BaseStableMockTest {
      */
     private static Map<String, String> readQueryParamsFromMappings(String testMethodName, int pageNumber) {
         try {
-            File mappingsDir = new File("src/test/resources/stablemock/QueryParametersDynamicFieldsTest/" + 
-                    testMethodName + "/mappings");
+            // Try multiple possible locations for mappings
+            File mappingsDir = null;
             
-            if (!mappingsDir.exists()) {
-                throw new RuntimeException("Mappings directory not found: " + mappingsDir.getAbsolutePath());
+            // First, try test method directory (original location)
+            File testMethodDir = new File("src/test/resources/stablemock/QueryParametersDynamicFieldsTest/" + 
+                    testMethodName + "/mappings");
+            File classLevelDir = new File("src/test/resources/stablemock/QueryParametersDynamicFieldsTest/mappings");
+            
+            if (testMethodDir.exists()) {
+                mappingsDir = testMethodDir;
+            } else if (classLevelDir.exists()) {
+                // Try class-level merged directory (playback mode)
+                mappingsDir = classLevelDir;
+            } else {
+                // Try absolute path from class loader
+                java.net.URL resource = QueryParametersDynamicFieldsTest.class.getClassLoader()
+                        .getResource("stablemock/QueryParametersDynamicFieldsTest/" + testMethodName + "/mappings");
+                if (resource != null) {
+                    mappingsDir = new File(resource.getFile());
+                }
+            }
+            
+            if (mappingsDir == null || !mappingsDir.exists()) {
+                throw new RuntimeException("Mappings directory not found. Tried: " + 
+                        testMethodDir.getAbsolutePath() + ", " + classLevelDir.getAbsolutePath());
             }
             
             File[] mappingFiles = mappingsDir.listFiles((dir, name) -> name.endsWith(".json"));
