@@ -1,23 +1,23 @@
 {
   "testClass" : "XmlDynamicFieldDetectionTest",
   "testMethod" : "testDetectChangingFieldsInXml",
-  "detectedAt" : "2026-01-04T01:00:32.162282400Z",
-  "analyzed_requests_count" : 2,
+  "detectedAt" : "2026-01-04T01:28:34.737401400Z",
+  "analyzed_requests_count" : 4,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']",
-    "sample_values" : [ "ac43b9be-e6e4-4333-9ebf-ae96bbed0d16", "c0dbf584-8fee-4773-b985-91409341d7f8" ]
+    "sample_values" : [ "2620776e-1b5f-41ce-b02d-d13bd1f295f6", "2f698e3f-cbe0-4915-8813-f859885bef5d", "edd1fb1f-0c71-44ef-b37c-c2d1750569fe" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']",
-    "sample_values" : [ "ac43b9be-e6e4-4333-9ebf-ae96bbed0d16", "c0dbf584-8fee-4773-b985-91409341d7f8" ]
+    "sample_values" : [ "2620776e-1b5f-41ce-b02d-d13bd1f295f6", "2f698e3f-cbe0-4915-8813-f859885bef5d", "edd1fb1f-0c71-44ef-b37c-c2d1750569fe" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']",
-    "sample_values" : [ "1.1767488431407", "1.1767488430780" ]
+    "sample_values" : [ "1.1767490082077", "1.1767490081485", "1.1767490114001" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']",
-    "sample_values" : [ "fb92c4fd-f142-40ce-9866-85ecc32c1a12", "f967f854-8992-43cf-b844-d5ac0c0c847c" ]
+    "sample_values" : [ "96b2941b-22e9-4592-87e4-311b7e45fa7f", "e6e96c23-e1a9-4b71-ae55-d27b4ff5e23b", "b48a2d79-e99d-4e58-a8eb-6e3bd30112fc" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']",
-    "sample_values" : [ "2026-01-04T01:00:31.407315100Z", "2026-01-04T01:00:30.780381300Z" ]
+    "sample_values" : [ "2026-01-04T01:28:02.077575700Z", "2026-01-04T01:28:01.485834600Z", "2026-01-04T01:28:34.001035900Z" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']" ]
 }

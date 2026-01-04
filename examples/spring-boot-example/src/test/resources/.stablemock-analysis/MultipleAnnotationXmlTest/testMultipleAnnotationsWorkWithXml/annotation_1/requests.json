@@ -1,5 +1,11 @@
 [ {
-  "timestamp" : "2026-01-04T01:00:31.163389300Z",
+  "timestamp" : "2026-01-04T01:28:02.800143700Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<request><id>123</id><message>Hello</message></request>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-01-04T01:28:33.713579800Z",
   "url" : "/post",
   "method" : "POST",
   "body" : "<request><id>123</id><message>Hello</message></request>",
