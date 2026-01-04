@@ -60,19 +60,11 @@ List<ServeEvent> testMethodServeEvents =
 
 ## 2. Gradle `cleanStableMock` Runs Between Multi-Run Recordings
 
-### Problem
+### Status: RESOLVED
 
-The build scripts (`Makefile`, `build.ps1`) run `stableMockRecord` twice to enable dynamic field detection (comparing field values across runs). If `stableMockRecord` has `dependsOn("cleanStableMock")`, each invocation deletes recordings from the previous run.
+**Previous Problem:** The `stableMockRecord` task had `dependsOn("cleanStableMock")`, which caused each invocation to delete recordings from the previous run, preventing dynamic field detection across multiple runs.
 
-### Symptoms
-
-- First record run saves mappings correctly
-- Second record run deletes everything and starts fresh
-- Only second run's recordings survive
-
-### Solution
-
-The `cleanStableMock` task should be called **once** by the build script before all recording runs, not automatically by each `stableMockRecord` invocation. The Gradle plugin maintains `dependsOn("cleanStableMock")` for standalone usage, but build scripts handle cleanup explicitly.
+**Solution:** The dependency has been removed. `stableMockRecord` no longer automatically cleans recordings. Recordings are now merged between runs, enabling dynamic field detection. To start fresh, run `./gradlew cleanStableMock stableMockRecord`.
 
 ---
 

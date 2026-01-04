@@ -38,8 +38,8 @@ public class StableMockPlugin implements Plugin<Project> {
             task.setGroup("verification");
             task.setDescription("Run tests in StableMock RECORD mode (records HTTP interactions)");
 
-            // Clean stablemock recordings before recording new ones
-            task.dependsOn("cleanStableMock");
+            // Note: cleanStableMock is NOT a dependency - recordings are merged between runs
+            // to enable dynamic field detection. Clean manually when needed: ./gradlew cleanStableMock stableMockRecord
 
             // Configure to use JUnit Platform
             task.useJUnitPlatform();

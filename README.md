@@ -54,7 +54,29 @@ Record HTTP interactions by proxying to the real service:
 ./gradlew test "-Dstablemock.mode=RECORD"
 ```
 
+Or use the dedicated Gradle task:
+
+```bash
+./gradlew stableMockRecord
+```
+
 This automatically generates WireMock stubs and saves them as stub mappings in `src/test/resources/stablemock/<TestClass>/<testMethod>/`.
+
+**Repeating Record Mode for Dynamic Field Detection:**
+
+To capture dynamic field variations (e.g., timestamps, IDs that change between runs), simply run the record task multiple times:
+
+```bash
+./gradlew stableMockRecord
+./gradlew stableMockRecord
+```
+
+This runs the test suite twice in RECORD mode. Recordings from both runs are **merged** (not overwritten), allowing StableMock to detect fields that change between runs and automatically ignore them during playback.
+
+**Note:** To start fresh, clean recordings manually:
+```bash
+./gradlew cleanStableMock stableMockRecord
+```
 
 ### 3. Playback Mode (Default)
 
@@ -439,7 +461,7 @@ The recommended workflow for using StableMock is:
    ./gradlew stableMockReport
    ```
 
-**Note:** The `stableMockRecord` task automatically runs `cleanStableMock` before recording, so you don't need to clean manually unless you want a fresh start.
+**Note:** The `stableMockRecord` task does **not** automatically clean recordings. Recordings are merged between runs to enable dynamic field detection. To start fresh, run `./gradlew cleanStableMock stableMockRecord`.
 
 ## Recording Report
 
