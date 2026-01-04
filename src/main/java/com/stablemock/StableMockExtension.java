@@ -101,7 +101,8 @@ public class StableMockExtension
                 }
 
                 servers.add(server);
-                ports.add(port);
+                // Get actual port from server in case it was changed during retry
+                ports.add(server.port());
             }
 
             classStore.putServers(servers);
@@ -171,22 +172,24 @@ public class StableMockExtension
             }
 
             classStore.putServer(server);
-            classStore.putPort(port);
+            // Get actual port from server in case it was changed during retry
+            int actualPort = server.port();
+            classStore.putPort(actualPort);
             classStore.putMode(mode);
             classStore.putTargetUrl(allUrls.get(0));
 
-            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
+            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + actualPort;
             WireMockContext.setBaseUrl(baseUrl);
-            WireMockContext.setPort(port);
+            WireMockContext.setPort(actualPort);
             if (StableMockConfig.useGlobalProperties()) {
                 System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
-                System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
+                System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(actualPort));
             }
             // Class-scoped properties to avoid global races in parallel Spring tests
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
-            System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(port));
+            System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(actualPort));
 
-            logger.info("Started WireMock server for {} on port {} in {} mode", testClassName, port, mode);
+            logger.info("Started WireMock server for {} on port {} in {} mode", testClassName, actualPort, mode);
         }
     }
 
@@ -337,7 +340,8 @@ public class StableMockExtension
                     WireMockServer server = WireMockServerManager.startRecording(port, annotationMappingsDir,
                             Arrays.asList(info.urls()));
                     servers.add(server);
-                    ports.add(port);
+                    // Get actual port from server in case it was changed during retry
+                    ports.add(server.port());
                 }
             }
 
@@ -398,17 +402,19 @@ public class StableMockExtension
             }
 
             methodStore.putServer(wireMockServer);
-            methodStore.putPort(port);
+            // Get actual port from server in case it was changed during retry
+            int actualPort = wireMockServer.port();
+            methodStore.putPort(actualPort);
             methodStore.putMode(mode);
             methodStore.putMappingsDir(mappingsDir);
             methodStore.putTargetUrl(allUrls.get(0));
             methodStore.putUseClassLevelServer(false);
 
-            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + port;
+            String baseUrl = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + actualPort;
             WireMockContext.setBaseUrl(baseUrl);
-            WireMockContext.setPort(port);
+            WireMockContext.setPort(actualPort);
             if (StableMockConfig.useGlobalProperties()) {
-                System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(port));
+                System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(actualPort));
                 System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
             }
         }

@@ -1,0 +1,44 @@
+{
+  "id" : "308f8dd8-b12e-4e6b-af93-5f830d8072af",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2026-01-04T14:15:35.852694248Z\",\"requestId\":\"4cbb6593-35bb-48eb-b1df-6efd9b5ce2f3\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9b8b595a6b74d052-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1767536184",
+      "x-ratelimit-remaining" : "999",
+      "pragma" : "no-cache",
+      "Date" : "Sun, 04 Jan 2026 14:15:37 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=WP3ksEHBH5OcDT21%2FXmuG40zlyXbLEi2CnJd%2B8oXPdk%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1767536137\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=WP3ksEHBH5OcDT21%2FXmuG40zlyXbLEi2CnJd%2B8oXPdk%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1767536137\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "308f8dd8-b12e-4e6b-af93-5f830d8072af",
+  "persistent" : true,
+  "insertionIndex" : 1
+}
