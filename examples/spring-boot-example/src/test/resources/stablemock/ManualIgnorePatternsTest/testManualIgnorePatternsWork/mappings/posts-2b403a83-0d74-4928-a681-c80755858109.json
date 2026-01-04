@@ -1,0 +1,44 @@
+{
+  "id" : "2b403a83-0d74-4928-a681-c80755858109",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Manual Ignore Test\",\"body\":\"Testing manual ignore patterns\",\"userId\":1,\"timestamp\":\"2026-01-04T13:36:03.663098861Z\",\"requestId\":\"fb8750e5-30a6-43dc-b865-94b28ec14b50\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9b8b1f5d4b2f2171-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1767533784",
+      "x-ratelimit-remaining" : "997",
+      "pragma" : "no-cache",
+      "Date" : "Sun, 04 Jan 2026 13:36:02 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=pt%2BcR%2Fpr1rtjMIBsi%2BscGUQ6wPYZiQdHDAo%2BiSpE%2FsM%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1767533762\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=pt%2BcR%2Fpr1rtjMIBsi%2BscGUQ6wPYZiQdHDAo%2BiSpE%2FsM%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1767533762\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "2b403a83-0d74-4928-a681-c80755858109",
+  "persistent" : true,
+  "insertionIndex" : 0
+}
