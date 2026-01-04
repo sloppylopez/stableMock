@@ -1,5 +1,5 @@
 [ {
-  "timestamp" : "2026-01-04T00:34:58.946186600Z",
+  "timestamp" : "2026-01-04T00:54:17.865275900Z",
   "url" : "/graphql",
   "method" : "POST",
   "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",

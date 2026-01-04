@@ -1,23 +1,23 @@
 {
   "testClass" : "NestedJsonDynamicFieldsTest",
   "testMethod" : "testNestedJsonWithDynamicFields",
-  "detectedAt" : "2026-01-04T00:34:58.345843800Z",
+  "detectedAt" : "2026-01-04T00:54:16.192777Z",
   "analyzed_requests_count" : 2,
   "dynamic_fields" : [ {
     "field_path" : "json:order.items[0].metadata.timestamp",
-    "sample_values" : [ "2026-01-04T00:34:57.780506700Z", "2026-01-04T00:34:57.137278300Z" ]
+    "sample_values" : [ "2026-01-04T00:54:15.496341400Z", "2026-01-04T00:54:14.842963600Z" ]
   }, {
     "field_path" : "json:order.items[0].metadata.sessionId",
-    "sample_values" : [ "acf9b81e-4652-4b99-a23d-25a1ec1fb878", "75203fbb-9ee8-4d5f-a715-de57e2cd84e3" ]
+    "sample_values" : [ "80765af7-3ec5-423f-9702-bcddfc40efef", "293c34e6-506c-4349-9197-3fa72ded9faf" ]
   }, {
     "field_path" : "json:order.payment.transactionId",
-    "sample_values" : [ "120d4948-1dc8-4e49-9982-1226b4dba07e", "168bf37c-9a95-4c67-95da-3c9ac5ce8776" ]
+    "sample_values" : [ "b9f4b30b-445c-40ff-9f44-f849d6f4d992", "baeabf80-c837-4842-ac03-49fffc8f4f95" ]
   }, {
     "field_path" : "json:order.payment.timestamp",
-    "sample_values" : [ "2026-01-04T00:34:57.780506700Z", "2026-01-04T00:34:57.137278300Z" ]
+    "sample_values" : [ "2026-01-04T00:54:15.496341400Z", "2026-01-04T00:54:14.842963600Z" ]
   }, {
     "field_path" : "json:requestId",
-    "sample_values" : [ "1e938a3c-d17b-4341-b48e-35fbaf17de43", "38a688f6-e0d3-4010-87df-20578094175e" ]
+    "sample_values" : [ "d1044a1a-1e41-4d8f-aaa0-456845bff4d1", "4d108f71-a165-471a-931c-b3dc1d096bca" ]
   } ],
   "ignore_patterns" : [ "json:order.items[0].metadata.timestamp", "json:order.items[0].metadata.sessionId", "json:order.payment.transactionId", "json:order.payment.timestamp", "json:requestId" ]
 }
