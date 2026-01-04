@@ -50,7 +50,7 @@ class ReportGenerationTest extends BaseStableMockTest {
             // Reports are generated after all tests complete, so we can't assert existence here
             // But we can verify the directory structure exists
             File stablemockDir = new File(testResourcesDir, "stablemock");
-            assertTrue(stablemockDir.exists() || stablemockDir.isDirectory(), 
+            assertTrue(stablemockDir.exists() && stablemockDir.isDirectory(), 
                     "StableMock directory should exist");
             
             // Verify test class directory exists
@@ -64,7 +64,7 @@ class ReportGenerationTest extends BaseStableMockTest {
             
             // Reports should exist from previous RECORD run
             // Note: This assertion may fail if reports haven't been generated yet
-            // In that case, run: ./gradlew generateStableMockReport
+            // In that case, run: ./gradlew stableMockReport
             if (jsonReport.exists()) {
                 assertTrue(jsonReport.length() > 0, "JSON report should not be empty");
             }

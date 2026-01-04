@@ -245,6 +245,7 @@ public final class HtmlReportGenerator {
     private static void generateTestMethod(PrintWriter writer, JsonNode testMethod, String testClassName) {
         String testMethodName = testMethod.has("testMethod") ? testMethod.get("testMethod").asText() : "Unknown";
         String folderPath = testMethod.has("folderPath") ? testMethod.get("folderPath").asText() : "";
+        String shortFolderPath = shortenFolderPath(folderPath);
         int requestCount = countRequests(testMethod);
         int mutatingCount = countMutatingFields(testMethod);
         String filterText = String.join(" ", testClassName, testMethodName, folderPath).toLowerCase();
@@ -255,7 +256,7 @@ public final class HtmlReportGenerator {
         writer.println("          <span class=\"badge\">Requests: " + requestCount + "</span>");
         writer.println("          <span class=\"badge\">Mutating fields: " + mutatingCount + "</span>");
         writer.println("        </summary>");
-        writer.println("        <p class=\"folder-path\"><strong>Folder:</strong> <code>" + escapeHtml(folderPath) + "</code></p>");
+        writer.println("        <p class=\"folder-path\"><strong>Folder:</strong> <code>" + escapeHtml(shortFolderPath) + "</code></p>");
         
         // Handle single annotation
         if (testMethod.has("annotation")) {
@@ -390,7 +391,7 @@ public final class HtmlReportGenerator {
                     writer.println("                    <td><span class=\"method method-" + method.toLowerCase() + "\">" + escapeHtml(method) + "</span></td>");
                     writer.println("                    <td><code>" + escapeHtml(url) + "</code></td>");
                     writer.println("                    <td>" + count + "</td>");
-                    writer.println("                    <td>" + (hasBody ? "✓" : "—") + "</td>");
+                    writer.println("                    <td>" + (hasBody ? "&#10003;" : "&mdash;") + "</td>");
                     writer.println("                    <td>");
                     
                     if (request.has("mutatingFields") && request.get("mutatingFields").isArray()) {
@@ -403,10 +404,10 @@ public final class HtmlReportGenerator {
                             }
                             writer.println("                      </ul>");
                         } else {
-                            writer.println("                      —");
+                            writer.println("                      &mdash;");
                         }
                     } else {
-                        writer.println("                      —");
+                        writer.println("                      &mdash;");
                     }
                     
                     writer.println("                    </td>");
@@ -415,7 +416,7 @@ public final class HtmlReportGenerator {
                         writer.println("                      <button type=\"button\" class=\"details-toggle\" onclick=\"toggleRequestDetails('"
                                 + escapeHtmlAttribute(detailsId) + "')\">View details</button>");
                     } else {
-                        writer.println("                      —");
+                        writer.println("                      &mdash;");
                     }
                     writer.println("                    </td>");
                     writer.println("                  </tr>");
@@ -544,7 +545,7 @@ public final class HtmlReportGenerator {
 
     private static void renderBodyBlock(PrintWriter writer, String title, JsonNode bodyJson, String bodyText, JsonNode mutatingFields, String anchorPrefix) {
         if ((bodyJson == null || bodyJson.isMissingNode() || bodyJson.isNull())
-                && (bodyText == null || bodyText.isBlank())) {
+                && (bodyText == null || bodyText.trim().isEmpty())) {
             return;
         }
         writer.println("                            <div class=\"request-section\">");
@@ -576,10 +577,10 @@ public final class HtmlReportGenerator {
         // Highlight mutating fields if provided
         if (hasMutatingFields && bodyJson != null) {
             body = highlightMutatingFields(body, bodyJson, mutatingFields, anchorPrefix);
-        } else if (hasMutatingFields && isXml && bodyText != null) {
+        } else if (hasMutatingFields && isXml) {
             // For XML bodies, highlight mutating fields
             body = highlightXmlMutatingFields(bodyText, mutatingFields, anchorPrefix);
-        } else if (isXml && bodyText != null) {
+        } else if (isXml) {
             // For XML bodies without mutating fields, format and highlight syntax
             String formattedXml = formatXml(bodyText);
             body = buildXmlWithSyntaxHighlighting(formattedXml, null, null);
@@ -736,8 +737,8 @@ public final class HtmlReportGenerator {
         
         // Parse XML into DOM
         Document doc = XmlBodyParser.parseXml(xmlText);
-        if (doc == null) {
-            // Fallback to plain syntax highlighting if parsing fails
+        if (doc == null || doc.getDocumentElement() == null) {
+            // Fallback to plain syntax highlighting if parsing fails or document is malformed
             String formattedXml = formatXml(xmlText);
             return buildXmlWithSyntaxHighlighting(formattedXml, null, null);
         }
@@ -1073,8 +1074,8 @@ public final class HtmlReportGenerator {
     /**
      * Highlights an XML tag with attributes.
      * If mutatingAttributePaths is provided, wraps mutating attribute values in red highlighting.
-     * @param elementPathForTag The path of the element being rendered (e.g., "request/header"), 
-     *                          which is the correct path for attributes within this tag.
+     * @param elementPathForTag The element path for this tag (e.g., "request/header"),
+     *                          which represents the correct path for attributes within the tag being highlighted.
      */
     private static String highlightXmlTag(String tag, String elementPathForTag, 
             Set<String> mutatingElementPaths, Set<String> mutatingAttributePaths,
@@ -1128,7 +1129,7 @@ public final class HtmlReportGenerator {
      */
     private static String highlightXmlAttributes(String attributes, String currentElementPath,
             Set<String> mutatingAttributePaths, java.util.Map<String, String> attributePathToAnchorId) {
-        if (attributes == null || attributes.isBlank()) {
+        if (attributes == null || attributes.trim().isEmpty()) {
             return "";
         }
         
@@ -1263,7 +1264,7 @@ public final class HtmlReportGenerator {
     }
     
     private static boolean isJsonString(String text) {
-        if (text == null || text.isBlank()) {
+        if (text == null || text.trim().isEmpty()) {
             return false;
         }
         String trimmed = text.trim();
@@ -1272,7 +1273,7 @@ public final class HtmlReportGenerator {
     }
     
     private static boolean isXmlString(String text) {
-        if (text == null || text.isBlank()) {
+        if (text == null || text.trim().isEmpty()) {
             return false;
         }
         String trimmed = text.trim();
@@ -1391,6 +1392,45 @@ public final class HtmlReportGenerator {
 
     private static String escapeHtmlAttribute(String text) {
         return escapeHtml(text);
+    }
+
+    /**
+     * Shortens a folder path to show only the last 2 segments.
+     * Handles both Windows (\) and Unix (/) path separators.
+     */
+    private static String shortenFolderPath(String folderPath) {
+        if (folderPath == null || folderPath.trim().isEmpty()) {
+            return folderPath;
+        }
+        
+        // Detect original separator style
+        boolean usesBackslash = folderPath.contains("\\");
+        String separator = usesBackslash ? "\\" : "/";
+        
+        // Normalize path separators to forward slash for processing
+        String normalized = folderPath.replace("\\", "/");
+        
+        // Remove trailing slashes
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        
+        // Split by forward slash and filter out empty segments
+        String[] allSegments = normalized.split("/");
+        java.util.List<String> segments = new java.util.ArrayList<>();
+        for (String segment : allSegments) {
+            if (segment != null && !segment.trim().isEmpty()) {
+                segments.add(segment);
+            }
+        }
+        
+        // If we have 2 or fewer segments, return as is
+        if (segments.size() <= 2) {
+            return folderPath;
+        }
+        
+        // Return last 2 segments joined with original separator
+        return segments.get(segments.size() - 2) + separator + segments.get(segments.size() - 1);
     }
 
     private static String getCssStyles() {
@@ -1690,7 +1730,7 @@ public final class HtmlReportGenerator {
             .test-class > summary::before,
             .test-method > summary::before,
             .annotation-section > summary::before {
-              content: "▸";
+              content: ">";
               display: inline-block;
               margin-right: 6px;
               transition: transform 0.2s ease;
@@ -1948,6 +1988,7 @@ public final class HtmlReportGenerator {
               display: grid;
               gap: 12px;
               grid-template-columns: repeat(3, minmax(200px, 1fr));
+              align-items: stretch;
               border: 1px solid rgba(232, 167, 64, 0.25);
             }
 
@@ -1969,6 +2010,10 @@ public final class HtmlReportGenerator {
 
             .request-section {
               margin-bottom: 10px;
+              display: flex;
+              flex-direction: column;
+              flex: 1;
+              min-height: 0;
             }
 
             .section-title {
@@ -1983,6 +2028,17 @@ public final class HtmlReportGenerator {
             .request-block,
             .response-block {
               min-width: 0;
+              display: flex;
+              flex-direction: column;
+              min-height: 200px;
+              max-height: 800px;
+            }
+            
+            .headers-block pre,
+            .request-block pre,
+            .response-block pre {
+              flex: 1;
+              overflow-y: auto;
             }
 
             .example-title {
@@ -2002,10 +2058,10 @@ public final class HtmlReportGenerator {
               white-space: pre-wrap;
             }
             
-            pre.pre-long {
-              overflow-y: auto;
-              max-height: 400px;
+            .response-block pre {
+              max-height: 100%;
             }
+            
             
             pre code {
               background: transparent;
@@ -2189,6 +2245,9 @@ public final class HtmlReportGenerator {
                 return;
               }
               row.classList.toggle('is-open');
+              // Re-apply scrolling after toggling (content might be newly visible)
+              // Use longer timeout to ensure browser has calculated heights for newly visible content
+              setTimeout(applyLongResponseScrolling, 300);
             }
 
             function filterReport() {
@@ -2233,16 +2292,15 @@ public final class HtmlReportGenerator {
 
             function applyLongResponseScrolling() {
               document.querySelectorAll('pre').forEach((pre) => {
-                const code = pre.querySelector('code');
-                if (!code) return;
-                
-                // Count lines by counting newline characters in text content
-                const text = code.textContent || code.innerText || '';
-                const lineCount = (text.match(/\\n/g) || []).length + 1;
-                
-                // Apply scrolling if more than 26 lines
-                if (lineCount > 26) {
+                // Check the actual rendered height of the pre element (container)
+                // scrollHeight gives the full content height
+                // Apply scrolling to all pre elements (headers, request body, response body) if > 800px
+                const height = pre.scrollHeight;
+                if (height > 800) {
                   pre.classList.add('pre-long');
+                } else {
+                  // Remove class if height is now smaller (e.g., after content change)
+                  pre.classList.remove('pre-long');
                 }
               });
             }
@@ -2252,6 +2310,8 @@ public final class HtmlReportGenerator {
               
               const observer = new MutationObserver(function(mutations) {
                 highlightMutatingFields();
+                // Re-check heights after DOM mutations (e.g., Prism.js highlighting)
+                applyLongResponseScrolling();
               });
               
               document.querySelectorAll('pre code').forEach((code) => {
@@ -2277,12 +2337,19 @@ public final class HtmlReportGenerator {
               if (originalHighlightAll) {
                 Prism.highlightAll = function(async, callback, container) {
                   const result = originalHighlightAll.call(this, async, callback, container);
-                  setTimeout(highlightMutatingFields, 300);
+                  // Wait longer for Prism to fully process and update DOM
+                  setTimeout(function() {
+                    highlightMutatingFields();
+                    applyLongResponseScrolling();
+                  }, 500);
                   return result;
                 };
               }
               
-              setTimeout(highlightMutatingFields, 500);
+              setTimeout(function() {
+                highlightMutatingFields();
+                applyLongResponseScrolling();
+              }, 800);
             }
             """;
     }
