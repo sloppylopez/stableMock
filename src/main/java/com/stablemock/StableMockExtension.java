@@ -564,10 +564,15 @@ public class StableMockExtension
 
         if (servers != null && !servers.isEmpty()) {
             String testClassName = TestContextResolver.getTestClassName(context);
+            List<Integer> ports = classStore.getPorts();
             for (int i = 0; i < servers.size(); i++) {
                 WireMockServer server = servers.get(i);
                 if (server != null) {
                     server.stop();
+                    // Wait for server to fully stop and release port
+                    // This is critical in parallel test execution where ports can conflict
+                    Integer port = (ports != null && i < ports.size()) ? ports.get(i) : null;
+                    waitForPortRelease(port);
                 }
                 // Always clear indexed properties since they're always set (needed for repeatable annotations)
                 // This prevents stale properties from previous test runs causing flaky tests
@@ -577,28 +582,16 @@ public class StableMockExtension
                 System.clearProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i);
                 System.clearProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i);
             }
-            // Give servers time to release ports before next test class starts
-            // This is critical in CI/pipeline environments where tests run quickly
-            try {
-                Thread.sleep(200); // Increased delay for better port release in CI
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.warn("Interrupted while waiting for port release in afterAll");
-            }
             classStore.putServers(null);
             classStore.putPorts(null);
         }
 
         WireMockServer server = classStore.getServer();
         if (server != null) {
+            Integer port = classStore.getPort();
             server.stop();
-            // Give server time to release port before next test class starts
-            try {
-                Thread.sleep(200); // Increased delay for better port release in CI
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.warn("Interrupted while waiting for port release in afterAll");
-            }
+            // Wait for server to fully stop and release port
+            waitForPortRelease(port);
             classStore.removeServer();
             classStore.removePort();
         }
@@ -647,6 +640,53 @@ public class StableMockExtension
             System.clearProperty(StableMockConfig.BASE_URL_PROPERTY);
         }
         WireMockContext.clear();
+    }
+
+    /**
+     * Waits for a port to be released after server stop.
+     * This is critical in parallel test execution where ports can conflict.
+     * 
+     * @param port The port to wait for release, or null if unknown
+     */
+    private void waitForPortRelease(Integer port) {
+        if (port == null) {
+            // If port is unknown, use a fixed delay
+            try {
+                Thread.sleep(300); // Longer delay when port is unknown
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.warn("Interrupted while waiting for port release");
+            }
+            return;
+        }
+        
+        // Try to verify port is actually released by attempting to bind to it
+        int maxAttempts = 10;
+        int delayMs = 50;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            try (java.net.ServerSocket socket = new java.net.ServerSocket()) {
+                socket.setReuseAddress(false);
+                socket.bind(new java.net.InetSocketAddress("localhost", port));
+                // Port is available, close immediately
+                socket.close();
+                return; // Port is released
+            } catch (java.io.IOException e) {
+                // Port still in use, wait and retry
+                if (attempt < maxAttempts - 1) {
+                    try {
+                        Thread.sleep(delayMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Interrupted while waiting for port {} release", port);
+                        return;
+                    }
+                } else {
+                    // Max attempts reached, port might still be in TIME_WAIT state
+                    // This is acceptable - OS will release it eventually
+                    logger.debug("Port {} may still be in TIME_WAIT state after {} attempts", port, maxAttempts);
+                }
+            }
+        }
     }
 
     /**
