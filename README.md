@@ -439,22 +439,6 @@ The recommended workflow for using StableMock is:
    ./gradlew stableMockReport
    ```
 
-### Available Tasks
-
-```bash
-# Clean recordings and analysis data
-./gradlew cleanStableMock
-
-# Record mode - Run tests and record HTTP interactions
-./gradlew stableMockRecord
-
-# Playback mode - Run tests using recorded mocks (default mode)
-./gradlew stableMockPlayback
-
-# Generate recording report from existing recordings
-./gradlew stableMockReport
-```
-
 **Note:** The `stableMockRecord` task automatically runs `cleanStableMock` before recording, so you don't need to clean manually unless you want a fresh start.
 
 ## Recording Report
