@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'com.stablemock'
-version = '1.0-SNAPSHOT'
+version = '1.0.0'
 
 sourceCompatibility = '17'
 targetCompatibility = '17'
@@ -26,7 +26,6 @@ repositories {
 
 dependencies {
     // Upgraded to WireMock 3.13.2 to fix CVE-2023-44487 (HTTP/2 Rapid Reset vulnerability)
-    // Note: Maven coordinates changed from com.github.tomakehurst:wiremock-jre8 to org.wiremock:wiremock
     api 'org.wiremock:wiremock-standalone:3.13.2'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     implementation 'io.github.java-diff-utils:java-diff-utils:4.12'
@@ -68,9 +67,6 @@ test {
         events "passed", "skipped", "failed", "standardOut", "standardError"
         showStandardStreams = true
     }
-    // Disable JaCoCo instrumentation to avoid assertion failures (coverage reports disabled)
-    // To enable coverage: remove this line and run 'gradlew test jacocoTestReport' separately
-    // finalizedBy jacocoTestReport
 }
 
 // JaCoCo Code Coverage
@@ -111,60 +107,31 @@ publishing {
     publications {
         maven(MavenPublication) {
             from components.java
-            
+
             groupId = project.group
             artifactId = 'stablemock'
             version = project.version
-            
+
             pom {
                 name = 'StableMock'
                 description = 'A JUnit 5 extension that uses WireMock to record and replay HTTP requests and responses during tests, with support for ignoring dynamic data (timestamps, IDs, tokens).'
                 url = 'https://github.com/sloppylopez/stablemock'
-                
+
                 licenses {
                     license {
                         name = 'MIT License'
                         url = 'https://opensource.org/licenses/MIT'
                     }
                 }
-                
+
                 developers {
                     developer {
                         id = 'sloppylopez'
-                        name = 'Your Name'
-                        email = 'your.email@example.com'
+                        name = 'Sloppy Lopez'
+                        email = 'sloppy@sloppylopez.com'
                     }
                 }
-                
-                scm {
-                    connection = 'scm:git:git://github.com/sloppylopez/stablemock.git'
-                    developerConnection = 'scm:git:ssh://github.com:sloppylopez/stablemock.git'
-                    url = 'https://github.com/sloppylopez/stablemock'
-                }
-            }
-        }
-        
-        pluginMaven(MavenPublication) {
-            pom {
-                name = 'StableMock Gradle Plugin'
-                description = 'Gradle plugin for StableMock - JUnit 5 extension for WireMock-based HTTP mocking'
-                url = 'https://github.com/sloppylopez/stablemock'
-                
-                licenses {
-                    license {
-                        name = 'MIT License'
-                        url = 'https://opensource.org/licenses/MIT'
-                    }
-                }
-                
-                developers {
-                    developer {
-                        id = 'sloppylopez'
-                        name = 'Your Name'
-                        email = 'your.email@example.com'
-                    }
-                }
-                
+
                 scm {
                     connection = 'scm:git:git://github.com/sloppylopez/stablemock.git'
                     developerConnection = 'scm:git:ssh://github.com:sloppylopez/stablemock.git'
@@ -173,15 +140,15 @@ publishing {
             }
         }
     }
-    
+
     repositories {
         mavenLocal()
         maven {
             name = 'OSSRH'
-            url = version.endsWith('-SNAPSHOT') 
-                ? 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
-                : 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
-            
+            url = version.endsWith('-SNAPSHOT')
+                ? uri('https://s01.oss.sonatype.org/content/repositories/snapshots/')
+                : uri('https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/')
+
             credentials {
                 username = project.findProperty('ossrhUsername') ?: System.getenv('OSSRH_USERNAME')
                 password = project.findProperty('ossrhPassword') ?: System.getenv('OSSRH_PASSWORD')
@@ -190,15 +157,21 @@ publishing {
     }
 }
 
-signing {
-    required { !version.endsWith('-SNAPSHOT') && gradle.taskGraph.hasTask('publish') }
-    sign publishing.publications.maven
-    sign publishing.publications.pluginMaven
-    
-    def signingKey = project.findProperty('signingKey') ?: System.getenv('SIGNING_KEY')
-    def signingPassword = project.findProperty('signingPassword') ?: System.getenv('SIGNING_PASSWORD')
-    
-    if (signingKey && signingPassword) {
-        useInMemoryPgpKeys(signingKey, signingPassword)
+afterEvaluate {
+    def isPublishingToMavenLocal = gradle.startParameter.taskNames.any { it == 'publishToMavenLocal' }
+    if (!isPublishingToMavenLocal) {
+        signing {
+            def signingKey = project.findProperty('signingKey') ?: System.getenv('SIGNING_KEY')
+            def signingPassword = project.findProperty('signingPassword') ?: System.getenv('SIGNING_PASSWORD')
+            
+            if (signingKey && signingPassword) {
+                // Use in-memory keys (works better on Windows/WSL)
+                useInMemoryPgpKeys(signingKey, signingPassword)
+            } else {
+                // Fallback to GPG command (requires GPG on Windows PATH)
+                useGpgCmd()
+            }
+            sign publishing.publications.maven
+        }
     }
 }
