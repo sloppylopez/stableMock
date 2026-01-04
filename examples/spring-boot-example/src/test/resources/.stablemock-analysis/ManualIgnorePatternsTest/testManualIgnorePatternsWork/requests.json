@@ -1,13 +1,13 @@
 [ {
-  "timestamp" : "2026-01-04T00:54:15.612292500Z",
+  "timestamp" : "2026-01-04T01:00:31.682410600Z",
   "url" : "/posts",
   "method" : "POST",
-  "body" : "{\"title\":\"Manual Ignore Test\",\"body\":\"Testing manual ignore patterns\",\"userId\":1,\"timestamp\":\"2026-01-04T00:54:15.001410900Z\",\"requestId\":\"ab9650db-8f71-43a4-b47c-b3f7f72899fd\"}",
+  "body" : "{\"title\":\"Manual Ignore Test\",\"body\":\"Testing manual ignore patterns\",\"userId\":1,\"timestamp\":\"2026-01-04T01:00:31.136340500Z\",\"requestId\":\"1a71b319-f5a5-46e5-beca-bffc91b0b9a4\"}",
   "contentType" : "text/plain;charset=UTF-8"
 }, {
-  "timestamp" : "2026-01-04T00:54:15.656352600Z",
+  "timestamp" : "2026-01-04T01:00:31.727179100Z",
   "url" : "/posts",
   "method" : "POST",
-  "body" : "{\"title\":\"Manual Ignore Test\",\"body\":\"Testing manual ignore patterns\",\"userId\":1,\"timestamp\":\"2026-01-04T00:54:14.599584200Z\",\"requestId\":\"f5eadbee-cb0e-4c8c-8e37-10a8f86f5c97\"}",
+  "body" : "{\"title\":\"Manual Ignore Test\",\"body\":\"Testing manual ignore patterns\",\"userId\":1,\"timestamp\":\"2026-01-04T01:00:30.710198600Z\",\"requestId\":\"c9fb031e-0bb2-4ea6-b310-9fc1510ebea1\"}",
   "contentType" : "text/plain;charset=UTF-8"
 } ]
