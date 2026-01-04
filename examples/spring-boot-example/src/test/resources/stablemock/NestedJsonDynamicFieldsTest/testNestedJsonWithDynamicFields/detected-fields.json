@@ -1,23 +1,23 @@
 {
   "testClass" : "NestedJsonDynamicFieldsTest",
   "testMethod" : "testNestedJsonWithDynamicFields",
-  "detectedAt" : "2026-01-04T01:28:34.838377700Z",
+  "detectedAt" : "2026-01-04T01:35:12.951634300Z",
   "analyzed_requests_count" : 4,
   "dynamic_fields" : [ {
     "field_path" : "json:order.items[0].metadata.timestamp",
-    "sample_values" : [ "2026-01-04T01:28:01.022715900Z", "2026-01-04T01:28:00.413439800Z", "2026-01-04T01:28:34.230569100Z" ]
+    "sample_values" : [ "2026-01-04T01:34:36.438175300Z", "2026-01-04T01:34:35.833310100Z", "2026-01-04T01:35:12.271259600Z" ]
   }, {
     "field_path" : "json:order.items[0].metadata.sessionId",
-    "sample_values" : [ "f592725e-3965-4cce-a7ac-bfe0bab2c70e", "07143148-f3a4-48ca-aa52-5e90529beb61", "6e80389e-17cd-42ac-ab4f-245bdb2680ba" ]
+    "sample_values" : [ "1937f863-c0a5-47aa-8022-0b5d1d56fb78", "41d03b57-2e8a-40df-b646-2237c3c1a0ca", "a10c0ef5-a736-4ad4-9565-b09c07948db6" ]
   }, {
     "field_path" : "json:order.payment.transactionId",
-    "sample_values" : [ "f7874595-bcec-4f18-8d0d-7acf8e06810f", "90fe2288-b90d-4794-b70e-1e488657f156", "a16f3fd3-d970-40f6-9b2b-d8ee6009ecb5" ]
+    "sample_values" : [ "5e4a8483-8465-4b31-a718-30e223575d41", "068c4a48-723c-4fa7-89dc-eef6cff112c4", "6ec7b585-6e47-46f7-a381-78505aa84734" ]
   }, {
     "field_path" : "json:order.payment.timestamp",
-    "sample_values" : [ "2026-01-04T01:28:01.022715900Z", "2026-01-04T01:28:00.413439800Z", "2026-01-04T01:28:34.230569100Z" ]
+    "sample_values" : [ "2026-01-04T01:34:36.438175300Z", "2026-01-04T01:34:35.833310100Z", "2026-01-04T01:35:12.271259600Z" ]
   }, {
     "field_path" : "json:requestId",
-    "sample_values" : [ "e5a8c3ac-b730-4b02-a7d2-eb87f16a7146", "80cd0808-2585-4a1a-9385-e9b4f509fdd5", "ca0d6d2c-d6fe-490b-9751-efbaace6f964" ]
+    "sample_values" : [ "6b245672-1fb5-4d6b-ab73-50e7ecdea35c", "aa9405d5-482b-4dec-89a4-df1859c56162", "342877dc-5c35-4dc3-b6e3-46d685eb2a83" ]
   } ],
   "ignore_patterns" : [ "json:order.items[0].metadata.timestamp", "json:order.items[0].metadata.sessionId", "json:order.payment.transactionId", "json:order.payment.timestamp", "json:requestId" ]
 }
