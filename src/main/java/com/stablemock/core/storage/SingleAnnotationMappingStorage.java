@@ -851,9 +851,6 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             if (getCount == 0 && getMappingsCopied == 0) {
                 logger.error("No GET mappings found in merged mappings! This will cause GET requests to fail.");
             }
-            if (getCount < 3) {
-                logger.warn("Expected at least 3 GET mappings (/users/1, /users/2, /users/3) but found only {}", getCount);
-            }
         } else {
             logger.error("No mappings found in class-level directory after merge! Directory: {}", classMappingsDir.getAbsolutePath());
             // List what test method directories exist for debugging
