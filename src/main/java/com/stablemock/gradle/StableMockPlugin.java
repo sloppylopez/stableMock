@@ -28,6 +28,8 @@ public class StableMockPlugin implements Plugin<Project> {
             task.setDescription("Clean StableMock recordings and analysis data");
             task.delete(project.file("src/test/resources/stablemock"));
             task.delete(project.file("src/test/resources/.stablemock-analysis"));
+            // Force task to always run (never up-to-date) to ensure it actually deletes
+            task.getOutputs().upToDateWhen(t -> false);
         });
     }
 

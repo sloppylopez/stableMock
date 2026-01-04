@@ -1,3 +1,9 @@
+buildscript {
+    dependencies {
+        classpath files("${projectDir}/build/classes/java/main")
+    }
+}
+
 plugins {
     id 'java-library'
     id 'java-gradle-plugin'
@@ -50,6 +56,12 @@ gradlePlugin {
     }
 }
 
+// Apply the StableMock plugin to this project so we can use its tasks
+// We apply it directly using the implementation class since this is the plugin project itself
+afterEvaluate {
+    def pluginClass = Class.forName('com.stablemock.gradle.StableMockPlugin')
+    project.apply plugin: pluginClass
+}
 
 test {
     useJUnitPlatform()
