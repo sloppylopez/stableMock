@@ -91,7 +91,8 @@ public final class WireMockServerManager {
                                 currentPort, attempt + 1, maxRetries);
                         currentPort = PortFinder.findFreePort();
                         try {
-                            Thread.sleep(100); // Brief delay before retry
+                            // Increased delay to allow ports to be fully released (especially in CI)
+                            Thread.sleep(200 + (attempt * 50)); // Progressive delay: 200ms, 250ms, 300ms...
                         } catch (InterruptedException ie) {
                             Thread.currentThread().interrupt();
                             throw new RuntimeException("Interrupted while retrying server startup", ie);
@@ -267,7 +268,8 @@ public final class WireMockServerManager {
                                 currentPort, attempt + 1, maxRetries);
                         currentPort = PortFinder.findFreePort();
                         try {
-                            Thread.sleep(100); // Brief delay before retry
+                            // Increased delay to allow ports to be fully released (especially in CI)
+                            Thread.sleep(200 + (attempt * 50)); // Progressive delay: 200ms, 250ms, 300ms...
                         } catch (InterruptedException ie) {
                             Thread.currentThread().interrupt();
                             throw new RuntimeException("Interrupted while retrying server startup", ie);

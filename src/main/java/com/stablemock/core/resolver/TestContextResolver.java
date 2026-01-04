@@ -5,7 +5,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.File;
 import java.lang.reflect.Method;
-import java.util.Objects;
 
 /**
  * Resolves test context information including annotations, directories, and Spring Boot detection.
@@ -63,7 +62,41 @@ public final class TestContextResolver {
     
     public static File findTestResourcesDirectory(ExtensionContext context) {
         Class<?> testClass = context.getRequiredTestClass();
-        String classPath = Objects.requireNonNull(testClass.getResource(testClass.getSimpleName() + ".class")).toString();
+        java.net.URL classResource = testClass.getResource(testClass.getSimpleName() + ".class");
+        
+        if (classResource == null) {
+            // Fallback if resource cannot be found
+            return getFallbackTestResourcesDirectory();
+        }
+        
+        String classPath = classResource.toString();
+
+        // Handle JAR URLs (e.g., jar:file:/path/to.jar!/com/example/Test.class)
+        // In JDK 17, classes might be loaded from JAR files, causing FileNotFoundException
+        if (classPath.startsWith("jar:")) {
+            // Extract file path from JAR URL
+            int separatorIndex = classPath.indexOf("!/");
+            if (separatorIndex > 0) {
+                String jarPath = classPath.substring(4, separatorIndex); // Remove "jar:" prefix
+                if (jarPath.startsWith("file:/")) {
+                    jarPath = jarPath.substring(6);
+                    if (jarPath.startsWith("/") && jarPath.length() > 3 && jarPath.charAt(2) == ':') {
+                        jarPath = jarPath.substring(1);
+                    }
+                    // Try to find project root from JAR path
+                    File jarFile = new File(jarPath);
+                    File projectRoot = findProjectRootFromJar(jarFile);
+                    if (projectRoot != null) {
+                        File result = new File(projectRoot, "src/test/resources");
+                        if (result.exists() || result.getParentFile().exists()) {
+                            return result;
+                        }
+                    }
+                }
+            }
+            // If JAR URL parsing fails, use fallback
+            return getFallbackTestResourcesDirectory();
+        }
 
         if (classPath.startsWith("file:/")) {
             String path = classPath.substring(6);
@@ -98,6 +131,52 @@ public final class TestContextResolver {
             }
         }
 
+        return getFallbackTestResourcesDirectory();
+    }
+    
+    /**
+     * Attempts to find project root from a JAR file path.
+     * Looks for common build output directories to infer project structure.
+     */
+    private static File findProjectRootFromJar(File jarFile) {
+        if (jarFile == null || !jarFile.exists()) {
+            return null;
+        }
+        
+        // Common patterns: build/libs/, target/, out/artifacts/, etc.
+        File current = jarFile.getParentFile();
+        int maxDepth = 10; // Prevent infinite loops
+        int depth = 0;
+        
+        while (current != null && depth < maxDepth) {
+            // Check if this looks like a project root (has src/test/resources)
+            File testResources = new File(current, "src/test/resources");
+            if (testResources.exists()) {
+                return current;
+            }
+            // Check for common build directories that indicate we're in a subdirectory
+            String name = current.getName();
+            if (name.equals("libs") || name.equals("build") || name.equals("target") || 
+                name.equals("out") || name.equals("dist")) {
+                File parent = current.getParentFile();
+                if (parent != null) {
+                    File testResourcesInParent = new File(parent, "src/test/resources");
+                    if (testResourcesInParent.exists()) {
+                        return parent;
+                    }
+                }
+            }
+            current = current.getParentFile();
+            depth++;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Returns fallback test resources directory.
+     */
+    private static File getFallbackTestResourcesDirectory() {
         String userDir = System.getProperty("user.dir");
         File fallback = new File(userDir, "src/test/resources");
         if (!fallback.exists()) {
