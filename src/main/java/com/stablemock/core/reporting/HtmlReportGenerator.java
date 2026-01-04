@@ -1988,6 +1988,7 @@ public final class HtmlReportGenerator {
               display: grid;
               gap: 12px;
               grid-template-columns: repeat(3, minmax(200px, 1fr));
+              align-items: stretch;
               border: 1px solid rgba(232, 167, 64, 0.25);
             }
 
@@ -2009,6 +2010,10 @@ public final class HtmlReportGenerator {
 
             .request-section {
               margin-bottom: 10px;
+              display: flex;
+              flex-direction: column;
+              flex: 1;
+              min-height: 0;
             }
 
             .section-title {
@@ -2023,6 +2028,17 @@ public final class HtmlReportGenerator {
             .request-block,
             .response-block {
               min-width: 0;
+              display: flex;
+              flex-direction: column;
+              min-height: 200px;
+              max-height: 800px;
+            }
+            
+            .headers-block pre,
+            .request-block pre,
+            .response-block pre {
+              flex: 1;
+              overflow-y: auto;
             }
 
             .example-title {
@@ -2042,10 +2058,10 @@ public final class HtmlReportGenerator {
               white-space: pre-wrap;
             }
             
-            pre.pre-long {
-              overflow-y: auto;
-              max-height: 400px;
+            .response-block pre {
+              max-height: 100%;
             }
+            
             
             pre code {
               background: transparent;
@@ -2229,6 +2245,9 @@ public final class HtmlReportGenerator {
                 return;
               }
               row.classList.toggle('is-open');
+              // Re-apply scrolling after toggling (content might be newly visible)
+              // Use longer timeout to ensure browser has calculated heights for newly visible content
+              setTimeout(applyLongResponseScrolling, 300);
             }
 
             function filterReport() {
@@ -2273,16 +2292,15 @@ public final class HtmlReportGenerator {
 
             function applyLongResponseScrolling() {
               document.querySelectorAll('pre').forEach((pre) => {
-                const code = pre.querySelector('code');
-                if (!code) return;
-                
-                // Count lines by counting newline characters in text content
-                const text = code.textContent || code.innerText || '';
-                const lineCount = (text.match(/\\n/g) || []).length + 1;
-                
-                // Apply scrolling if more than 26 lines
-                if (lineCount > 26) {
+                // Check the actual rendered height of the pre element (container)
+                // scrollHeight gives the full content height
+                // Apply scrolling to all pre elements (headers, request body, response body) if > 800px
+                const height = pre.scrollHeight;
+                if (height > 800) {
                   pre.classList.add('pre-long');
+                } else {
+                  // Remove class if height is now smaller (e.g., after content change)
+                  pre.classList.remove('pre-long');
                 }
               });
             }
@@ -2292,6 +2310,8 @@ public final class HtmlReportGenerator {
               
               const observer = new MutationObserver(function(mutations) {
                 highlightMutatingFields();
+                // Re-check heights after DOM mutations (e.g., Prism.js highlighting)
+                applyLongResponseScrolling();
               });
               
               document.querySelectorAll('pre code').forEach((code) => {
@@ -2317,12 +2337,19 @@ public final class HtmlReportGenerator {
               if (originalHighlightAll) {
                 Prism.highlightAll = function(async, callback, container) {
                   const result = originalHighlightAll.call(this, async, callback, container);
-                  setTimeout(highlightMutatingFields, 300);
+                  // Wait longer for Prism to fully process and update DOM
+                  setTimeout(function() {
+                    highlightMutatingFields();
+                    applyLongResponseScrolling();
+                  }, 500);
                   return result;
                 };
               }
               
-              setTimeout(highlightMutatingFields, 500);
+              setTimeout(function() {
+                highlightMutatingFields();
+                applyLongResponseScrolling();
+              }, 800);
             }
             """;
     }
