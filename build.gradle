@@ -26,7 +26,6 @@ repositories {
 
 dependencies {
     // Upgraded to WireMock 3.13.2 to fix CVE-2023-44487 (HTTP/2 Rapid Reset vulnerability)
-    // Note: Maven coordinates changed from com.github.tomakehurst:wiremock-jre8 to org.wiremock:wiremock
     api 'org.wiremock:wiremock-standalone:3.13.2'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     implementation 'io.github.java-diff-utils:java-diff-utils:4.12'
@@ -68,9 +67,6 @@ test {
         events "passed", "skipped", "failed", "standardOut", "standardError"
         showStandardStreams = true
     }
-    // Disable JaCoCo instrumentation to avoid assertion failures (coverage reports disabled)
-    // To enable coverage: remove this line and run 'gradlew test jacocoTestReport' separately
-    // finalizedBy jacocoTestReport
 }
 
 // JaCoCo Code Coverage
