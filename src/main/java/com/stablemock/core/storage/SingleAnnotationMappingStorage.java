@@ -860,6 +860,27 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             }
         }
         
+        // Ensure files are flushed to disk before WireMock tries to load them
+        // This is especially important in CI environments where file system operations may be slower
+        try {
+            File[] flushMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            if (flushMappings != null && flushMappings.length > 0) {
+                // Force flush by checking file existence and size
+                for (File mappingFile : flushMappings) {
+                    if (mappingFile.exists()) {
+                        // Force file system sync by reading the file
+                        try (java.io.FileInputStream fis = new java.io.FileInputStream(mappingFile)) {
+                            fis.getChannel().force(false); // Force metadata and data to disk
+                        }
+                    }
+                }
+                // Small delay to ensure file system has fully written (especially important for CI/WSL)
+                Thread.sleep(100);
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to flush mappings to disk, continuing anyway: {}", e.getMessage());
+        }
+        
         logger.info("Completed merging mappings to class-level directory");
     }
 

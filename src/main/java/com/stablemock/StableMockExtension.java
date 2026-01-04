@@ -150,6 +150,18 @@ public class StableMockExtension
                 try {
                     MappingStorage.mergePerTestMethodMappings(baseMappingsDir);
                     logger.info("=== Merge completed successfully for {} ===", testClassName);
+                    
+                    // Verify mappings exist before starting WireMock (prevents race conditions in CI)
+                    File classMappingsDir = new File(baseMappingsDir, "mappings");
+                    if (classMappingsDir.exists()) {
+                        File[] mappingFiles = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                        if (mappingFiles != null && mappingFiles.length > 0) {
+                            logger.info("Verified {} mapping file(s) exist before starting WireMock", mappingFiles.length);
+                        } else {
+                            logger.warn("No mapping files found in {} after merge - WireMock may not have mappings", 
+                                    classMappingsDir.getAbsolutePath());
+                        }
+                    }
                 } catch (Exception e) {
                     logger.error("=== ERROR: Merge failed for {}: {} ===", testClassName, e.getMessage(), e);
                     throw new RuntimeException("Failed to merge test method mappings for " + testClassName, e);
