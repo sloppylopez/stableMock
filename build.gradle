@@ -144,9 +144,13 @@ publishing {
 }
 
 // 🔐 REQUIRED: signing must be configured eagerly for Sonatype
+def isPublishingToMavenLocal = gradle.startParameter.taskNames.any {
+    it.toLowerCase().contains('mavenlocal')
+}
+
 signing {
     required {
-        !gradle.startParameter.taskNames.contains('publishToMavenLocal')
+        !isPublishingToMavenLocal
     }
 
     def signingKey = project.findProperty('signingKey') ?: System.getenv('SIGNING_KEY')
@@ -161,6 +165,13 @@ signing {
     }
 
     sign publishing.publications
+}
+
+// Disable signing tasks when publishing to Maven Local
+if (isPublishingToMavenLocal) {
+    tasks.withType(Sign).configureEach {
+        enabled = false
+    }
 }
 
 // 🚀 Nexus / Sonatype (this is what gives you closeAndRelease*)
