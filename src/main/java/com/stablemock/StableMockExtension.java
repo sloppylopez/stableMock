@@ -561,9 +561,10 @@ public class StableMockExtension
     public void afterAll(ExtensionContext context) {
         ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(context);
         List<WireMockServer> servers = classStore.getServers();
+        // Get testClassName early since it's needed for cleanup regardless of servers state
+        String testClassName = TestContextResolver.getTestClassName(context);
 
         if (servers != null && !servers.isEmpty()) {
-            String testClassName = TestContextResolver.getTestClassName(context);
             List<Integer> ports = classStore.getPorts();
             for (int i = 0; i < servers.size(); i++) {
                 WireMockServer server = servers.get(i);
@@ -597,7 +598,6 @@ public class StableMockExtension
         }
 
         if (StableMockConfig.isRecordMode() || StableMockConfig.isPlaybackMode()) {
-            String testClassName = TestContextResolver.getTestClassName(context);
             File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
             File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
             MappingStorage.cleanupClassLevelDirectory(baseMappingsDir);
@@ -639,6 +639,10 @@ public class StableMockExtension
             System.clearProperty(StableMockConfig.PORT_PROPERTY);
             System.clearProperty(StableMockConfig.BASE_URL_PROPERTY);
         }
+        // Always clear class-scoped non-indexed properties (set in beforeAll regardless of server state)
+        // This prevents stale properties from affecting subsequent test runs
+        System.clearProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName);
+        System.clearProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName);
         WireMockContext.clear();
     }
 
@@ -667,8 +671,7 @@ public class StableMockExtension
             try (java.net.ServerSocket socket = new java.net.ServerSocket()) {
                 socket.setReuseAddress(false);
                 socket.bind(new java.net.InetSocketAddress("localhost", port));
-                // Port is available, close immediately
-                socket.close();
+                // Port is available; socket will be closed automatically by try-with-resources
                 return; // Port is released
             } catch (java.io.IOException e) {
                 // Port still in use, wait and retry
