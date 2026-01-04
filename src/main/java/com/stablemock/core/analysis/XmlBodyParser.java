@@ -3,6 +3,8 @@ package com.stablemock.core.analysis;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXParseException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -39,6 +41,26 @@ public final class XmlBodyParser {
     }
 
     /**
+     * Silent error handler that suppresses XML parsing errors to stderr.
+     */
+    private static final ErrorHandler SILENT_ERROR_HANDLER = new ErrorHandler() {
+        @Override
+        public void warning(SAXParseException exception) {
+            // Suppress warnings
+        }
+
+        @Override
+        public void error(SAXParseException exception) {
+            // Suppress errors
+        }
+
+        @Override
+        public void fatalError(SAXParseException exception) {
+            // Suppress fatal errors
+        }
+    };
+
+    /**
      * Parses an XML string into a Document.
      * 
      * @param xml The XML string to parse
@@ -51,6 +73,7 @@ public final class XmlBodyParser {
 
         try {
             DocumentBuilder builder = documentBuilderFactory.newDocumentBuilder();
+            builder.setErrorHandler(SILENT_ERROR_HANDLER);
             return builder.parse(new ByteArrayInputStream(xml.getBytes("UTF-8")));
         } catch (Exception e) {
             logger.debug("Failed to parse XML: {}", e.getMessage());

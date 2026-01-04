@@ -3,6 +3,7 @@ package com.stablemock.core.server;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.common.FatalStartupException;
 import com.stablemock.core.config.PortFinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,22 +56,54 @@ public final class WireMockServerManager {
             throw new RuntimeException("Failed to create __files subdirectory: " + filesSubDir.getAbsolutePath());
         }
 
-        WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
-                .port(port)
-                .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
-                .usingFilesUnderDirectory(mappingsDir.getAbsolutePath());
+        int currentPort = port;
+        int maxRetries = 5;
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
+                        .port(currentPort)
+                        .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
+                        .usingFilesUnderDirectory(mappingsDir.getAbsolutePath());
 
-        WireMockServer server = new WireMockServer(config);
-        server.start();
+                WireMockServer server = new WireMockServer(config);
+                server.start();
 
-        String primaryUrl = targetUrls.get(0);
-        server.stubFor(
-                WireMock.any(WireMock.anyUrl())
-                        .willReturn(WireMock.aResponse()
-                                .proxiedFrom(primaryUrl)));
+                String primaryUrl = targetUrls.get(0);
+                server.stubFor(
+                        WireMock.any(WireMock.anyUrl())
+                                .willReturn(WireMock.aResponse()
+                                        .proxiedFrom(primaryUrl)));
 
-        logger.info("Recording mode on port {}, proxying to {}", port, primaryUrl);
-        return server;
+                if (attempt > 0) {
+                    logger.info("Recording mode started on port {} (retry attempt {}) after port conflict, proxying to {}", 
+                            currentPort, attempt + 1, primaryUrl);
+                } else {
+                    logger.info("Recording mode on port {}, proxying to {}", currentPort, primaryUrl);
+                }
+                return server;
+            } catch (FatalStartupException e) {
+                // Check if it's a port binding issue
+                Throwable cause = e.getCause();
+                if (cause != null && (cause instanceof java.net.BindException || 
+                        cause.getMessage() != null && cause.getMessage().contains("Address already in use"))) {
+                    if (attempt < maxRetries - 1) {
+                        logger.warn("Port {} is already in use, trying a new port (attempt {}/{})", 
+                                currentPort, attempt + 1, maxRetries);
+                        currentPort = PortFinder.findFreePort();
+                        try {
+                            Thread.sleep(100); // Brief delay before retry
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException("Interrupted while retrying server startup", ie);
+                        }
+                        continue;
+                    }
+                }
+                // Not a port binding issue or out of retries, rethrow
+                throw e;
+            }
+        }
+        throw new RuntimeException("Failed to start recording server after " + maxRetries + " attempts");
     }
 
     public record AnnotationInfo(int index, String[] urls) {
@@ -205,16 +238,48 @@ public final class WireMockServerManager {
             }
         }
 
-        WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
-                .port(port)
-                .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
-                .usingFilesUnderDirectory(mappingsDir.getAbsolutePath());
+        int currentPort = port;
+        int maxRetries = 5;
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
+                        .port(currentPort)
+                        .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
+                        .usingFilesUnderDirectory(mappingsDir.getAbsolutePath());
 
-        WireMockServer server = new WireMockServer(config);
-        server.start();
+                WireMockServer server = new WireMockServer(config);
+                server.start();
 
-        logger.info("Playback mode on port {}, loading mappings from {}", port, mappingsDir.getAbsolutePath());
-        return server;
+                if (attempt > 0) {
+                    logger.info("Playback mode started on port {} (retry attempt {}) after port conflict, loading mappings from {}", 
+                            currentPort, attempt + 1, mappingsDir.getAbsolutePath());
+                } else {
+                    logger.info("Playback mode on port {}, loading mappings from {}", currentPort, mappingsDir.getAbsolutePath());
+                }
+                return server;
+            } catch (FatalStartupException e) {
+                // Check if it's a port binding issue
+                Throwable cause = e.getCause();
+                if (cause != null && (cause instanceof java.net.BindException || 
+                        cause.getMessage() != null && cause.getMessage().contains("Address already in use"))) {
+                    if (attempt < maxRetries - 1) {
+                        logger.warn("Port {} is already in use, trying a new port (attempt {}/{})", 
+                                currentPort, attempt + 1, maxRetries);
+                        currentPort = PortFinder.findFreePort();
+                        try {
+                            Thread.sleep(100); // Brief delay before retry
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException("Interrupted while retrying server startup", ie);
+                        }
+                        continue;
+                    }
+                }
+                // Not a port binding issue or out of retries, rethrow
+                throw e;
+            }
+        }
+        throw new RuntimeException("Failed to start playback server after " + maxRetries + " attempts");
     }
     
     /**

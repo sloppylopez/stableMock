@@ -53,7 +53,7 @@ jobs:
           fi
       
       - name: Run Spring Boot example tests using Makefile
-        run: make spring-example
+        run: make all
       
       - name: Upload test results
         if: always()
