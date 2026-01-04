@@ -1,11 +1,11 @@
 [ {
-  "timestamp" : "2026-01-04T14:53:27.583455307Z",
+  "timestamp" : "2026-01-04T16:37:53.985958300Z",
   "url" : "/users/2",
   "method" : "GET",
   "body" : "",
   "contentType" : null
 }, {
-  "timestamp" : "2026-01-04T14:54:37.452477745Z",
+  "timestamp" : "2026-01-04T16:38:28.964315600Z",
   "url" : "/users/2",
   "method" : "GET",
   "body" : "",
