@@ -128,10 +128,9 @@ public class StableMockExtension
             System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(ports.get(0)));
 
             for (int i = 0; i < ports.size(); i++) {
-                if (StableMockConfig.useGlobalProperties()) {
-                    System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
-                    System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
-                }
+                // Always set indexed properties (needed for tests with multiple @U annotations)
+                System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
+                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
                 // Also class-scoped indexed properties for multi-URL tests
                 System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
                 System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
@@ -301,10 +300,10 @@ public class StableMockExtension
                         String portProp = StableMockConfig.PORT_PROPERTY + "." + i;
                         String urlProp = StableMockConfig.BASE_URL_PROPERTY + "." + i;
                         String urlValue = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
-                        if (StableMockConfig.useGlobalProperties()) {
-                            System.setProperty(portProp, String.valueOf(ports.get(i)));
-                            System.setProperty(urlProp, urlValue);
-                        }
+                        // Always set indexed properties (needed for tests with multiple @U annotations)
+                        System.setProperty(portProp, String.valueOf(ports.get(i)));
+                        System.setProperty(urlProp, urlValue);
+                        // Also class-scoped indexed properties
                         System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
                         System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, urlValue);
                     }
