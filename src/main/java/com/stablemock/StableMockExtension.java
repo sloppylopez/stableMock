@@ -563,15 +563,19 @@ public class StableMockExtension
         List<WireMockServer> servers = classStore.getServers();
 
         if (servers != null && !servers.isEmpty()) {
+            String testClassName = TestContextResolver.getTestClassName(context);
             for (int i = 0; i < servers.size(); i++) {
                 WireMockServer server = servers.get(i);
                 if (server != null) {
                     server.stop();
                 }
-                if (StableMockConfig.useGlobalProperties()) {
-                    System.clearProperty(StableMockConfig.PORT_PROPERTY + "." + i);
-                    System.clearProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i);
-                }
+                // Always clear indexed properties since they're always set (needed for repeatable annotations)
+                // This prevents stale properties from previous test runs causing flaky tests
+                System.clearProperty(StableMockConfig.PORT_PROPERTY + "." + i);
+                System.clearProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i);
+                // Also clear class-scoped indexed properties
+                System.clearProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i);
+                System.clearProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i);
             }
             classStore.putServers(null);
             classStore.putPorts(null);
