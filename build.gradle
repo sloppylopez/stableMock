@@ -1,10 +1,8 @@
 plugins {
     id 'java-library'
     id 'java-gradle-plugin'
-    id 'maven-publish'
-    id 'signing'
     id 'jacoco'  // Code coverage
-    id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
+    id 'com.vanniktech.maven.publish' version '0.34.0'
 }
 
 group = 'com.stablemock'
@@ -17,8 +15,7 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
-    withJavadocJar()  // Generate javadoc JAR
-    withSourcesJar()   // Generate sources JAR
+    // Note: com.vanniktech.maven.publish plugin automatically creates javadoc and sources jars
 }
 
 repositories {
@@ -104,91 +101,51 @@ tasks.withType(Jar).configureEach {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from components.java
+// Fix task dependency issue between java-gradle-plugin and maven-publish plugin
+afterEvaluate {
+    def generateMetadataTask = tasks.findByName('generateMetadataFileForPluginMavenPublication')
+    def plainJavadocJarTask = tasks.findByName('plainJavadocJar')
+    if (generateMetadataTask && plainJavadocJarTask) {
+        generateMetadataTask.dependsOn(plainJavadocJarTask)
+    }
+}
 
-            groupId = project.group
-            artifactId = 'stablemock'
-            version = project.version
+// Only sign and publish to Maven Central if credentials are available
+def hasMavenCentralCredentials = project.findProperty('mavenCentralUsername') || 
+                                  System.getenv('ORG_GRADLE_PROJECT_mavenCentralUsername')
 
-            pom {
-                name = 'StableMock'
-                description = 'A JUnit 5 extension that uses WireMock to record and replay HTTP requests and responses during tests, with support for ignoring dynamic data.'
-                url = 'https://github.com/sloppylopez/stablemock'
+mavenPublishing {
+    if (hasMavenCentralCredentials) {
+        publishToMavenCentral()
+        signAllPublications()
+    }
 
-                licenses {
-                    license {
-                        name = 'MIT License'
-                        url = 'https://opensource.org/licenses/MIT'
-                    }
-                }
 
-                developers {
-                    developer {
-                        id = 'sloppylopez'
-                        name = 'Sloppy Lopez'
-                        email = 'sloppy@sloppylopez.com'
-                    }
-                }
+    coordinates(project.group.toString(), 'stablemock', project.version.toString())
 
-                scm {
-                    connection = 'scm:git:git://github.com/sloppylopez/stablemock.git'
-                    developerConnection = 'scm:git:ssh://github.com:sloppylopez/stablemock.git'
-                    url = 'https://github.com/sloppylopez/stablemock'
-                }
+    pom {
+        name = 'StableMock'
+        description = 'A JUnit 5 extension that uses WireMock to record and replay HTTP requests and responses during tests, with support for ignoring dynamic data.'
+        inceptionYear = '2025'
+        url = 'https://github.com/sloppylopez/stablemock'
+        licenses {
+            license {
+                name = 'MIT License'
+                url = 'https://opensource.org/licenses/MIT'
+                distribution = 'repo'
             }
         }
-    }
-}
-
-// 🔐 REQUIRED: signing must be configured eagerly for Sonatype
-def isPublishingToMavenLocal = gradle.startParameter.taskNames.any {
-    it.toLowerCase().contains('mavenlocal')
-}
-
-signing {
-    required {
-        !isPublishingToMavenLocal
-    }
-
-    def signingKey = project.findProperty('signingKey') ?: System.getenv('SIGNING_KEY')
-    def signingPassword = project.findProperty('signingPassword') ?: System.getenv('SIGNING_PASSWORD')
-
-    if (signingKey && signingPassword) {
-        // Use in-memory keys (best on Windows / CI)
-        useInMemoryPgpKeys(signingKey, signingPassword)
-    } else {
-        // Fallback to local GPG install
-        useGpgCmd()
-    }
-
-    sign publishing.publications
-}
-
-// Disable signing tasks when publishing to Maven Local
-if (isPublishingToMavenLocal) {
-    tasks.withType(Sign).configureEach {
-        enabled = false
-    }
-}
-
-// 🚀 Nexus / Sonatype (this is what gives you closeAndRelease*)
-nexusPublishing {
-    repositories {
-        sonatype {
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(
-                uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-            )
-
-            username.set(
-                project.findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
-            )
-            password.set(
-                project.findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
-            )
+        developers {
+            developer {
+                id = 'sloppylopez'
+                name = 'Sloppy Lopez'
+                url = 'https://github.com/sloppylopez'
+            }
+        }
+        scm {
+            url = 'https://github.com/sloppylopez/stablemock'
+            connection = 'scm:git:git://github.com/sloppylopez/stablemock.git'
+            developerConnection = 'scm:git:ssh://git@github.com:sloppylopez/stablemock.git'
         }
     }
 }
