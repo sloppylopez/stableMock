@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.8'
     id 'io.spring.dependency-management' version '1.1.3'
-    id 'com.stablemock' version '1.0.0'
+    id 'com.stablemock' version '1.0-SNAPSHOT'
 }
 
 java {
@@ -41,7 +41,7 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     
     // Use local StableMock build (run './gradlew publishToMavenLocal' from parent)
-    testImplementation('com.stablemock:stablemock:1.0.0') {
+    testImplementation('com.stablemock:stablemock:1.0-SNAPSHOT') {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }
     

@@ -1,0 +1,1 @@
+{"args":{},"data":"<request><id>123</id><message>Hello</message></request>","files":{},"form":{},"headers":{"host":"postman-echo.com","content-length":"55","accept-encoding":"gzip, br","x-forwarded-proto":"https","content-type":"application/xml","accept":"*/*","user-agent":"Apache-HttpClient/5.3.1 (Java/17.0.17)"},"json":null,"url":"https://postman-echo.com/post"}
