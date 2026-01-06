@@ -101,6 +101,9 @@ tasks.withType(Jar).configureEach {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
+// Note: Signing configuration is read automatically from ~/.gradle/gradle.properties
+// The plugin reads: mavenCentralUsername, mavenCentralPassword, signingInMemoryKey, signingInMemoryKeyId, signingInMemoryKeyPassword
+
 // Fix task dependency issue between java-gradle-plugin and maven-publish plugin
 afterEvaluate {
     def generateMetadataTask = tasks.findByName('generateMetadataFileForPluginMavenPublication')
@@ -108,18 +111,26 @@ afterEvaluate {
     if (generateMetadataTask && plainJavadocJarTask) {
         generateMetadataTask.dependsOn(plainJavadocJarTask)
     }
+    
+    // Disable signing tasks when publishing to Maven Local
+    def isPublishingToMavenLocal = gradle.startParameter.taskNames.any { 
+        it.toLowerCase().contains('mavenlocal') || it.toLowerCase().contains('publishtomavenlocal')
+    }
+    
+    if (isPublishingToMavenLocal) {
+        tasks.matching { it.name.contains('sign') && it.name.contains('Publication') }.configureEach {
+            enabled = false
+        }
+    }
 }
 
-// Only sign and publish to Maven Central if credentials are available
-def hasMavenCentralCredentials = project.findProperty('mavenCentralUsername') || 
-                                  System.getenv('ORG_GRADLE_PROJECT_mavenCentralUsername')
-
+// Configure Maven Central publishing via Central Portal
+// Plugin automatically reads from ~/.gradle/gradle.properties:
+// - mavenCentralUsername, mavenCentralPassword
+// - signingInMemoryKey, signingInMemoryKeyId, signingInMemoryKeyPassword (for in-memory GPG keys)
 mavenPublishing {
-    if (hasMavenCentralCredentials) {
-        publishToMavenCentral()
-        signAllPublications()
-    }
-
+    publishToMavenCentral()
+    signAllPublications()
 
     coordinates(project.group.toString(), 'stablemock', project.version.toString())
 
