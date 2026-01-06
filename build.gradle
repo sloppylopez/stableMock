@@ -101,8 +101,10 @@ tasks.withType(Jar).configureEach {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-// Note: Signing configuration is read automatically from ~/.gradle/gradle.properties
-// The plugin reads: mavenCentralUsername, mavenCentralPassword, signingInMemoryKey, signingInMemoryKeyId, signingInMemoryKeyPassword
+// Signing configuration is read automatically from ~/.gradle/gradle.properties
+// Required properties: signing.keyId, signing.password, signing.secretKeyRingFile
+// The signing plugin automatically reads these properties and configures file-based signing
+// No explicit configuration needed - the plugin handles it automatically
 
 // Fix task dependency issue between java-gradle-plugin and maven-publish plugin
 afterEvaluate {
@@ -127,7 +129,7 @@ afterEvaluate {
 // Configure Maven Central publishing via Central Portal
 // Plugin automatically reads from ~/.gradle/gradle.properties:
 // - mavenCentralUsername, mavenCentralPassword
-// - signingInMemoryKey, signingInMemoryKeyId, signingInMemoryKeyPassword (for in-memory GPG keys)
+// - signing.keyId, signing.password, signing.secretKeyRingFile (for GPG signing)
 mavenPublishing {
     publishToMavenCentral()
     signAllPublications()
