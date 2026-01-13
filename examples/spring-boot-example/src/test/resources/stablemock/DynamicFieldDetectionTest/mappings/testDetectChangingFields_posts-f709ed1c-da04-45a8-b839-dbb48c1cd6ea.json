@@ -1,0 +1,44 @@
+{
+  "id" : "f709ed1c-da04-45a8-b839-dbb48c1cd6ea",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2026-01-13T19:04:53.604035819Z\",\"requestId\":\"fee42afb-019d-443c-a109-3976d568e6de\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9bd729756f26707d-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1768331129",
+      "x-ratelimit-remaining" : "996",
+      "pragma" : "no-cache",
+      "Date" : "Tue, 13 Jan 2026 19:04:53 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=ibzzYWTGiKbsiyJ36QcafqjyfLJmr98kOaitQ1fwpHc%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1768331093\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=ibzzYWTGiKbsiyJ36QcafqjyfLJmr98kOaitQ1fwpHc%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1768331093\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "f709ed1c-da04-45a8-b839-dbb48c1cd6ea",
+  "persistent" : true,
+  "insertionIndex" : 0
+}
