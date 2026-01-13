@@ -11,6 +11,8 @@ SNAPSHOT versions are published to the Central Portal snapshot repository, **not
 **SNAPSHOT versions:**
 - ✅ Published immediately to Central Portal snapshot repository
 - ✅ Available right after `./gradlew publishToMavenCentral` completes
+- ✅ Accessible via direct URL or Central Portal Deployments page
+- ❌ **Do NOT appear in Central Portal search box** (searches only Maven Central releases)
 - ❌ **Do NOT appear in Maven Central search** (search.maven.org)
 - ❌ Cannot be consumed from `mavenCentral()` repository without adding snapshot repository
 
@@ -84,16 +86,18 @@ When you're ready to publish a release version (non-SNAPSHOT):
 
 - **Group ID**: `com.stablemock`
 - **Artifact ID**: `stablemock`
-- **Current Version**: `1.0-SNAPSHOT`
+- **Current Version**: `1.1-SNAPSHOT`
 
 ## Troubleshooting
 
-### Can't find SNAPSHOT in Maven Central search?
+### Can't find SNAPSHOT using Central Portal search box?
 
-This is **normal**. SNAPSHOTs don't appear in Maven Central search. Check:
-- Central Portal Deployments page
-- Direct snapshot repository URL
-- Make sure you added the snapshot repository to your consuming project
+This is **normal and expected**. The Central Portal search box only searches Maven Central (release versions), not the snapshot repository. SNAPSHOTs are intentionally not indexed for search because they're development versions.
+
+To find your SNAPSHOT:
+- ✅ Use the **Central Portal Deployments page**: https://central.sonatype.com/deployments
+- ✅ Use the **direct snapshot repository URL**: https://central.sonatype.com/repository/maven-snapshots/com/stablemock/stablemock/1.1-SNAPSHOT/
+- ✅ Make sure you added the snapshot repository to your consuming project's `build.gradle`
 
 ### Build says "BUILD SUCCESSFUL" but can't find artifacts?
 
