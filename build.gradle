@@ -2,6 +2,7 @@ plugins {
     id 'java-library'
     id 'java-gradle-plugin'
     id 'jacoco'  // Code coverage
+    id 'signing'  // Required for GPG signing
     id 'com.vanniktech.maven.publish' version '0.34.0'
 }
 
@@ -101,10 +102,39 @@ tasks.withType(Jar).configureEach {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-// Signing configuration is read automatically from ~/.gradle/gradle.properties
-// Required properties: signing.keyId, signing.password, signing.secretKeyRingFile
-// The signing plugin automatically reads these properties and configures file-based signing
-// No explicit configuration needed - the plugin handles it automatically
+// Signing configuration
+// Supports both file-based (from gradle.properties) and in-memory (from environment variables)
+signing {
+    // Check if in-memory signing is available (from environment variables in CI/CD)
+    def inMemoryKey = project.findProperty('signingInMemoryKey')
+    def inMemoryKeyId = project.findProperty('signingInMemoryKeyId')
+    def inMemoryKeyPassword = project.findProperty('signingInMemoryKeyPassword')
+    
+    if (inMemoryKey && inMemoryKeyId) {
+        // Use in-memory signing (for CI/CD)
+        // Decode base64 if needed (GitHub Secrets are base64-encoded)
+        def decodedKey = inMemoryKey
+        try {
+            // Try to decode base64 (if it's base64-encoded)
+            if (!inMemoryKey.contains('-----BEGIN PGP')) {
+                decodedKey = new String(java.util.Base64.decoder.decode(inMemoryKey))
+            }
+        } catch (Exception e) {
+            // If decoding fails, use as-is (might already be decoded)
+            decodedKey = inMemoryKey
+        }
+        useInMemoryPgpKeys(inMemoryKeyId, decodedKey, inMemoryKeyPassword)
+    }
+    // If in-memory keys are not provided, the signing plugin automatically uses
+    // file-based signing from ~/.gradle/gradle.properties:
+    // - signing.keyId (e.g., B7CD1441480535FA)
+    // - signing.password (GPG passphrase)
+    // - signing.secretKeyRingFile (e.g., C:/Users/sergi/.gnupg/secring.gpg)
+    // No explicit configuration needed - plugin auto-configures from properties
+    
+    // Disable signing for Maven Local publishing
+    required { !gradle.taskGraph.hasTask("publishToMavenLocal") }
+}
 
 // Fix task dependency issue between java-gradle-plugin and maven-publish plugin
 afterEvaluate {
