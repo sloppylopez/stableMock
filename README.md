@@ -3,7 +3,7 @@
 <div align="center">
 
 [![CI](https://github.com/sloppylopez/stablemock/actions/workflows/ci.yml/badge.svg)](https://github.com/sloppylopez/stablemock/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-1.1--SNAPSHOT-blue.svg)](https://github.com/sloppylopez/stablemock)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/sloppylopez/stablemock)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://github.com/sloppylopez/stablemock)
 
@@ -25,48 +25,35 @@ Built for JUnit 5. Works offline. Free & open source.
 
 ### 1. Add Dependency
 
-StableMock is available from Maven Central (snapshot repository). You can download the JAR directly or add it as a dependency.
+StableMock is available from Maven Central. You can download the JAR directly or add it as a dependency.
 
 **Gradle:**
 ```gradle
 repositories {
-    // Add Central Portal snapshot repository for SNAPSHOT versions
-    maven {
-        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
-    }
     mavenCentral()
 }
 
 dependencies {
-    testImplementation 'com.stablemock:stablemock:1.1-SNAPSHOT'
+    testImplementation 'com.stablemock:stablemock:1.1.0'
 }
 ```
 
 **Maven:**
 ```xml
-<repositories>
-    <repository>
-        <id>central-portal-snapshots</id>
-        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-        <snapshots>
-            <enabled>true</enabled>
-        </snapshots>
-    </repository>
-</repositories>
-
 <dependencies>
     <dependency>
         <groupId>com.stablemock</groupId>
         <artifactId>stablemock</artifactId>
-        <version>1.1-SNAPSHOT</version>
+        <version>1.1.0</version>
         <scope>test</scope>
     </dependency>
 </dependencies>
 ```
 
 **Direct Download:**
-You can also download the JAR directly from the Central Portal snapshot repository:
-- https://central.sonatype.com/repository/maven-snapshots/com/stablemock/stablemock/1.1-SNAPSHOT/
+You can also download the JAR directly from Maven Central:
+- https://repo1.maven.org/maven2/com/stablemock/stablemock/1.1.0/
+- https://search.maven.org/artifact/com.stablemock/stablemock/1.1.0/jar
 
 ### 2. Record Mode (First Time)
 

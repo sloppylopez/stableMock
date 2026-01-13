@@ -1,0 +1,130 @@
+# Release Publishing Workflow
+# Publishes release versions to Maven Central
+# Triggered by pushing a git tag matching v*.*.* (e.g., v1.1.0)
+
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Matches v1.0.0, v1.1.0, v2.0.0, etc.
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating GitHub Release
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for version extraction
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Remove 'v' prefix from tag (e.g., v1.1.0 -> 1.1.0)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          
+          # Validate version format (must be x.y.z)
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Invalid version format. Expected x.y.z (e.g., 1.1.0), got: $VERSION"
+            exit 1
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "✓ Extracted version from tag: $VERSION"
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+      
+      - name: Update version in build.gradle
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Updating build.gradle version to: $VERSION"
+          
+          # Update version in build.gradle
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            sed -i '' "s/version = ['\"].*['\"]/version = '$VERSION'/" build.gradle
+          else
+            # Linux
+            sed -i "s/version = ['\"].*['\"]/version = '$VERSION'/" build.gradle
+          fi
+          
+          # Verify the change
+          echo "Updated build.gradle:"
+          grep "version = " build.gradle
+          echo "✓ Version updated successfully"
+      
+      - name: Configure GPG for signing
+        env:
+          GPG_KEY: ${{ secrets.SIGNING_SECRET_KEY }}
+          GPG_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+          GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$GPG_KEY" ] || [ -z "$GPG_KEY_ID" ] || [ -z "$GPG_PASSPHRASE" ]; then
+            echo "Error: GPG signing secrets are not configured"
+            echo "Please add SIGNING_SECRET_KEY, SIGNING_KEY_ID, and SIGNING_PASSWORD to GitHub Secrets"
+            exit 1
+          fi
+          
+          # Import GPG key
+          echo "$GPG_KEY" | base64 -d > /tmp/secret-key.gpg 2>/dev/null || echo "$GPG_KEY" > /tmp/secret-key.gpg
+          gpg --batch --import /tmp/secret-key.gpg || true
+          gpg --list-secret-keys --keyid-format LONG
+          echo "✓ GPG key configured"
+      
+      - name: Run tests
+        run: |
+          echo "Running tests before publishing release..."
+          ./gradlew test --no-daemon
+          echo "✓ All tests passed"
+      
+      - name: Publish to Maven Central (Release)
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_SECRET_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Publishing release version $VERSION to Maven Central..."
+          ./gradlew publishToMavenCentral --no-daemon
+          echo "✓ Published to staging successfully"
+          echo ""
+          echo "⚠️  IMPORTANT: Manual step required"
+          echo "1. Go to: https://central.sonatype.com/deployments"
+          echo "2. Find the deployment for version $VERSION"
+          echo "3. Click 'Publish' to release to Maven Central"
+          echo "4. Wait 10-30 minutes for sync to complete"
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## StableMock ${{ steps.version.outputs.version }}
+            
+            Published to Maven Central staging. 
+            
+            **Next steps:**
+            1. Go to [Central Portal Deployments](https://central.sonatype.com/deployments)
+            2. Find the deployment for version ${{ steps.version.outputs.version }}
+            3. Click "Publish" to release to Maven Central
+            4. Wait 10-30 minutes for sync to complete
+            
+            **Maven Central links (after publishing):**
+            - https://repo1.maven.org/maven2/com/stablemock/stablemock/${{ steps.version.outputs.version }}/
+            - https://search.maven.org/artifact/com.stablemock/stablemock/${{ steps.version.outputs.version }}/jar
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
