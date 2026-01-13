@@ -13,6 +13,10 @@ java {
 
 repositories {
     mavenLocal()  // For local StableMock builds
+    // Central Portal snapshot repository for SNAPSHOT dependencies
+    maven {
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+    }
     mavenCentral()
 }
 
