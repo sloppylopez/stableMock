@@ -47,11 +47,13 @@ Copy the base64 output and paste it as `SIGNING_SECRET_KEY` in GitHub Secrets.
    - Publishes to Maven Central snapshot repository
    - No manual steps required
 
-### Current SNAPSHOT Version
+### Current Version
 
 Check `build.gradle`:
 ```groovy
-version = '1.1-SNAPSHOT'
+version = '1.1.0'  // Release version
+// or
+version = '1.2-SNAPSHOT'  // Next SNAPSHOT version
 ```
 
 ### Workflow
@@ -69,7 +71,7 @@ git push origin main
 ### Verify SNAPSHOT Publication
 
 - **Central Portal Deployments**: https://central.sonatype.com/deployments
-- **Direct URL**: https://central.sonatype.com/repository/maven-snapshots/com/stablemock/stablemock/1.1-SNAPSHOT/
+- **Direct URL**: https://central.sonatype.com/repository/maven-snapshots/com/stablemock/stablemock/VERSION-SNAPSHOT/
 
 ## Publishing Release Versions
 
@@ -91,10 +93,10 @@ git push origin main
 
 ```groovy
 // Change from:
-version = '1.1-SNAPSHOT'
+version = '1.2-SNAPSHOT'  // Current development version
 
 // To:
-version = '1.1.0'  // or 1.2.0, 2.0.0, etc.
+version = '1.2.0'  // Release version (or 1.3.0, 2.0.0, etc.)
 ```
 
 #### 2. Commit and Push

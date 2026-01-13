@@ -95,7 +95,7 @@ dependencies {
 
 - **Group ID**: `com.stablemock`
 - **Artifact ID**: `stablemock`
-- **Current Version**: `1.1-SNAPSHOT`
+- **Current Version**: `1.1.0` (release version)
 
 ## Troubleshooting
 
@@ -105,7 +105,7 @@ This is **normal and expected**. The Central Portal search box only searches Mav
 
 To find your SNAPSHOT:
 - ✅ Use the **Central Portal Deployments page**: https://central.sonatype.com/deployments
-- ✅ Use the **direct snapshot repository URL**: https://central.sonatype.com/repository/maven-snapshots/com/stablemock/stablemock/1.1-SNAPSHOT/
+- ✅ Use the **direct snapshot repository URL**: https://central.sonatype.com/repository/maven-snapshots/com/stablemock/stablemock/VERSION-SNAPSHOT/
 - ✅ Make sure you added the snapshot repository to your consuming project's `build.gradle`
 
 ### Build says "BUILD SUCCESSFUL" but can't find artifacts?

@@ -371,7 +371,7 @@ After publishing:
 1. **Git tag already created** by release workflow
 2. **GitHub Release already created** by release workflow
 3. **Update README.md** - Change dependency from `1.0-SNAPSHOT` to `1.0.0`
-4. **Update version** back to `1.1-SNAPSHOT` (or next version) for next development cycle
+4. **Update version** back to `1.2-SNAPSHOT` (or next version) for next development cycle
 5. **Commit and push** the version update
 
 ### If Using Local Publishing:
@@ -379,5 +379,5 @@ After publishing:
 1. **Update README.md** - Change dependency from `1.0-SNAPSHOT` to `1.0.0`
 2. **Create git tag**: `git tag v1.0.0 && git push origin v1.0.0`
 3. **Create GitHub release** with changelog
-4. **Update version** back to `1.1-SNAPSHOT` for next development cycle
+4. **Update version** back to `1.2-SNAPSHOT` for next development cycle
 
