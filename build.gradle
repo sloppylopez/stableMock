@@ -1,14 +1,12 @@
 plugins {
     id 'java-library'
     id 'java-gradle-plugin'
-    id 'maven-publish'
-    id 'signing'
     id 'jacoco'  // Code coverage
-    id 'io.github.gradle-nexus.publish-plugin' version '2.0.0'
+    id 'com.vanniktech.maven.publish' version '0.34.0'
 }
 
 group = 'com.stablemock'
-version = '1.0.0'
+version = '1.0-SNAPSHOT'
 
 sourceCompatibility = '17'
 targetCompatibility = '17'
@@ -17,8 +15,7 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
-    withJavadocJar()  // Generate javadoc JAR
-    withSourcesJar()   // Generate sources JAR
+    // Note: com.vanniktech.maven.publish plugin automatically creates javadoc and sources jars
 }
 
 repositories {
@@ -104,91 +101,64 @@ tasks.withType(Jar).configureEach {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from components.java
+// Signing configuration is read automatically from ~/.gradle/gradle.properties
+// Required properties: signing.keyId, signing.password, signing.secretKeyRingFile
+// The signing plugin automatically reads these properties and configures file-based signing
+// No explicit configuration needed - the plugin handles it automatically
 
-            groupId = project.group
-            artifactId = 'stablemock'
-            version = project.version
-
-            pom {
-                name = 'StableMock'
-                description = 'A JUnit 5 extension that uses WireMock to record and replay HTTP requests and responses during tests, with support for ignoring dynamic data.'
-                url = 'https://github.com/sloppylopez/stablemock'
-
-                licenses {
-                    license {
-                        name = 'MIT License'
-                        url = 'https://opensource.org/licenses/MIT'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id = 'sloppylopez'
-                        name = 'Sloppy Lopez'
-                        email = 'sloppy@sloppylopez.com'
-                    }
-                }
-
-                scm {
-                    connection = 'scm:git:git://github.com/sloppylopez/stablemock.git'
-                    developerConnection = 'scm:git:ssh://github.com:sloppylopez/stablemock.git'
-                    url = 'https://github.com/sloppylopez/stablemock'
-                }
-            }
+// Fix task dependency issue between java-gradle-plugin and maven-publish plugin
+afterEvaluate {
+    def generateMetadataTask = tasks.findByName('generateMetadataFileForPluginMavenPublication')
+    def plainJavadocJarTask = tasks.findByName('plainJavadocJar')
+    if (generateMetadataTask && plainJavadocJarTask) {
+        generateMetadataTask.dependsOn(plainJavadocJarTask)
+    }
+    
+    // Disable signing tasks when publishing to Maven Local
+    def isPublishingToMavenLocal = gradle.startParameter.taskNames.any { 
+        it.toLowerCase().contains('mavenlocal') || it.toLowerCase().contains('publishtomavenlocal')
+    }
+    
+    if (isPublishingToMavenLocal) {
+        tasks.matching { it.name.contains('sign') && it.name.contains('Publication') }.configureEach {
+            enabled = false
         }
     }
 }
 
-// 🔐 REQUIRED: signing must be configured eagerly for Sonatype
-def isPublishingToMavenLocal = gradle.startParameter.taskNames.any {
-    it.toLowerCase().contains('mavenlocal')
-}
+// Configure Maven Central publishing via Central Portal
+// Plugin automatically reads from ~/.gradle/gradle.properties:
+// - mavenCentralUsername, mavenCentralPassword
+// - signing.keyId, signing.password, signing.secretKeyRingFile (for GPG signing)
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
 
-signing {
-    required {
-        !isPublishingToMavenLocal
-    }
+    coordinates(project.group.toString(), 'stablemock', project.version.toString())
 
-    def signingKey = project.findProperty('signingKey') ?: System.getenv('SIGNING_KEY')
-    def signingPassword = project.findProperty('signingPassword') ?: System.getenv('SIGNING_PASSWORD')
-
-    if (signingKey && signingPassword) {
-        // Use in-memory keys (best on Windows / CI)
-        useInMemoryPgpKeys(signingKey, signingPassword)
-    } else {
-        // Fallback to local GPG install
-        useGpgCmd()
-    }
-
-    sign publishing.publications
-}
-
-// Disable signing tasks when publishing to Maven Local
-if (isPublishingToMavenLocal) {
-    tasks.withType(Sign).configureEach {
-        enabled = false
-    }
-}
-
-// 🚀 Nexus / Sonatype (this is what gives you closeAndRelease*)
-nexusPublishing {
-    repositories {
-        sonatype {
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(
-                uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-            )
-
-            username.set(
-                project.findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
-            )
-            password.set(
-                project.findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
-            )
+    pom {
+        name = 'StableMock'
+        description = 'A JUnit 5 extension that uses WireMock to record and replay HTTP requests and responses during tests, with support for ignoring dynamic data.'
+        inceptionYear = '2025'
+        url = 'https://github.com/sloppylopez/stablemock'
+        licenses {
+            license {
+                name = 'MIT License'
+                url = 'https://opensource.org/licenses/MIT'
+                distribution = 'repo'
+            }
+        }
+        developers {
+            developer {
+                id = 'sloppylopez'
+                name = 'Sloppy Lopez'
+                url = 'https://github.com/sloppylopez'
+            }
+        }
+        scm {
+            url = 'https://github.com/sloppylopez/stablemock'
+            connection = 'scm:git:git://github.com/sloppylopez/stablemock.git'
+            developerConnection = 'scm:git:ssh://git@github.com:sloppylopez/stablemock.git'
         }
     }
 }
