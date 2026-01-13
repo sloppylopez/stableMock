@@ -3,7 +3,7 @@
 ## Overview
 
 StableMock uses automated GitHub Actions workflows to publish to Maven Central:
-- **SNAPSHOT versions**: Published automatically on push to `main`/`develop`
+- **SNAPSHOT versions**: Published automatically on push to `main` branch
 - **Release versions**: Published when you push a git tag (e.g., `v1.1.0`)
 
 ## Prerequisites
@@ -41,7 +41,7 @@ Copy the base64 output and paste it as `SIGNING_SECRET_KEY` in GitHub Secrets.
 
 ### How It Works
 
-1. Push to `main` or `develop` branch
+1. Push to `main` branch
 2. Workflow automatically:
    - Validates version ends with `-SNAPSHOT`
    - Publishes to Maven Central snapshot repository
@@ -53,7 +53,9 @@ Check `build.gradle`:
 ```groovy
 version = '1.1.0'  // Release version
 // or
-version = '1.2-SNAPSHOT'  // Next SNAPSHOT version
+version = '1.1.1-SNAPSHOT'  // Next SNAPSHOT version (patch)
+// or
+version = '1.2-SNAPSHOT'  // Next SNAPSHOT version (minor)
 ```
 
 ### Workflow
@@ -93,10 +95,10 @@ git push origin main
 
 ```groovy
 // Change from:
-version = '1.2-SNAPSHOT'  // Current development version
+version = '1.1.1-SNAPSHOT'  // Current development version (or 1.2-SNAPSHOT, etc.)
 
 // To:
-version = '1.2.0'  // Release version (or 1.3.0, 2.0.0, etc.)
+version = '1.1.1'  // Release version (or 1.2.0, 2.0.0, etc.)
 ```
 
 #### 2. Commit and Push
@@ -128,22 +130,22 @@ After the workflow completes:
 
 #### 5. Update to Next SNAPSHOT Version
 
-After successful release, update `build.gradle` for next development:
+After successful release, update `build.gradle` for next development (choose based on release type):
 
 ```groovy
 // For patch release (1.1.0 -> 1.1.1-SNAPSHOT):
-version = '1.2-SNAPSHOT'
+version = '1.1.1-SNAPSHOT'
 
-// For minor release (1.1.0 -> 1.2.0-SNAPSHOT):
-version = '1.2-SNAPSHOT'
+// For minor release (1.1.0 -> 1.2-SNAPSHOT):
+// version = '1.2-SNAPSHOT'
 
-// For major release (1.1.0 -> 2.0.0-SNAPSHOT):
-version = '2.0-SNAPSHOT'
+// For major release (1.1.0 -> 2.0-SNAPSHOT):
+// version = '2.0-SNAPSHOT'
 ```
 
 ```bash
 git add build.gradle
-git commit -m "Bump version to 1.2-SNAPSHOT"
+git commit -m "Bump version to 1.1.1-SNAPSHOT"  # or 1.2-SNAPSHOT, 2.0-SNAPSHOT
 git push origin main
 ```
 
@@ -202,7 +204,7 @@ After publishing from Central Portal (step 4):
 
 ### Publish SNAPSHOT
 ```bash
-# Just push to main/develop
+# Just push to main branch
 git push origin main
 ```
 

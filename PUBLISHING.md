@@ -34,7 +34,7 @@ StableMock supports **two publishing methods**:
    - Choose verification method:
      - **GitHub** (if namespace matches GitHub username/org): Automatic verification
      - **DNS TXT Record** (for custom domains): Add TXT record to your domain
-     - **SonaType Central Portal** (for existing accounts): Link existing account
+     - **Sonatype Central Portal** (for existing accounts): Link existing account
    
 3. **Verify Namespace Ownership**
    
@@ -231,13 +231,20 @@ Release versions are published automatically via GitHub Actions when you push a 
    - Click **"Publish"** button
    - Wait 10-30 minutes for sync to Maven Central
 
-6. **Update to next SNAPSHOT version**:
+6. **Update to next SNAPSHOT version** (choose based on release type):
    ```groovy
-   version = '1.2-SNAPSHOT'  // Next development version
+   // For patch release (bug fixes): 1.1.0 -> 1.1.1-SNAPSHOT
+   version = '1.1.1-SNAPSHOT'
+   
+   // For minor release (new features): 1.1.0 -> 1.2-SNAPSHOT
+   // version = '1.2-SNAPSHOT'
+   
+   // For major release (breaking changes): 1.1.0 -> 2.0-SNAPSHOT
+   // version = '2.0-SNAPSHOT'
    ```
    ```bash
    git add build.gradle
-   git commit -m "Bump version to 1.2-SNAPSHOT"
+   git commit -m "Bump version to 1.1.1-SNAPSHOT"  # or 1.2-SNAPSHOT, 2.0-SNAPSHOT
    git push origin main
    ```
 
@@ -371,7 +378,10 @@ After publishing:
 1. **Git tag already created** by release workflow
 2. **GitHub Release already created** by release workflow
 3. **Update README.md** - Change dependency from `1.0-SNAPSHOT` to `1.0.0`
-4. **Update version** back to `1.2-SNAPSHOT` (or next version) for next development cycle
+4. **Update version** back to next SNAPSHOT version for next development cycle:
+   - Patch: `1.1.1-SNAPSHOT` (for bug fixes)
+   - Minor: `1.2-SNAPSHOT` (for new features)
+   - Major: `2.0-SNAPSHOT` (for breaking changes)
 5. **Commit and push** the version update
 
 ### If Using Local Publishing:
@@ -379,5 +389,8 @@ After publishing:
 1. **Update README.md** - Change dependency from `1.0-SNAPSHOT` to `1.0.0`
 2. **Create git tag**: `git tag v1.0.0 && git push origin v1.0.0`
 3. **Create GitHub release** with changelog
-4. **Update version** back to `1.2-SNAPSHOT` for next development cycle
+4. **Update version** back to next SNAPSHOT version for next development cycle:
+   - Patch: `1.1.1-SNAPSHOT` (for bug fixes)
+   - Minor: `1.2-SNAPSHOT` (for new features)
+   - Major: `2.0-SNAPSHOT` (for breaking changes)
 
