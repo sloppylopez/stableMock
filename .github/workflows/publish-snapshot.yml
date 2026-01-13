@@ -1,24 +1,24 @@
 # SNAPSHOT Publishing Workflow
 # Publishes SNAPSHOT versions to Maven Central snapshot repository
-# Triggered on push to main/develop branches
+# Triggered on push to main branch (only when build.gradle changes) or manually
 
 name: Publish SNAPSHOT
 
 on:
   push:
-    branches: [ main, develop ]
-    # Only publish if build.gradle was changed or this is a direct push
-    paths-ignore:
-      - '**.md'
-      - '.github/**'
-      - 'docs/**'
-      - 'examples/**'
+    branches: [ main ]
+    # Only publish if build.gradle or source code changed
+    paths:
+      - 'build.gradle'
+      - 'src/**'
+      - 'gradle/**'
+  workflow_dispatch:  # Manual trigger option
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Only run if not a PR and not a tag
-    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')
+    # Only run if not a tag (tags trigger release workflow)
+    if: !startsWith(github.ref, 'refs/tags/')
     
     steps:
       - name: Checkout code

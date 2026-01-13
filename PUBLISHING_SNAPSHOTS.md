@@ -4,6 +4,38 @@
 
 SNAPSHOT versions are published to the Central Portal snapshot repository, **not** directly to Maven Central. They are available immediately after publishing and can be consumed by other projects.
 
+## Publishing Methods
+
+### Automated Publishing (Recommended)
+
+StableMock uses **GitHub Actions** to automatically publish SNAPSHOT versions:
+
+**Automatic Publishing:**
+- Triggers on push to `main` branch
+- Only publishes when `build.gradle`, `src/`, or `gradle/` files change
+- Prevents unnecessary republishing of the same SNAPSHOT version
+- Uses the same Gradle task (`publishToMavenCentral`) as local publishing
+
+**Manual Publishing:**
+- Go to GitHub Actions → "Publish SNAPSHOT" → "Run workflow"
+- Useful when you want to republish the same SNAPSHOT version without code changes
+
+**Workflow:**
+1. Work on feature branch → no publishing
+2. Merge to `main` with code changes → automatically publishes SNAPSHOT
+3. Push to `main` with only docs/markdown → no publishing (skipped)
+4. Need to republish same version? → use manual trigger
+
+### Local Publishing (Alternative)
+
+You can also publish manually from your local machine:
+
+```powershell
+./gradlew publishToMavenCentral
+```
+
+This uses the same Gradle task and configuration as the automated workflow.
+
 ## Important Notes
 
 ### SNAPSHOT vs Release Versions
@@ -58,29 +90,6 @@ dependencies {
 }
 ```
 
-## Publishing a Release Version
-
-When you're ready to publish a release version (non-SNAPSHOT):
-
-1. **Change the version** in `build.gradle`:
-   ```groovy
-   version = '1.0.0'  // Remove -SNAPSHOT
-   ```
-
-2. **Publish**:
-   ```powershell
-   ./gradlew publishToMavenCentral
-   ```
-
-3. **Go to Central Portal Deployments**: https://central.sonatype.com/deployments
-
-4. **Click "Publish"** on your deployment
-
-5. **Wait 10-30 minutes** for sync to Maven Central
-
-6. **Verify** it appears in Maven Central:
-   - https://repo1.maven.org/maven2/com/stablemock/stablemock/
-   - https://search.maven.org/artifact/com.stablemock/stablemock
 
 ## Current Project Configuration
 
@@ -107,8 +116,5 @@ To find your SNAPSHOT:
 
 ### Want to publish a release version?
 
-1. Change version from `1.0-SNAPSHOT` to `1.0.0` in `build.gradle`
-2. Run `./gradlew publishToMavenCentral`
-3. Go to Central Portal Deployments and click "Publish"
-4. Wait for sync to Maven Central (10-30 minutes)
+See [PUBLISHING.md](PUBLISHING.md) for complete instructions on publishing release versions (both automated and local methods).
 
