@@ -49,11 +49,22 @@ cd quarkus-example
 
 ### Gradle
 ```groovy
+repositories {
+    // Add Central Portal snapshot repository for SNAPSHOT versions
+    maven {
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+    }
+    mavenCentral()
+}
+
 dependencies {
-    testImplementation 'com.stablemock:stablemock:1.0-SNAPSHOT'
+    testImplementation 'com.stablemock:stablemock:1.1-SNAPSHOT'
 }
 ```
 
+**Direct Download:**
+You can also download the JAR directly from Maven Central:
+- https://central.sonatype.com/repository/maven-snapshots/com/stablemock/stablemock/1.1-SNAPSHOT/
 
 Or build from source using `./gradlew publishToMavenLocal` from the root directory.
 

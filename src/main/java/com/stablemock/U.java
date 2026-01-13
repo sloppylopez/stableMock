@@ -19,8 +19,13 @@ public @interface U {
 
     /**
      * Spring property names to map to these URLs (for automatic @DynamicPropertySource registration).
-     * Must match the order of URLs - first property maps to first URL, second property to second URL, etc.
-     * Example: urls = {"https://api1.com", "https://api2.com"}, properties = {"app.api1.url", "app.api2.url"}
+     * 
+     * Mapping rules:
+     * - If there is 1 URL and multiple properties, all properties map to that URL.
+     *   Example: urls = {"https://api.com"}, properties = {"app.api.url", "app.api.backup.url"}
+     * - If there are multiple URLs, properties map 1:1 (first property to first URL, etc.).
+     *   Extra properties beyond URLs map to the last URL.
+     *   Example: urls = {"https://api1.com", "https://api2.com"}, properties = {"app.api1.url", "app.api2.url", "app.api2.backup.url"}
      */
     String[] properties() default {};
 

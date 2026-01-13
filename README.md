@@ -3,7 +3,7 @@
 <div align="center">
 
 [![CI](https://github.com/sloppylopez/stablemock/actions/workflows/ci.yml/badge.svg)](https://github.com/sloppylopez/stablemock/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-1.0--SNAPSHOT-blue.svg)](https://github.com/sloppylopez/stablemock)
+[![Version](https://img.shields.io/badge/version-1.1--SNAPSHOT-blue.svg)](https://github.com/sloppylopez/stablemock)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://github.com/sloppylopez/stablemock)
 
@@ -25,26 +25,48 @@ Built for JUnit 5. Works offline. Free & open source.
 
 ### 1. Add Dependency
 
-**Note:** StableMock is currently in active development and testing. The jar has not been deployed to Maven Central yet. We are ensuring everything works correctly and fixing bugs before the initial release. For now, you'll need to build from source or use a local installation.
+StableMock is available from Maven Central (snapshot repository). You can download the JAR directly or add it as a dependency.
 
 **Gradle:**
 ```gradle
+repositories {
+    // Add Central Portal snapshot repository for SNAPSHOT versions
+    maven {
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+    }
+    mavenCentral()
+}
+
 dependencies {
-    testImplementation 'com.stablemock:stablemock:1.0-SNAPSHOT'
+    testImplementation 'com.stablemock:stablemock:1.1-SNAPSHOT'
 }
 ```
 
 **Maven:**
 ```xml
+<repositories>
+    <repository>
+        <id>central-portal-snapshots</id>
+        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        <snapshots>
+            <enabled>true</enabled>
+        </snapshots>
+    </repository>
+</repositories>
+
 <dependencies>
     <dependency>
         <groupId>com.stablemock</groupId>
         <artifactId>stablemock</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.1-SNAPSHOT</version>
         <scope>test</scope>
     </dependency>
 </dependencies>
 ```
+
+**Direct Download:**
+You can also download the JAR directly from the Central Portal snapshot repository:
+- https://central.sonatype.com/repository/maven-snapshots/com/stablemock/stablemock/1.1-SNAPSHOT/
 
 ### 2. Record Mode (First Time)
 

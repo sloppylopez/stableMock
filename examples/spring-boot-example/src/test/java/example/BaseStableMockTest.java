@@ -141,6 +141,13 @@ public abstract class BaseStableMockTest {
      * Spring requires them to be static methods in the test class itself (not inherited).
      * This helper method reduces the boilerplate by handling the annotation reading logic.
      * 
+     * Property mapping rules:
+     * - If there is 1 URL and multiple properties, all properties map to that URL.
+     *   Example: urls = {"https://api.com"}, properties = {"app.api.url", "app.api.backup.url"}
+     * - If there are multiple URLs, properties map 1:1 (first property to first URL, etc.).
+     *   Extra properties beyond URLs map to the last URL.
+     *   Example: urls = {"https://api1.com", "https://api2.com"}, properties = {"app.api1.url", "app.api2.url", "app.api2.backup.url"}
+     * 
      * Usage:
      * <pre>
      * {@code
@@ -172,7 +179,7 @@ public abstract class BaseStableMockTest {
             
             // Collect all URLs and properties from all @U annotations
             java.util.List<String> allUrls = new java.util.ArrayList<>();
-            java.util.List<String> allProperties = new java.util.ArrayList<>();
+            java.util.List<java.util.List<String>> urlProperties = new java.util.ArrayList<>();
             
             for (Annotation annotation : annotations) {
                 try {
@@ -182,15 +189,38 @@ public abstract class BaseStableMockTest {
                     String[] urls = (String[]) urlsMethod.invoke(annotation);
                     String[] properties = (String[]) propertiesMethod.invoke(annotation);
                     
-                    if (urls != null) {
-                        for (int i = 0; i < urls.length; i++) {
-                            allUrls.add(urls[i]);
-                            // If properties array is provided and has enough elements, use it
-                            // Otherwise, property name will be null and we'll skip registration
-                            if (properties != null && i < properties.length && properties[i] != null && !properties[i].isEmpty()) {
-                                allProperties.add(properties[i]);
-                            } else {
-                                allProperties.add(null); // Placeholder - will skip this one
+                    if (urls != null && urls.length > 0) {
+                        if (urls.length == 1 && properties != null && properties.length > 1) {
+                            // Special case: 1 URL with multiple properties - all properties map to same URL
+                            allUrls.add(urls[0]);
+                            java.util.List<String> propsForUrl = new java.util.ArrayList<>();
+                            for (String prop : properties) {
+                                if (prop != null && !prop.isEmpty()) {
+                                    propsForUrl.add(prop);
+                                }
+                            }
+                            urlProperties.add(propsForUrl);
+                        } else {
+                            // Standard case: 1:1 mapping (or multiple URLs with matching properties)
+                            for (int i = 0; i < urls.length; i++) {
+                                allUrls.add(urls[i]);
+                                java.util.List<String> propsForUrl = new java.util.ArrayList<>();
+                                
+                                // Map property at index i to URL at index i
+                                if (properties != null && i < properties.length && properties[i] != null && !properties[i].isEmpty()) {
+                                    propsForUrl.add(properties[i]);
+                                }
+                                
+                                // If there are extra properties beyond URLs, map them to the last URL
+                                if (i == urls.length - 1 && properties != null && properties.length > urls.length) {
+                                    for (int j = urls.length; j < properties.length; j++) {
+                                        if (properties[j] != null && !properties[j].isEmpty()) {
+                                            propsForUrl.add(properties[j]);
+                                        }
+                                    }
+                                }
+                                
+                                urlProperties.add(propsForUrl);
                             }
                         }
                     }
@@ -199,18 +229,20 @@ public abstract class BaseStableMockTest {
                 }
             }
             
-            // Register properties for each URL that has a property name
-            for (int i = 0; i < allUrls.size() && i < allProperties.size(); i++) {
-                String propertyName = allProperties.get(i);
+            // Register properties for each URL
+            for (int i = 0; i < allUrls.size() && i < urlProperties.size(); i++) {
                 String defaultUrl = allUrls.get(i);
+                java.util.List<String> propertiesForUrl = urlProperties.get(i);
                 
-                if (propertyName != null && !propertyName.isEmpty()) {
-                    if (allUrls.size() == 1) {
-                        // Single URL - use single URL method
-                        registerPropertyWithFallback(registry, propertyName, testClassName, defaultUrl);
-                    } else {
-                        // Multiple URLs - use indexed method
-                        registerPropertyWithFallbackByIndex(registry, propertyName, testClassName, i, defaultUrl);
+                for (String propertyName : propertiesForUrl) {
+                    if (propertyName != null && !propertyName.isEmpty()) {
+                        if (allUrls.size() == 1) {
+                            // Single URL - use single URL method
+                            registerPropertyWithFallback(registry, propertyName, testClassName, defaultUrl);
+                        } else {
+                            // Multiple URLs - use indexed method
+                            registerPropertyWithFallbackByIndex(registry, propertyName, testClassName, i, defaultUrl);
+                        }
                     }
                 }
             }
