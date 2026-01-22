@@ -1,5 +1,7 @@
 package example;
 
+import com.stablemock.spring.BaseStableMockTest;
+
 import com.stablemock.U;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,4 +88,5 @@ class RepeatableUAnnotationsTest extends BaseStableMockTest {
                 "Response should contain echo fields");
     }
 }
+
 

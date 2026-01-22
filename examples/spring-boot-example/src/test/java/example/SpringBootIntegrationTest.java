@@ -1,5 +1,7 @@
 package example;
 
+import com.stablemock.spring.BaseStableMockTest;
+
 import com.stablemock.U;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,3 +85,4 @@ class SpringBootIntegrationTest extends BaseStableMockTest {
         assertTrue(response.getBody().contains("\"id\": 3"), "Response should contain user id 3");
     }
 }
+

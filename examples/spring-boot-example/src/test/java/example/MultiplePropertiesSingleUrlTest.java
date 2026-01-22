@@ -1,5 +1,7 @@
 package example;
 
+import com.stablemock.spring.BaseStableMockTest;
+
 import com.stablemock.U;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,3 +90,4 @@ class MultiplePropertiesSingleUrlTest extends BaseStableMockTest {
         return null;
     }
 }
+

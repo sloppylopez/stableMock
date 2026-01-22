@@ -1,5 +1,7 @@
 package example;
 
+import com.stablemock.spring.BaseStableMockTest;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stablemock.U;
@@ -243,4 +245,5 @@ class QueryParametersDynamicFieldsTest extends BaseStableMockTest {
         return params;
     }
 }
+
 

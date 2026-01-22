@@ -1,5 +1,7 @@
 package example;
 
+import com.stablemock.spring.BaseStableMockTest;
+
 import com.stablemock.U;
 import org.junit.jupiter.api.Test;
 
@@ -64,4 +66,5 @@ class PureJUnitTest {
         assertTrue(baseUrl.startsWith("http://"), "Base URL should be HTTP URL");
     }
 }
+
 
