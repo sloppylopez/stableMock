@@ -15,18 +15,19 @@ import org.springframework.test.context.DynamicPropertySource;
 
 import java.io.File;
 import java.time.Instant;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Reproduction test for multi-level inheritance issue with ignore patterns.
+ * Test for multi-level inheritance with ignore patterns in StableMock.
  * 
- * Inheritance chain: ReproductionTest -> BaseTestFeature -> BaseOpenApiTestFeature -> BaseStableMockTest
+ * Inheritance chain: MultiLevelInheritanceTest -> BaseTestFeature -> BaseOpenApiTestFeature -> BaseStableMockTest
  * 
- * Problem: In PLAYBACK mode, ignore patterns from detected-fields.json are not applied,
- * causing WireMock to return 404 because dynamic XML fields (TransactionIdentifier, EchoToken, TimeStamp)
- * have different values than the hardcoded values in the mapping file.
+ * This test verifies that StableMock correctly applies ignore patterns during PLAYBACK mode
+ * when using multi-level inheritance. The issue was that ignore patterns from detected-fields.json
+ * were not being applied, causing WireMock to return 404 because dynamic XML fields 
+ * (TransactionIdentifier, EchoToken, TimeStamp) had different values than the hardcoded values 
+ * in the mapping file.
  * 
  * Expected behavior:
  * - RECORD mode: Works correctly - StableMock records requests and creates detected-fields.json
@@ -35,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @U(urls = { "https://postman-echo.com" },
    properties = { "app.postmanecho.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-public class ReproductionTest extends BaseTestFeature {
+public class MultiLevelInheritanceTest extends BaseTestFeature {
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -43,11 +44,11 @@ public class ReproductionTest extends BaseTestFeature {
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         // Use the method from BaseStableMockTest (now in library)
-        autoRegisterProperties(registry, ReproductionTest.class);
+        autoRegisterProperties(registry, MultiLevelInheritanceTest.class);
     }
 
     @Test
-    void testXmlWithDynamicFieldsInInheritance() throws Exception {
+    void testXmlWithDynamicFieldsInMultiLevelInheritance() throws Exception {
         // Generate XML with dynamic fields similar to GetAvailabilityV2Test
         // These fields change each run: TransactionIdentifier, EchoToken, TimeStamp
         String xml1 = generateXmlWithDynamicFields();
@@ -73,7 +74,7 @@ public class ReproductionTest extends BaseTestFeature {
         String mode = System.getProperty("stablemock.mode", "PLAYBACK");
         if (!"RECORD".equalsIgnoreCase(mode)) {
             File analysisFile = new File(
-                    "src/test/resources/stablemock/ReproductionTest/testXmlWithDynamicFieldsInInheritance/detected-fields.json");
+                    "src/test/resources/stablemock/MultiLevelInheritanceTest/testXmlWithDynamicFieldsInMultiLevelInheritance/detected-fields.json");
             assertTrue(analysisFile.exists(),
                     "Analysis file should exist after recording: " + analysisFile.getAbsolutePath());
             
