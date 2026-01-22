@@ -31,16 +31,27 @@ public final class TestContextResolver {
             }
         });
         
-        // If no method-level annotations, check class-level
+        // If no method-level annotations, check class-level (including inheritance hierarchy)
         if (annotations.isEmpty()) {
             Class<?> testClass = context.getRequiredTestClass();
-            U.List classList = testClass.getAnnotation(U.List.class);
-            if (classList != null) {
-                java.util.Collections.addAll(annotations, classList.value());
-            } else {
-                U classAnnotation = testClass.getAnnotation(U.class);
-                if (classAnnotation != null) {
-                    annotations.add(classAnnotation);
+            // Traverse inheritance hierarchy to find @U annotations
+            // Note: @U is not @Inherited, so we need to manually traverse
+            Class<?> currentClass = testClass;
+            while (currentClass != null && annotations.isEmpty()) {
+                U.List classList = currentClass.getAnnotation(U.List.class);
+                if (classList != null) {
+                    java.util.Collections.addAll(annotations, classList.value());
+                } else {
+                    U classAnnotation = currentClass.getAnnotation(U.class);
+                    if (classAnnotation != null) {
+                        annotations.add(classAnnotation);
+                    }
+                }
+                // Check parent class
+                currentClass = currentClass.getSuperclass();
+                // Stop at Object or if we've gone too deep (safety check)
+                if (currentClass == null || currentClass == Object.class) {
+                    break;
                 }
             }
         }
