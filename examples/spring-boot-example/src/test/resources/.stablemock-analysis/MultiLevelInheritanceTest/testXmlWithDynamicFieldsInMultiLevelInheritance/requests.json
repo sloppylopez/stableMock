@@ -1,0 +1,25 @@
+[ {
+  "timestamp" : "2026-01-22T12:42:46.001021100Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Header><TransactionIdentifier>1769085765432</TransactionIdentifier><EchoToken>1769085765442</EchoToken></soap:Header><soap:Body><Request><TimeStamp>2026-01-22T12:42:45.442371300Z</TimeStamp><StayDateRange><Start>2026-01-22</Start><End>2026-01-24</End></StayDateRange></Request></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-01-22T12:42:46.002020700Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Header><TransactionIdentifier>1769085765229</TransactionIdentifier><EchoToken>1769085765239</EchoToken></soap:Header><soap:Body><Request><TimeStamp>2026-01-22T12:42:45.239793300Z</TimeStamp><StayDateRange><Start>2026-01-22</Start><End>2026-01-24</End></StayDateRange></Request></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-01-22T12:43:22.014817Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Header><TransactionIdentifier>1769085801488</TransactionIdentifier><EchoToken>1769085801498</EchoToken></soap:Header><soap:Body><Request><TimeStamp>2026-01-22T12:43:21.498891200Z</TimeStamp><StayDateRange><Start>2026-01-22</Start><End>2026-01-24</End></StayDateRange></Request></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-01-22T12:43:22.015849400Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Header><TransactionIdentifier>1769085801266</TransactionIdentifier><EchoToken>1769085801276</EchoToken></soap:Header><soap:Body><Request><TimeStamp>2026-01-22T12:43:21.276579700Z</TimeStamp><StayDateRange><Start>2026-01-22</Start><End>2026-01-24</End></StayDateRange></Request></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+} ]

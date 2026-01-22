@@ -1,0 +1,44 @@
+{
+  "id" : "8f7db43d-8b09-4fda-a3ee-14cf41e7a0e1",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\n  \"order\": {\n    \"id\": \"order-123\",\n    \"items\": [\n      {\n        \"productId\": \"prod-1\",\n        \"quantity\": 2,\n        \"metadata\": {\n          \"timestamp\": \"2026-01-22T12:43:18.840715Z\",\n          \"sessionId\": \"09d62f6c-bb62-4db6-847a-6119c7393f78\"\n        }\n      }\n    ],\n    \"payment\": {\n      \"transactionId\": \"2398bf8b-052e-4227-8e9d-b80d5690df3c\",\n      \"timestamp\": \"2026-01-22T12:43:18.840715Z\"\n    }\n  },\n  \"requestId\": \"55469eff-851d-4cb8-b59c-51d60742e4f1\"\n}\n",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9c1f22ddc9feb176-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1769085835",
+      "x-ratelimit-remaining" : "995",
+      "pragma" : "no-cache",
+      "Date" : "Thu, 22 Jan 2026 12:43:18 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=BTcatXy6l6JPlbNNItKkCZcm6DkL0bsogAZNboYCbHg%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1769085798\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=BTcatXy6l6JPlbNNItKkCZcm6DkL0bsogAZNboYCbHg%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1769085798\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "8f7db43d-8b09-4fda-a3ee-14cf41e7a0e1",
+  "persistent" : true,
+  "insertionIndex" : 0
+}
