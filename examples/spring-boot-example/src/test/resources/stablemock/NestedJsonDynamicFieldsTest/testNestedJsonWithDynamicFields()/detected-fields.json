@@ -1,0 +1,23 @@
+{
+  "testClass" : "NestedJsonDynamicFieldsTest",
+  "testMethod" : "testNestedJsonWithDynamicFields()",
+  "detectedAt" : "2026-01-22T17:53:38.901872200Z",
+  "analyzed_requests_count" : 2,
+  "dynamic_fields" : [ {
+    "field_path" : "json:order.items[0].metadata.timestamp",
+    "sample_values" : [ "2026-01-22T17:53:38.205248800Z", "2026-01-22T17:53:37.336246900Z" ]
+  }, {
+    "field_path" : "json:order.items[0].metadata.sessionId",
+    "sample_values" : [ "ee83edb5-86cc-4fcf-97c7-1fa8493e8731", "d985fcce-8d64-4c9d-ae55-65daa2f75781" ]
+  }, {
+    "field_path" : "json:order.payment.transactionId",
+    "sample_values" : [ "9395205d-e998-4434-9e1f-136d1e9a871b", "0c76ba61-11cb-475f-b11c-10f2d021df87" ]
+  }, {
+    "field_path" : "json:order.payment.timestamp",
+    "sample_values" : [ "2026-01-22T17:53:38.205248800Z", "2026-01-22T17:53:37.336246900Z" ]
+  }, {
+    "field_path" : "json:requestId",
+    "sample_values" : [ "64a273ae-137d-47b6-8c42-fa1622cea29d", "2114498c-9f88-4218-bb35-f829671bb6df" ]
+  } ],
+  "ignore_patterns" : [ "json:order.items[0].metadata.timestamp", "json:order.items[0].metadata.sessionId", "json:order.payment.transactionId", "json:order.payment.timestamp", "json:requestId" ]
+}

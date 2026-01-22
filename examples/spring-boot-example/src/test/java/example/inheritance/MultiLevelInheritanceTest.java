@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 
  * Inheritance chain: MultiLevelInheritanceTest -> BaseTestFeature -> BaseOpenApiTestFeature -> BaseStableMockTest
  * 
- * This test verifies that StableMock correctly applies ignore patterns during PLAYBACK mode
+ * This test verifies that StableMock correctly applies 'ignore patterns' during PLAYBACK mode
  * when using multi-level inheritance. The issue was that ignore patterns from detected-fields.json
  * were not being applied, causing WireMock to return 404 because dynamic XML fields 
  * (RequestId, SessionToken, Timestamp) had different values than the hardcoded values 
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 
  * Expected behavior:
  * - RECORD mode: Works correctly - StableMock records requests and creates detected-fields.json
- * - PLAYBACK mode: Should apply ignore patterns to allow requests with different dynamic field values to match
+ * - PLAYBACK mode: Should apply 'ignore patterns' to allow requests with different dynamic field values to match
  */
 @U(urls = { "https://postman-echo.com" },
    properties = { "app.postmanecho.url" })

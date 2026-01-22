@@ -1,0 +1,17 @@
+{
+  "testClass" : "XmlNamespacePrefixTest",
+  "testMethod" : "testXmlWithNamespacePrefixes()",
+  "detectedAt" : "2026-01-22T17:53:42.159550300Z",
+  "analyzed_requests_count" : 2,
+  "dynamic_fields" : [ {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='SessionToken']",
+    "sample_values" : [ "1769104421598", "1769104421288" ]
+  }, {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='RequestId']",
+    "sample_values" : [ "1769104421588", "1769104421278" ]
+  }, {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='Timestamp']",
+    "sample_values" : [ "2026-01-22T17:53:41.598557100Z", "2026-01-22T17:53:41.288362500Z" ]
+  } ],
+  "ignore_patterns" : [ "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='SessionToken']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='RequestId']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='Timestamp']" ]
+}

@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
@@ -255,9 +256,9 @@ public class StableMockExtension
             }
 
             String testClassName = TestContextResolver.getTestClassName(context);
-            String testMethodName = TestContextResolver.getTestMethodName(context);
+            String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
             File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-            File mappingsDir = new File(testResourcesDir, "stablemock/" + testClassName + "/" + testMethodName);
+            File mappingsDir = new File(testResourcesDir, "stablemock/" + testClassName + "/" + testMethodIdentifier);
 
             // Capture timestamp before test method runs to ensure we only save events from this test
             long testMethodStartTime = System.currentTimeMillis();
@@ -331,9 +332,9 @@ public class StableMockExtension
 
         String mode = StableMockConfig.getMode();
         String testClassName = TestContextResolver.getTestClassName(context);
-        String testMethodName = TestContextResolver.getTestMethodName(context);
+        String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
         File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-        File mappingsDir = new File(testResourcesDir, "stablemock/" + testClassName + "/" + testMethodName);
+        File mappingsDir = new File(testResourcesDir, "stablemock/" + testClassName + "/" + testMethodIdentifier);
 
         if (annotations.length > 1 && StableMockConfig.isRecordMode()) {
             List<WireMockServerManager.AnnotationInfo> annotationInfos = new ArrayList<>();
@@ -410,7 +411,7 @@ public class StableMockExtension
                 }
                 // After merge, mappings are in class-level directory, so use that for playback
                 wireMockServer = WireMockServerManager.startPlayback(port, classMappingsDir, 
-                        testResourcesDir, testClassName, testMethodName, annotationIgnorePatterns);
+                        testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns);
             }
 
             methodStore.putServer(wireMockServer);
@@ -722,13 +723,13 @@ public class StableMockExtension
             String testClassName,
             List<WireMockServerManager.AnnotationInfo> annotationInfos) {
 
-        // Get test method name from context
-        String testMethodName = TestContextResolver.getTestMethodName(context);
+        // Get test method identifier from context (includes invocation index for parameterized tests)
+        String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
 
         // Delegate to orchestrator - all logic moved there for better separation of
         // concerns. The orchestrator gets serve events directly from the server.
         DynamicFieldAnalysisOrchestrator.analyzeAndPersist(
-                server, existingRequestCount, existingRequestCounts, testResourcesDir, testClassName, testMethodName, annotationInfos, null);
+                server, existingRequestCount, existingRequestCounts, testResourcesDir, testClassName, testMethodIdentifier, annotationInfos, null);
     }
     
     /**
@@ -743,17 +744,33 @@ public class StableMockExtension
             List<WireMockServerManager.AnnotationInfo> annotationInfos,
             List<WireMockServer> allServers) {
 
-        // Get test method name from context
-        String testMethodName = TestContextResolver.getTestMethodName(context);
+        // Get test method identifier from context (includes invocation index for parameterized tests)
+        String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
 
         // Delegate to orchestrator with all servers. The orchestrator gets serve events directly from the servers.
         DynamicFieldAnalysisOrchestrator.analyzeAndPersist(
-                server, existingRequestCount, existingRequestCounts, testResourcesDir, testClassName, testMethodName, annotationInfos, allServers);
+                server, existingRequestCount, existingRequestCounts, testResourcesDir, testClassName, testMethodIdentifier, annotationInfos, allServers);
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
             throws ParameterResolutionException {
+        // Don't resolve parameters for parameterized tests - let JUnit's ParameterizedTestParameterResolver handle them
+        if (extensionContext.getTestMethod().isPresent()) {
+            Method testMethod = extensionContext.getTestMethod().get();
+            try {
+                Class<? extends java.lang.annotation.Annotation> parameterizedTestClass = 
+                    (Class<? extends java.lang.annotation.Annotation>) Class.forName("org.junit.jupiter.params.ParameterizedTest");
+                if (testMethod.isAnnotationPresent(parameterizedTestClass)) {
+                    return false; // Let ParameterizedTestParameterResolver handle parameterized test parameters
+                }
+            } catch (ClassNotFoundException e) {
+                // ParameterizedTest annotation not found, continue with normal resolution
+            }
+        }
+        
+        // Only resolve int/Integer parameters for non-parameterized tests (for port injection)
         Class<?> parameterType = parameterContext.getParameter().getType();
         return parameterType == int.class || parameterType == Integer.class;
     }

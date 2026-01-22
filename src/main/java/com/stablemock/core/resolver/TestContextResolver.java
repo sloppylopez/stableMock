@@ -205,5 +205,41 @@ public final class TestContextResolver {
                 .map(Method::getName)
                 .orElse("unknown");
     }
+    
+    /**
+     * Gets a unique identifier for the test method, suitable for use in file paths.
+     * For parameterized tests, this includes the invocation index to ensure uniqueness.
+     * For regular tests, this returns the method name.
+     * 
+     * @param context The extension context
+     * @return A unique, filesystem-safe identifier for the test method invocation
+     */
+    public static String getTestMethodIdentifier(ExtensionContext context) {
+        String methodName = getTestMethodName(context);
+        
+        // For parameterized tests, the display name includes the invocation index
+        // e.g., "testMethod[0]", "testMethod[1]", etc.
+        String displayName = context.getDisplayName();
+        
+        // If display name is different from method name, it's likely a parameterized test
+        // Sanitize it to be filesystem-safe
+        if (!displayName.equals(methodName) && displayName.contains(methodName)) {
+            // Sanitize: replace characters that are problematic in file paths
+            // Keep alphanumeric, underscore, dash, and brackets (for parameterized tests)
+            // Also handle parentheses and other common characters in display names
+            String sanitized = displayName
+                    .replaceAll("[^a-zA-Z0-9_\\[\\]\\-\\(\\)]", "_")
+                    .replaceAll("_{2,}", "_") // Replace multiple underscores with single
+                    .replaceAll("^_|_$", ""); // Remove leading/trailing underscores
+            
+            // Ensure it's not empty and not too long (Windows has 255 char limit for filenames)
+            if (!sanitized.isEmpty() && sanitized.length() < 200) {
+                return sanitized;
+            }
+        }
+        
+        // Fall back to method name for non-parameterized tests
+        return methodName;
+    }
 }
 
