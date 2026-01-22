@@ -1,17 +1,17 @@
 {
   "testClass" : "MultiLevelInheritanceTest",
   "testMethod" : "testXmlWithDynamicFieldsInMultiLevelInheritance",
-  "detectedAt" : "2026-01-22T12:43:22.015849400Z",
+  "detectedAt" : "2026-01-22T13:38:20.071632900Z",
   "analyzed_requests_count" : 4,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='soap:Envelope']/*[local-name()='soap:Header']/*[local-name()='TransactionIdentifier']",
-    "sample_values" : [ "1769085765432", "1769085765229", "1769085801488" ]
+    "sample_values" : [ "1769089062637", "1769089062421", "1769089099551" ]
   }, {
     "field_path" : "xml://*[local-name()='soap:Envelope']/*[local-name()='soap:Header']/*[local-name()='EchoToken']",
-    "sample_values" : [ "1769085765442", "1769085765239", "1769085801498" ]
+    "sample_values" : [ "1769089062647", "1769089062431", "1769089099561" ]
   }, {
     "field_path" : "xml://*[local-name()='soap:Envelope']/*[local-name()='soap:Body']/*[local-name()='Request']/*[local-name()='TimeStamp']",
-    "sample_values" : [ "2026-01-22T12:42:45.442371300Z", "2026-01-22T12:42:45.239793300Z", "2026-01-22T12:43:21.498891200Z" ]
+    "sample_values" : [ "2026-01-22T13:37:42.647528700Z", "2026-01-22T13:37:42.431317600Z", "2026-01-22T13:38:19.561497900Z" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='soap:Envelope']/*[local-name()='soap:Header']/*[local-name()='TransactionIdentifier']", "xml://*[local-name()='soap:Envelope']/*[local-name()='soap:Header']/*[local-name()='EchoToken']", "xml://*[local-name()='soap:Envelope']/*[local-name()='soap:Body']/*[local-name()='Request']/*[local-name()='TimeStamp']" ]
 }
