@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * This test verifies that StableMock correctly applies ignore patterns during PLAYBACK mode
  * when using multi-level inheritance. The issue was that ignore patterns from detected-fields.json
  * were not being applied, causing WireMock to return 404 because dynamic XML fields 
- * (TransactionIdentifier, EchoToken, TimeStamp) had different values than the hardcoded values 
+ * (RequestId, SessionToken, Timestamp) had different values than the hardcoded values 
  * in the mapping file.
  * 
  * Expected behavior:
@@ -49,8 +49,8 @@ public class MultiLevelInheritanceTest extends BaseTestFeature {
 
     @Test
     void testXmlWithDynamicFieldsInMultiLevelInheritance() throws Exception {
-        // Generate XML with dynamic fields similar to GetAvailabilityV2Test
-        // These fields change each run: TransactionIdentifier, EchoToken, TimeStamp
+        // Generate XML with dynamic fields that change each run
+        // These fields change each run: RequestId, SessionToken, Timestamp
         String xml1 = generateXmlWithDynamicFields();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_XML);
@@ -84,34 +84,34 @@ public class MultiLevelInheritanceTest extends BaseTestFeature {
     }
 
     /**
-     * Generates XML with dynamic fields similar to GetAvailabilityV2Test:
-     * - TransactionIdentifier: changes each run
-     * - EchoToken: changes each run  
-     * - TimeStamp: changes each run
+     * Generates XML with dynamic fields that change each run:
+     * - RequestId: changes each run
+     * - SessionToken: changes each run  
+     * - Timestamp: changes each run
      */
     private String generateXmlWithDynamicFields() {
-        // Simulate TransactionIdentifier, EchoToken, TimeStamp like in GetAvailabilityV2Test
+        // Simulate dynamic fields that change each run
         long timestamp = System.currentTimeMillis();
-        String transactionIdentifier = String.valueOf(timestamp - 10);
-        String echoToken = String.valueOf(timestamp);
-        String timeStamp = Instant.now().toString();
+        String requestId = String.valueOf(timestamp - 10);
+        String sessionToken = String.valueOf(timestamp);
+        String timestampStr = Instant.now().toString();
 
         return String.format(
                 "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">" +
                         "<soap:Header>" +
-                        "<TransactionIdentifier>%s</TransactionIdentifier>" +
-                        "<EchoToken>%s</EchoToken>" +
+                        "<RequestId>%s</RequestId>" +
+                        "<SessionToken>%s</SessionToken>" +
                         "</soap:Header>" +
                         "<soap:Body>" +
-                        "<Request>" +
-                        "<TimeStamp>%s</TimeStamp>" +
-                        "<StayDateRange>" +
+                        "<ApiRequest>" +
+                        "<Timestamp>%s</Timestamp>" +
+                        "<DateRange>" +
                         "<Start>2026-01-22</Start>" +
                         "<End>2026-01-24</End>" +
-                        "</StayDateRange>" +
-                        "</Request>" +
+                        "</DateRange>" +
+                        "</ApiRequest>" +
                         "</soap:Body>" +
                         "</soap:Envelope>",
-                transactionIdentifier, echoToken, timeStamp);
+                requestId, sessionToken, timestampStr);
     }
 }

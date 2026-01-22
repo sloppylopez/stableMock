@@ -83,8 +83,10 @@ public final class XmlFieldDetector {
                         String[] parts = path.split("@");
                         String elementPath = parts[0];
                         String attrName = parts[1];
+                        // Extract local name from attribute name (may have prefix)
+                        String localAttrName = extractLocalName(attrName);
                         xpathPattern = buildElementPathXPath(elementPath)
-                                + "/@*[local-name()='" + attrName + "']";
+                                + "/@*[local-name()='" + localAttrName + "']";
                     } else {
                         // Element: use full path to avoid over-broad matches
                         xpathPattern = buildElementPathXPath(path);
@@ -106,8 +108,12 @@ public final class XmlFieldDetector {
      * Extracts the element name from an XPath-like path.
      * For "root/child/grandchild", returns "grandchild".
      * 
-     * @param path The element path
-     * @return The last element name in the path
+     * IMPORTANT: Strips namespace prefixes from element names before using in local-name().
+     * The local-name() XPath function returns only the local part (without prefix),
+     * so we must extract the local name from qualified names like "ns4:OTA_HotelAvailRQ".
+     * 
+     * @param path The element path (may contain namespace prefixes like "ns4:Element")
+     * @return XPath expression using local-name() with prefixes stripped
      */
     private static String buildElementPathXPath(String path) {
         if (path == null || path.isEmpty()) {
@@ -119,13 +125,42 @@ public final class XmlFieldDetector {
             if (part.isEmpty()) {
                 continue;
             }
+            // Extract local name (remove namespace prefix if present)
+            // Example: "ns4:OTA_HotelAvailRQ" -> "OTA_HotelAvailRQ"
+            // Example: "SOAP-ENV:Envelope" -> "Envelope"
+            String localName = extractLocalName(part);
             if (xpath.length() == 0) {
-                xpath.append("//*[local-name()='").append(part).append("']");
+                xpath.append("//*[local-name()='").append(localName).append("']");
             } else {
-                xpath.append("/*[local-name()='").append(part).append("']");
+                xpath.append("/*[local-name()='").append(localName).append("']");
             }
         }
         return xpath.length() == 0 ? "//*" : xpath.toString();
+    }
+
+    /**
+     * Extracts the local name from a qualified name, removing any namespace prefix.
+     * 
+     * Examples:
+     * - "ns4:OTA_HotelAvailRQ" -> "OTA_HotelAvailRQ"
+     * - "SOAP-ENV:Envelope" -> "Envelope"
+     * - "Element" -> "Element" (no prefix)
+     * 
+     * @param qualifiedName The qualified name (may include namespace prefix)
+     * @return The local name without prefix
+     */
+    private static String extractLocalName(String qualifiedName) {
+        if (qualifiedName == null || qualifiedName.isEmpty()) {
+            return qualifiedName;
+        }
+        // Check if it contains a namespace prefix (format: "prefix:localName")
+        int colonIndex = qualifiedName.indexOf(':');
+        if (colonIndex > 0 && colonIndex < qualifiedName.length() - 1) {
+            // Extract the part after the colon
+            return qualifiedName.substring(colonIndex + 1);
+        }
+        // No prefix, return as-is
+        return qualifiedName;
     }
 
 }
