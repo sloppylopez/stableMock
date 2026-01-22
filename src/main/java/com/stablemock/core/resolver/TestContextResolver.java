@@ -2,6 +2,8 @@ package com.stablemock.core.resolver;
 
 import com.stablemock.U;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -10,6 +12,8 @@ import java.lang.reflect.Method;
  * Resolves test context information including annotations, directories, and Spring Boot detection.
  */
 public final class TestContextResolver {
+    
+    private static final Logger logger = LoggerFactory.getLogger(TestContextResolver.class);
     
     private TestContextResolver() {
         // utility class
@@ -217,28 +221,68 @@ public final class TestContextResolver {
     public static String getTestMethodIdentifier(ExtensionContext context) {
         String methodName = getTestMethodName(context);
         
-        // For parameterized tests, the display name includes the invocation index
-        // e.g., "testMethod[0]", "testMethod[1]", etc.
-        String displayName = context.getDisplayName();
-        
-        // If display name is different from method name, it's likely a parameterized test
-        // Sanitize it to be filesystem-safe
-        if (!displayName.equals(methodName) && displayName.contains(methodName)) {
-            // Sanitize: replace characters that are problematic in file paths
-            // Keep alphanumeric, underscore, dash, and brackets (for parameterized tests)
-            // Also handle parentheses and other common characters in display names
-            String sanitized = displayName
-                    .replaceAll("[^a-zA-Z0-9_\\[\\]\\-\\(\\)]", "_")
-                    .replaceAll("_{2,}", "_") // Replace multiple underscores with single
-                    .replaceAll("^_|_$", ""); // Remove leading/trailing underscores
-            
-            // Ensure it's not empty and not too long (Windows has 255 char limit for filenames)
-            if (!sanitized.isEmpty() && sanitized.length() < 200) {
-                return sanitized;
+        // For parameterized tests, extract invocation index from unique ID
+        // Unique ID format: [engine:junit-jupiter]/[class:...]/[method:...]/[test-template:...]/[test-template-invocation:#N]
+        String uniqueId = context.getUniqueId();
+        if (uniqueId.contains("test-template-invocation")) {
+            try {
+                // Try different formats: [test-template-invocation:#N] or [test-template-invocation:N]
+                String pattern = "test-template-invocation:";
+                int startIdx = uniqueId.indexOf(pattern);
+                if (startIdx >= 0) {
+                    startIdx += pattern.length();
+                    // Skip '#' if present
+                    if (startIdx < uniqueId.length() && uniqueId.charAt(startIdx) == '#') {
+                        startIdx++;
+                    }
+                    int endIdx = uniqueId.indexOf("]", startIdx);
+                    if (endIdx > startIdx) {
+                        String invocationNum = uniqueId.substring(startIdx, endIdx);
+                        // Create identifier with invocation index: methodName[0], methodName[1], etc.
+                        // Note: JUnit uses 1-based indexing (#1, #2, #3), we convert to 0-based for consistency
+                        int index = Integer.parseInt(invocationNum) - 1;
+                        return methodName + "[" + index + "]";
+                    }
+                }
+            } catch (NumberFormatException e) {
+                // If parsing fails, fall through to display name check
             }
         }
         
-        // Fall back to method name for non-parameterized tests
+        // Fallback: check display name only for parameterized tests (must contain brackets with numbers)
+        // Don't use display name for regular tests - it might include parentheses like "testMethod()"
+        String displayName = context.getDisplayName();
+        if (!displayName.equals(methodName) && displayName.contains(methodName)) {
+            // Only use display name if it matches parameterized test pattern: methodName[N] or methodName[N, ...]
+            // Pattern: method name followed by [ and a number
+            java.util.regex.Pattern paramPattern = java.util.regex.Pattern.compile(
+                java.util.regex.Pattern.quote(methodName) + "\\[\\d+");
+            if (paramPattern.matcher(displayName).find()) {
+                // This is a parameterized test invocation (e.g., "testMethod[0]" or "testMethod[1, arg]")
+                // Sanitize: replace characters that are problematic in file paths
+                // Keep alphanumeric, underscore, dash, and brackets (for parameterized tests)
+                String sanitized = displayName
+                        .replaceAll("[^a-zA-Z0-9_\\[\\]\\-\\(\\)]", "_")
+                        .replaceAll("_{2,}", "_") // Replace multiple underscores with single
+                        .replaceAll("^_|_$", ""); // Remove leading/trailing underscores
+                
+                // Extract just methodName[N] part if there's extra text after brackets
+                // e.g., "testMethod[0, arg]" -> "testMethod[0]"
+                java.util.regex.Pattern extractPattern = java.util.regex.Pattern.compile(
+                    "(" + java.util.regex.Pattern.quote(methodName) + "\\[\\d+\\])");
+                java.util.regex.Matcher matcher = extractPattern.matcher(sanitized);
+                if (matcher.find()) {
+                    return matcher.group(1);
+                }
+                
+                // Ensure it's not empty and not too long (Windows has 255 char limit for filenames)
+                if (!sanitized.isEmpty() && sanitized.length() < 200) {
+                    return sanitized;
+                }
+            }
+        }
+        
+        // Fall back to method name for non-parameterized tests (without parentheses)
         return methodName;
     }
 }

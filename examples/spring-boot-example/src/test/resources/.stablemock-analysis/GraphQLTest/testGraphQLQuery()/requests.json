@@ -1,7 +1,0 @@
-[ {
-  "timestamp" : "2026-01-22T17:53:37.947427200Z",
-  "url" : "/graphql",
-  "method" : "POST",
-  "body" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
-  "contentType" : "application/json"
-} ]

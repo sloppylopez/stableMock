@@ -1,7 +1,0 @@
-[ {
-  "timestamp" : "2026-01-22T17:53:39.737448Z",
-  "url" : "/post",
-  "method" : "POST",
-  "body" : "<request><id>123</id><message>Hello</message></request>",
-  "contentType" : "application/xml"
-} ]

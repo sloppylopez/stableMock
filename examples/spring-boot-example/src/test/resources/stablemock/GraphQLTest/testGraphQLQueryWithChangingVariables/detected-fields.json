@@ -1,0 +1,11 @@
+{
+  "testClass" : "GraphQLTest",
+  "testMethod" : "testGraphQLQueryWithChangingVariables",
+  "detectedAt" : "2026-01-22T18:09:54.009859600Z",
+  "analyzed_requests_count" : 4,
+  "dynamic_fields" : [ {
+    "field_path" : "json:variables.code",
+    "sample_values" : [ "CA", "US", "CA" ]
+  } ],
+  "ignore_patterns" : [ "json:variables.code" ]
+}

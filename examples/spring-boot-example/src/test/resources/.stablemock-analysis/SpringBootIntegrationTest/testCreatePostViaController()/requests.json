@@ -1,7 +1,0 @@
-[ {
-  "timestamp" : "2026-01-22T17:53:39.910580500Z",
-  "url" : "/posts",
-  "method" : "POST",
-  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}",
-  "contentType" : "text/plain;charset=UTF-8"
-} ]

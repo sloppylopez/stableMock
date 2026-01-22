@@ -1,0 +1,37 @@
+[ {
+  "timestamp" : "2026-01-22T18:09:15.360776600Z",
+  "url" : "/posts",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2026-01-22T18:09:15.394443500Z",
+  "url" : "/posts",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2026-01-22T18:09:15.394443500Z",
+  "url" : "/posts",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2026-01-22T18:09:52.175824100Z",
+  "url" : "/posts",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2026-01-22T18:09:52.187141900Z",
+  "url" : "/posts",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2026-01-22T18:09:52.188142700Z",
+  "url" : "/posts",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+} ]

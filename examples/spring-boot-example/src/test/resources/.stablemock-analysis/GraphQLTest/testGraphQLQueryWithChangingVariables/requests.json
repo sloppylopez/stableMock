@@ -1,0 +1,25 @@
+[ {
+  "timestamp" : "2026-01-22T18:09:15.960960100Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"CA\"\n  }\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2026-01-22T18:09:15.961960200Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2026-01-22T18:09:54.008857600Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"CA\"\n  }\n}\n",
+  "contentType" : "application/json"
+}, {
+  "timestamp" : "2026-01-22T18:09:54.008857600Z",
+  "url" : "/graphql",
+  "method" : "POST",
+  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
+  "contentType" : "application/json"
+} ]
