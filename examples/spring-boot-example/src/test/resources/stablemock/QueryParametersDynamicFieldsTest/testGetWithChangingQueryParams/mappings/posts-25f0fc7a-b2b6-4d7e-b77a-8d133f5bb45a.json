@@ -1,0 +1,38 @@
+{
+  "id" : "25f0fc7a-b2b6-4d7e-b77a-8d133f5bb45a",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts?page=1&limit=10&timestamp=1769098965567&correlationId=76c36c1c-877a-40ec-902c-40890a941416",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "posts-9821f73a-faab-4c95-9fd2-fa8134b1a397.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9c20646aad76f443-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, Accept-Encoding",
+      "cf-cache-status" : "MISS",
+      "x-ratelimit-reset" : "1769098976",
+      "x-ratelimit-remaining" : "993",
+      "pragma" : "no-cache",
+      "Date" : "Thu, 22 Jan 2026 16:22:49 GMT",
+      "via" : "2.0 heroku-router",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=bsU7wK7qDbmbp5cM4P95O2dlDxaDMfX5HxBJdxdcHyU%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1769098969\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "max-age=43200",
+      "x-powered-by" : "Express",
+      "etag" : "W/\"6b80-Ybsq/K6GwwqrYkAsFxqDXGC7DoM\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=bsU7wK7qDbmbp5cM4P95O2dlDxaDMfX5HxBJdxdcHyU%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1769098969\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "25f0fc7a-b2b6-4d7e-b77a-8d133f5bb45a",
+  "persistent" : true,
+  "insertionIndex" : 1
+}
