@@ -780,10 +780,25 @@ public class StableMockExtension
             throws ParameterResolutionException {
         Class<?> parameterType = parameterContext.getParameter().getType();
         if (parameterType == int.class || parameterType == Integer.class) {
+            // Port is stored in class-level store in beforeAll, so check there first
+            // Method-level store is populated in beforeEach (which runs after parameter resolution)
+            ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(
+                    extensionContext);
+            Integer port = classStore.getPort();
+            if (port != null && port > 0) {
+                return port;
+            }
+            // Fallback to method-level store (in case it was set earlier)
             ExtensionContextManager.MethodLevelStore methodStore = new ExtensionContextManager.MethodLevelStore(
                     extensionContext);
-            Integer port = methodStore.getPort();
-            return port != null ? port : 0;
+            port = methodStore.getPort();
+            if (port != null && port > 0) {
+                return port;
+            }
+            // If port is still not available, throw a clear error
+            throw new ParameterResolutionException(
+                    "Port not available for injection. Make sure @U annotation is present on the test class " +
+                    "and that beforeAll has completed. Current port value: " + port);
         }
         return null;
     }

@@ -67,6 +67,13 @@ public final class WireMockServerManager {
 
                 WireMockServer server = new WireMockServer(config);
                 server.start();
+                
+                // Wait briefly to ensure server is ready (important for WSL/file system sync)
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
 
                 String primaryUrl = targetUrls.get(0);
                 server.stubFor(
@@ -250,6 +257,13 @@ public final class WireMockServerManager {
 
                 WireMockServer server = new WireMockServer(config);
                 server.start();
+                
+                // Wait briefly to ensure server is ready (important for WSL/file system sync)
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
                 
                 // Add catch-all stub to return 404 instead of proxying when no mapping matches
                 // This prevents WireMock from trying to proxy to the real API in playback mode

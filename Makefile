@@ -96,8 +96,14 @@ spring-example:
 		echo "WARNING: stablemock directory still exists after cleanup - forcing removal"; \
 		rm -rf src/test/resources/stablemock; \
 	fi && \
+	if [ -d "src/test/resources/.stablemock-analysis" ]; then \
+		echo "WARNING: .stablemock-analysis directory still exists after cleanup - forcing removal"; \
+		rm -rf src/test/resources/.stablemock-analysis; \
+	fi && \
 	echo "=== Waiting for file system to process deletions (important for JDK 17 on Linux) ===" && \
-	sleep 0.5 && \
+	sync && \
+	sleep 1 && \
+	sync && \
 	echo "=== Record mode (first time) ===" && \
 	./gradlew stableMockRecord $$gradle_args && \
 	echo "=== Waiting for mappings to be saved, files to be flushed, and ports to be released ===" && \
