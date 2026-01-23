@@ -1,5 +1,7 @@
 package example;
 
+import com.stablemock.spring.BaseStableMockTest;
+
 import com.stablemock.U;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,4 +68,5 @@ class ShowMatchesTest extends BaseStableMockTest {
         // - Available stubs and their patterns
     }
 }
+
 

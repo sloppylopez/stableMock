@@ -100,9 +100,16 @@ public final class RequestBodyTracker {
                     ".stablemock-analysis/" + testClassName + "/" + testMethodName);
         }
 
-        if (!analysisDir.exists() && !analysisDir.mkdirs()) {
-            throw new RuntimeException("Failed to create analysis directory: " +
-                    analysisDir.getAbsolutePath());
+        // Use Files.createDirectories() which is atomic and handles race conditions
+        try {
+            java.nio.file.Files.createDirectories(analysisDir.toPath());
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            // Directory already exists, that's fine (another thread may have created it)
+            if (!analysisDir.isDirectory()) {
+                throw new RuntimeException("Path exists but is not a directory: " + analysisDir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create analysis directory: " + analysisDir.getAbsolutePath(), e);
         }
 
         return new File(analysisDir, "requests.json");
@@ -133,5 +140,12 @@ public final class RequestBodyTracker {
     private static void saveRequestHistory(File trackingFile, List<RequestSnapshot> history)
             throws IOException {
         objectMapper.writeValue(trackingFile, history);
+        
+        // Small delay after file write to ensure file system sync (important for WSL)
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

@@ -2,6 +2,8 @@ package com.stablemock.core.resolver;
 
 import com.stablemock.U;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -10,6 +12,8 @@ import java.lang.reflect.Method;
  * Resolves test context information including annotations, directories, and Spring Boot detection.
  */
 public final class TestContextResolver {
+    
+    private static final Logger logger = LoggerFactory.getLogger(TestContextResolver.class);
     
     private TestContextResolver() {
         // utility class
@@ -31,16 +35,27 @@ public final class TestContextResolver {
             }
         });
         
-        // If no method-level annotations, check class-level
+        // If no method-level annotations, check class-level (including inheritance hierarchy)
         if (annotations.isEmpty()) {
             Class<?> testClass = context.getRequiredTestClass();
-            U.List classList = testClass.getAnnotation(U.List.class);
-            if (classList != null) {
-                java.util.Collections.addAll(annotations, classList.value());
-            } else {
-                U classAnnotation = testClass.getAnnotation(U.class);
-                if (classAnnotation != null) {
-                    annotations.add(classAnnotation);
+            // Traverse inheritance hierarchy to find @U annotations
+            // Note: @U is not @Inherited, so we need to manually traverse
+            Class<?> currentClass = testClass;
+            while (currentClass != null && annotations.isEmpty()) {
+                U.List classList = currentClass.getAnnotation(U.List.class);
+                if (classList != null) {
+                    java.util.Collections.addAll(annotations, classList.value());
+                } else {
+                    U classAnnotation = currentClass.getAnnotation(U.class);
+                    if (classAnnotation != null) {
+                        annotations.add(classAnnotation);
+                    }
+                }
+                // Check parent class
+                currentClass = currentClass.getSuperclass();
+                // Stop at Object or if we've gone too deep (safety check)
+                if (currentClass == null || currentClass == Object.class) {
+                    break;
                 }
             }
         }
@@ -193,6 +208,82 @@ public final class TestContextResolver {
         return context.getTestMethod()
                 .map(Method::getName)
                 .orElse("unknown");
+    }
+    
+    /**
+     * Gets a unique identifier for the test method, suitable for use in file paths.
+     * For parameterized tests, this includes the invocation index to ensure uniqueness.
+     * For regular tests, this returns the method name.
+     * 
+     * @param context The extension context
+     * @return A unique, filesystem-safe identifier for the test method invocation
+     */
+    public static String getTestMethodIdentifier(ExtensionContext context) {
+        String methodName = getTestMethodName(context);
+        
+        // For parameterized tests, extract invocation index from unique ID
+        // Unique ID format: [engine:junit-jupiter]/[class:...]/[method:...]/[test-template:...]/[test-template-invocation:#N]
+        String uniqueId = context.getUniqueId();
+        if (uniqueId.contains("test-template-invocation")) {
+            try {
+                // Try different formats: [test-template-invocation:#N] or [test-template-invocation:N]
+                String pattern = "test-template-invocation:";
+                int startIdx = uniqueId.indexOf(pattern);
+                if (startIdx >= 0) {
+                    startIdx += pattern.length();
+                    // Skip '#' if present
+                    if (startIdx < uniqueId.length() && uniqueId.charAt(startIdx) == '#') {
+                        startIdx++;
+                    }
+                    int endIdx = uniqueId.indexOf("]", startIdx);
+                    if (endIdx > startIdx) {
+                        String invocationNum = uniqueId.substring(startIdx, endIdx);
+                        // Create identifier with invocation index: methodName[0], methodName[1], etc.
+                        // Note: JUnit uses 1-based indexing (#1, #2, #3), we convert to 0-based for consistency
+                        int index = Integer.parseInt(invocationNum) - 1;
+                        return methodName + "[" + index + "]";
+                    }
+                }
+            } catch (NumberFormatException e) {
+                // If parsing fails, fall through to display name check
+            }
+        }
+        
+        // Fallback: check display name only for parameterized tests (must contain brackets with numbers)
+        // Don't use display name for regular tests - it might include parentheses like "testMethod()"
+        String displayName = context.getDisplayName();
+        if (!displayName.equals(methodName) && displayName.contains(methodName)) {
+            // Only use display name if it matches parameterized test pattern: methodName[N] or methodName[N, ...]
+            // Pattern: method name followed by [ and a number
+            java.util.regex.Pattern paramPattern = java.util.regex.Pattern.compile(
+                java.util.regex.Pattern.quote(methodName) + "\\[\\d+");
+            if (paramPattern.matcher(displayName).find()) {
+                // This is a parameterized test invocation (e.g., "testMethod[0]" or "testMethod[1, arg]")
+                // Sanitize: replace characters that are problematic in file paths
+                // Keep alphanumeric, underscore, dash, and brackets (for parameterized tests)
+                String sanitized = displayName
+                        .replaceAll("[^a-zA-Z0-9_\\[\\]\\-\\(\\)]", "_")
+                        .replaceAll("_{2,}", "_") // Replace multiple underscores with single
+                        .replaceAll("^_|_$", ""); // Remove leading/trailing underscores
+                
+                // Extract just methodName[N] part if there's extra text after brackets
+                // e.g., "testMethod[0, arg]" -> "testMethod[0]"
+                java.util.regex.Pattern extractPattern = java.util.regex.Pattern.compile(
+                    "(" + java.util.regex.Pattern.quote(methodName) + "\\[\\d+\\])");
+                java.util.regex.Matcher matcher = extractPattern.matcher(sanitized);
+                if (matcher.find()) {
+                    return matcher.group(1);
+                }
+                
+                // Ensure it's not empty and not too long (Windows has 255 char limit for filenames)
+                if (!sanitized.isEmpty() && sanitized.length() < 200) {
+                    return sanitized;
+                }
+            }
+        }
+        
+        // Fall back to method name for non-parameterized tests (without parentheses)
+        return methodName;
     }
 }
 

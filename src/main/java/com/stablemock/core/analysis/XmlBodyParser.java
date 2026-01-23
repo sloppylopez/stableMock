@@ -24,8 +24,11 @@ public final class XmlBodyParser {
     private static final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
 
     static {
-        // Disable external entity expansion to prevent XXE attacks
+        // Enable namespace-aware parsing to correctly extract local names (without prefixes)
+        // This is critical for generating correct XPath patterns with local-name()
         try {
+            documentBuilderFactory.setNamespaceAware(true);
+            // Disable external entity expansion to prevent XXE attacks
             documentBuilderFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             documentBuilderFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
             documentBuilderFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);

@@ -1,5 +1,7 @@
 package example;
 
+import com.stablemock.spring.BaseStableMockTest;
+
 import com.stablemock.U;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,4 +87,5 @@ class ReportGenerationTest extends BaseStableMockTest {
         // We're just ensuring the test runs and generates data
     }
 }
+
 

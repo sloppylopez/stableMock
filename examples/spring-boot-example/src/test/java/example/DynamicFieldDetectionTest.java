@@ -1,5 +1,7 @@
 package example;
 
+import com.stablemock.spring.BaseStableMockTest;
+
 import com.stablemock.U;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -101,3 +103,4 @@ class DynamicFieldDetectionTest extends BaseStableMockTest {
                 UUID.randomUUID());
     }
 }
+

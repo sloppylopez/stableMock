@@ -1,5 +1,7 @@
 package example;
 
+import com.stablemock.spring.BaseStableMockTest;
+
 import com.stablemock.U;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,4 +94,5 @@ class XmlDynamicFieldDetectionTest extends BaseStableMockTest {
                 sessionId, "1." + System.currentTimeMillis(), timestamp, requestId, sessionId);
     }
 }
+
 

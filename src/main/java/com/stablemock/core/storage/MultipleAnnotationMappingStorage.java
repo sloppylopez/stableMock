@@ -211,11 +211,24 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
     private static @NotNull File getFile(File annotationMappingsDir, File annotationMappingsSubDir) throws IOException {
         File annotationFilesSubDir = new File(annotationMappingsDir, "__files");
 
-        if (!annotationMappingsSubDir.exists() && !annotationMappingsSubDir.mkdirs()) {
-            throw new IOException("Failed to create mappings subdirectory: " + annotationMappingsSubDir.getAbsolutePath());
+        // Use Files.createDirectories() which is atomic and handles race conditions
+        try {
+            java.nio.file.Files.createDirectories(annotationMappingsSubDir.toPath());
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            if (!annotationMappingsSubDir.isDirectory()) {
+                throw new IOException("Path exists but is not a directory: " + annotationMappingsSubDir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            throw new IOException("Failed to create mappings subdirectory: " + annotationMappingsSubDir.getAbsolutePath(), e);
         }
-        if (!annotationFilesSubDir.exists() && !annotationFilesSubDir.mkdirs()) {
-            throw new IOException("Failed to create __files subdirectory: " + annotationFilesSubDir.getAbsolutePath());
+        try {
+            java.nio.file.Files.createDirectories(annotationFilesSubDir.toPath());
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            if (!annotationFilesSubDir.isDirectory()) {
+                throw new IOException("Path exists but is not a directory: " + annotationFilesSubDir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            throw new IOException("Failed to create __files subdirectory: " + annotationFilesSubDir.getAbsolutePath(), e);
         }
         return annotationFilesSubDir;
     }

@@ -1,0 +1,25 @@
+[ {
+  "timestamp" : "2026-01-23T10:11:12.732006Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Header><RequestId>1769163072157</RequestId><SessionToken>1769163072167</SessionToken></soap:Header><soap:Body><ApiRequest><Timestamp>2026-01-23T10:11:12.167900600Z</Timestamp><DateRange><Start>2026-01-22</Start><End>2026-01-24</End></DateRange></ApiRequest></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-01-23T10:11:12.790797800Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Header><RequestId>1769163071937</RequestId><SessionToken>1769163071947</SessionToken></soap:Header><soap:Body><ApiRequest><Timestamp>2026-01-23T10:11:11.947698600Z</Timestamp><DateRange><Start>2026-01-22</Start><End>2026-01-24</End></DateRange></ApiRequest></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-01-23T10:11:48.360019900Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Header><RequestId>1769163107838</RequestId><SessionToken>1769163107848</SessionToken></soap:Header><soap:Body><ApiRequest><Timestamp>2026-01-23T10:11:47.848789700Z</Timestamp><DateRange><Start>2026-01-22</Start><End>2026-01-24</End></DateRange></ApiRequest></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-01-23T10:11:48.419907600Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Header><RequestId>1769163107633</RequestId><SessionToken>1769163107643</SessionToken></soap:Header><soap:Body><ApiRequest><Timestamp>2026-01-23T10:11:47.643808900Z</Timestamp><DateRange><Start>2026-01-22</Start><End>2026-01-24</End></DateRange></ApiRequest></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+} ]

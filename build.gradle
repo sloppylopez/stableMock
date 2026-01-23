@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'com.stablemock'
-version = '1.1.0'
+version = '1.2.0'
 
 sourceCompatibility = '17'
 targetCompatibility = '17'
@@ -37,6 +37,11 @@ dependencies {
     implementation platform('org.junit:junit-bom:5.9.3')
     api 'org.junit.jupiter:junit-jupiter-api:5.9.3'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.3'
+
+    // Spring dependencies for BaseStableMockTest (compileOnly so valid for compilation, 
+    // but consumers must provide their own Spring versions)
+    compileOnly 'org.springframework.boot:spring-boot-starter-test:3.1.5'
+    compileOnly 'org.springframework:spring-test:6.0.13'
 }
 
 gradlePlugin {
@@ -105,35 +110,82 @@ tasks.withType(Jar).configureEach {
 // Signing configuration
 // Supports both file-based (from gradle.properties) and in-memory (from environment variables)
 signing {
+    // Disable signing for Maven Local publishing
+    required { !gradle.taskGraph.hasTask("publishToMavenLocal") }
+}
+
+// Configure signing signatory after project evaluation (to ensure env vars are available)
+afterEvaluate {
     // Check if in-memory signing is available (from environment variables in CI/CD)
+    // Gradle converts ORG_GRADLE_PROJECT_* env vars to project properties
     def inMemoryKey = project.findProperty('signingInMemoryKey')
     def inMemoryKeyId = project.findProperty('signingInMemoryKeyId')
     def inMemoryKeyPassword = project.findProperty('signingInMemoryKeyPassword')
     
+    println "=== Signing Configuration Debug ==="
+    println "signingInMemoryKey present: ${inMemoryKey != null}"
+    println "signingInMemoryKeyId present: ${inMemoryKeyId != null}"
+    println "signingInMemoryKeyId value: ${inMemoryKeyId}"
+    
     if (inMemoryKey && inMemoryKeyId) {
-        // Use in-memory signing (for CI/CD)
+        println "Configuring in-memory GPG signing (CI/CD mode)"
+        println "Key ID: ${inMemoryKeyId}"
+        println "Key length: ${inMemoryKey.length()} characters"
+        
         // Decode base64 if needed (GitHub Secrets are base64-encoded)
         def decodedKey = inMemoryKey
         try {
             // Try to decode base64 (if it's base64-encoded)
             if (!inMemoryKey.contains('-----BEGIN PGP')) {
+                println "Decoding base64-encoded GPG key..."
                 decodedKey = new String(java.util.Base64.decoder.decode(inMemoryKey))
+                println "Decoded key length: ${decodedKey.length()} characters"
+                println "Decoded key starts with: ${decodedKey.take(50)}..."
+            } else {
+                println "Key appears to be already decoded (contains PGP header)"
             }
         } catch (Exception e) {
-            // If decoding fails, use as-is (might already be decoded)
+            println "Base64 decoding failed, using key as-is: ${e.message}"
             decodedKey = inMemoryKey
         }
-        useInMemoryPgpKeys(inMemoryKeyId, decodedKey, inMemoryKeyPassword)
+        
+        try {
+            // Ensure key is properly formatted (trim and ensure it has proper line endings)
+            def formattedKey = decodedKey.trim()
+            if (!formattedKey.endsWith('\n')) {
+                formattedKey = formattedKey + '\n'
+            }
+            
+            // Configure in-memory signing within the signing extension
+            signing.useInMemoryPgpKeys(inMemoryKeyId, formattedKey, inMemoryKeyPassword)
+            println "✓ In-memory GPG signing configured successfully"
+        } catch (Exception e) {
+            println "ERROR: Failed to configure in-memory GPG signing"
+            println "Exception: ${e.class.name}: ${e.message}"
+            println "Stack trace:"
+            e.printStackTrace()
+            if (e.cause) {
+                println "Cause: ${e.cause.message}"
+            }
+            throw new GradleException("Failed to configure in-memory GPG signing: ${e.message}", e)
+        }
+    } else {
+        println "In-memory signing not available, using file-based signing from gradle.properties"
+        println "Available properties: signingInMemoryKey=${inMemoryKey != null}, signingInMemoryKeyId=${inMemoryKeyId != null}"
+        // Debug: List all signing-related properties
+        def signingProps = project.properties.findAll { it.key.startsWith('signing') }
+        if (signingProps) {
+            println "Signing-related properties found: ${signingProps.keySet()}"
+        } else {
+            println "No signing-related properties found in project"
+        }
+        // If in-memory keys are not provided, the signing plugin automatically uses
+        // file-based signing from ~/.gradle/gradle.properties:
+        // - signing.keyId (e.g., B7CD1441480535FA)
+        // - signing.password (GPG passphrase)
+        // - signing.secretKeyRingFile (e.g., C:/Users/sergi/.gnupg/secring.gpg)
     }
-    // If in-memory keys are not provided, the signing plugin automatically uses
-    // file-based signing from ~/.gradle/gradle.properties:
-    // - signing.keyId (e.g., B7CD1441480535FA)
-    // - signing.password (GPG passphrase)
-    // - signing.secretKeyRingFile (e.g., C:/Users/sergi/.gnupg/secring.gpg)
-    // No explicit configuration needed - plugin auto-configures from properties
-    
-    // Disable signing for Maven Local publishing
-    required { !gradle.taskGraph.hasTask("publishToMavenLocal") }
+    println "=== End Signing Configuration Debug ==="
 }
 
 // Fix task dependency issue between java-gradle-plugin and maven-publish plugin
