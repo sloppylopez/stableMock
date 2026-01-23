@@ -1,0 +1,25 @@
+[ {
+  "timestamp" : "2026-01-23T16:08:22.292626Z",
+  "url" : "/posts",
+  "method" : "POST",
+  "body" : "{\"title\":\"Manual Ignore Test\",\"body\":\"Testing manual ignore patterns\",\"userId\":1,\"timestamp\":\"2026-01-23T16:08:21.727333400Z\",\"requestId\":\"2269cc11-7f09-4638-9c27-900ee6027681\"}",
+  "contentType" : "text/plain;charset=UTF-8"
+}, {
+  "timestamp" : "2026-01-23T16:08:22.340604500Z",
+  "url" : "/posts",
+  "method" : "POST",
+  "body" : "{\"title\":\"Manual Ignore Test\",\"body\":\"Testing manual ignore patterns\",\"userId\":1,\"timestamp\":\"2026-01-23T16:08:21.472074Z\",\"requestId\":\"135fea2b-95a4-4610-87d7-dc67d11f9bd9\"}",
+  "contentType" : "text/plain;charset=UTF-8"
+}, {
+  "timestamp" : "2026-01-23T16:08:59.462294Z",
+  "url" : "/posts",
+  "method" : "POST",
+  "body" : "{\"title\":\"Manual Ignore Test\",\"body\":\"Testing manual ignore patterns\",\"userId\":1,\"timestamp\":\"2026-01-23T16:08:58.864134300Z\",\"requestId\":\"b8ee42a2-6694-4e46-b860-8a2e54edf71d\"}",
+  "contentType" : "text/plain;charset=UTF-8"
+}, {
+  "timestamp" : "2026-01-23T16:08:59.480220400Z",
+  "url" : "/posts",
+  "method" : "POST",
+  "body" : "{\"title\":\"Manual Ignore Test\",\"body\":\"Testing manual ignore patterns\",\"userId\":1,\"timestamp\":\"2026-01-23T16:08:58.593745200Z\",\"requestId\":\"943b8e86-e2b6-4532-bec8-aa7959901e95\"}",
+  "contentType" : "text/plain;charset=UTF-8"
+} ]

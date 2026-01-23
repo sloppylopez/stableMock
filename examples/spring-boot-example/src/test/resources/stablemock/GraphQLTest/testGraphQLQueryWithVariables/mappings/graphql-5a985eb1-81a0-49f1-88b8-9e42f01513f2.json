@@ -1,0 +1,44 @@
+{
+  "id" : "5a985eb1-81a0-49f1-88b8-9e42f01513f2",
+  "name" : "graphql",
+  "request" : {
+    "url" : "/graphql",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{\"data\":{\"country\":{\"capital\":\"Washington D.C.\",\"name\":\"United States\"}}}",
+    "headers" : {
+      "date" : "Thu, 22 Jan 2026 12:26:00 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=44;refill=20",
+      "vary" : "accept-encoding",
+      "stellate-rate-limit-decision" : "pass",
+      "access-control-allow-headers" : "*",
+      "gcdn-cache" : "HIT",
+      "x-served-by" : "cache-mad2200121-MAD",
+      "stellate-rate-limit-budget-required" : "6",
+      "x-cache-hits" : "37",
+      "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
+      "access-control-expose-headers" : "*",
+      "access-control-allow-origin" : "*",
+      "access-control-allow-credentials" : "true",
+      "stellate-rate-limit-budget-remaining" : "44",
+      "access-control-max-age" : "600",
+      "x-powered-by" : "Stellate",
+      "content-type" : "application/json; charset=utf-8",
+      "x-cache" : "HIT",
+      "cache-control" : "public, s-maxage=2628000, stale-while-revalidate=2628000",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "accept-ranges" : "bytes",
+      "age" : "99781"
+    }
+  },
+  "uuid" : "5a985eb1-81a0-49f1-88b8-9e42f01513f2",
+  "persistent" : true,
+  "insertionIndex" : 0
+}
