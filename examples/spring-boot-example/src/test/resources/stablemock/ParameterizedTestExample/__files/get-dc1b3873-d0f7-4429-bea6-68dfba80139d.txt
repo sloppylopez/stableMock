@@ -1,2 +1,0 @@
-Network failure trying to make a proxied request from WireMock to https://postman-echo.com/get?id=99
-Connect to https://postman-echo.com:443 [postman-echo.com/162.159.142.41] failed: Connection timed out

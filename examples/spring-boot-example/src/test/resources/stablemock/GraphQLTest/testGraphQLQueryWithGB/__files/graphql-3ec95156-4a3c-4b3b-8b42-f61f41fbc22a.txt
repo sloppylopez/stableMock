@@ -1,2 +1,0 @@
-Network failure trying to make a proxied request from WireMock to https://countries.trevorblades.com/graphql
-Connect to https://countries.trevorblades.com:443 [countries.trevorblades.com/151.101.133.51] failed: Connection timed out

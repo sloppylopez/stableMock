@@ -1,0 +1,23 @@
+{
+  "testClass" : "XmlDynamicFieldDetectionTest",
+  "testMethod" : "testDetectChangingFieldsInXml",
+  "detectedAt" : "2026-01-23T14:25:13.712348Z",
+  "analyzed_requests_count" : 4,
+  "dynamic_fields" : [ {
+    "field_path" : "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']",
+    "sample_values" : [ "61378930-a238-4f0d-afc4-45493d544e0e", "92f62020-dcee-4d9d-bb4d-93d630c978a1", "023defe5-a49c-4434-8ffb-121112774d8d" ]
+  }, {
+    "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']",
+    "sample_values" : [ "61378930-a238-4f0d-afc4-45493d544e0e", "92f62020-dcee-4d9d-bb4d-93d630c978a1", "023defe5-a49c-4434-8ffb-121112774d8d" ]
+  }, {
+    "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']",
+    "sample_values" : [ "1.1769178274261", "1.1769178273643", "1.1769178312867" ]
+  }, {
+    "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']",
+    "sample_values" : [ "1128117e-2f63-4b00-9328-1f7ac023241d", "ba421a3e-85ee-432c-9172-0a228474f177", "95142203-4d9e-4e86-bc48-70e8c98bb68a" ]
+  }, {
+    "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']",
+    "sample_values" : [ "2026-01-23T14:24:34.260842200Z", "2026-01-23T14:24:33.642325600Z", "2026-01-23T14:25:12.867073400Z" ]
+  } ],
+  "ignore_patterns" : [ "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']" ]
+}
