@@ -586,6 +586,20 @@ public final class RecordingReportGenerator {
         // Check if report has any content (test classes) before saving
         if (report.has("testClasses") && report.get("testClasses").size() == 0) {
             logger.debug("Skipping report save - no test classes found");
+            // Ensure any existing reports from previous runs are removed to avoid stale data
+            File stablemockDir = new File(testResourcesDir, "stablemock");
+            File jsonReportFile = new File(stablemockDir, "recording-report.json");
+            File htmlReportFile = new File(stablemockDir, "recording-report.html");
+            try {
+                if (java.nio.file.Files.deleteIfExists(jsonReportFile.toPath())) {
+                    logger.debug("Deleted stale JSON recording report");
+                }
+                if (java.nio.file.Files.deleteIfExists(htmlReportFile.toPath())) {
+                    logger.debug("Deleted stale HTML recording report");
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to delete stale report files: {}", e.getMessage());
+            }
             return;
         }
         

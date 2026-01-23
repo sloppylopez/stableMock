@@ -159,10 +159,20 @@ public final class RequestBodyTracker {
                 java.nio.file.Files.move(tempFile.toPath(), trackingFile.toPath(), 
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             // Clean up temp file on error
-            if (tempFile.exists()) {
-                tempFile.delete();
+            try {
+                java.nio.file.Files.deleteIfExists(tempFile.toPath());
+            } catch (Exception cleanupException) {
+                logger.warn("Failed to delete temp file {}: {}", tempFile.getAbsolutePath(), cleanupException.getMessage());
+            }
+            throw e;
+        } catch (RuntimeException e) {
+            // Clean up temp file on error (runtime failures should also not leave temp files)
+            try {
+                java.nio.file.Files.deleteIfExists(tempFile.toPath());
+            } catch (Exception cleanupException) {
+                logger.warn("Failed to delete temp file {}: {}", tempFile.getAbsolutePath(), cleanupException.getMessage());
             }
             throw e;
         }
