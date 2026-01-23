@@ -1,11 +1,14 @@
 {
   "testClass" : "GraphQLTest",
   "testMethod" : "testGraphQLQueryWithChangingVariables",
-  "detectedAt" : "2026-01-23T10:11:46.126274800Z",
-  "analyzed_requests_count" : 4,
+  "detectedAt" : "2026-01-23T14:17:27.711407529Z",
+  "analyzed_requests_count" : 2,
   "dynamic_fields" : [ {
+    "field_path" : "json:query",
+    "sample_values" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }" ]
+  }, {
     "field_path" : "json:variables.code",
-    "sample_values" : [ "CA", "US", "CA" ]
+    "sample_values" : [ "GB", "US" ]
   } ],
-  "ignore_patterns" : [ "json:variables.code" ]
+  "ignore_patterns" : [ "json:query", "json:variables.code" ]
 }
