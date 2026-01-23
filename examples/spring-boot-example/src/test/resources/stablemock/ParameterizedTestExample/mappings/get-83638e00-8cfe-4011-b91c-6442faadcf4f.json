@@ -1,0 +1,18 @@
+{
+  "id" : "83638e00-8cfe-4011-b91c-6442faadcf4f",
+  "name" : "get",
+  "request" : {
+    "url" : "/get?id=1",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 500,
+    "bodyFileName" : "get-83638e00-8cfe-4011-b91c-6442faadcf4f.txt"
+  },
+  "uuid" : "83638e00-8cfe-4011-b91c-6442faadcf4f",
+  "persistent" : true,
+  "scenarioName" : "scenario-1-get",
+  "requiredScenarioState" : "Started",
+  "newScenarioState" : "scenario-1-get-2",
+  "insertionIndex" : 3
+}

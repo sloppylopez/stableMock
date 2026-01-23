@@ -1,0 +1,15 @@
+{
+  "id" : "fbe1dc75-1ae5-4e8f-9136-0e93e22af59d",
+  "name" : "get",
+  "request" : {
+    "url" : "/get?id=99",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 500,
+    "bodyFileName" : "get-fbe1dc75-1ae5-4e8f-9136-0e93e22af59d.txt"
+  },
+  "uuid" : "fbe1dc75-1ae5-4e8f-9136-0e93e22af59d",
+  "persistent" : true,
+  "insertionIndex" : 1
+}

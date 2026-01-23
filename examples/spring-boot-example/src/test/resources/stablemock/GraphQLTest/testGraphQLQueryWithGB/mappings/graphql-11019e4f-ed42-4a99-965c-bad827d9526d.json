@@ -1,0 +1,20 @@
+{
+  "id" : "11019e4f-ed42-4a99-965c-bad827d9526d",
+  "name" : "graphql",
+  "request" : {
+    "url" : "/graphql",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 500,
+    "bodyFileName" : "graphql-3ec95156-4a3c-4b3b-8b42-f61f41fbc22a.txt"
+  },
+  "uuid" : "11019e4f-ed42-4a99-965c-bad827d9526d",
+  "persistent" : true,
+  "insertionIndex" : 0
+}

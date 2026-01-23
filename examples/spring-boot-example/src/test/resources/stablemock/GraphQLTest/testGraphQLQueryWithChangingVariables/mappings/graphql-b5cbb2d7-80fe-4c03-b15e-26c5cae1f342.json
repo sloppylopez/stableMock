@@ -1,0 +1,20 @@
+{
+  "id" : "b5cbb2d7-80fe-4c03-b15e-26c5cae1f342",
+  "name" : "graphql",
+  "request" : {
+    "url" : "/graphql",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 500,
+    "bodyFileName" : "graphql-b9006cad-6d4f-41b8-a4b8-ad5cbe424241.txt"
+  },
+  "uuid" : "b5cbb2d7-80fe-4c03-b15e-26c5cae1f342",
+  "persistent" : true,
+  "insertionIndex" : 0
+}
