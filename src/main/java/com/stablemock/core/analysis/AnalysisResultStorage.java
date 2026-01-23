@@ -119,22 +119,19 @@ public final class AnalysisResultStorage {
                     java.nio.file.Files.move(tempFile.toPath(), outputFile.toPath(), 
                             java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 }
-            } catch (IOException e) {
-                // Clean up temp file on error
-                try {
-                    java.nio.file.Files.deleteIfExists(tempFile.toPath());
-                } catch (Exception cleanupException) {
-                    logger.warn("Failed to delete temp file {}: {}", tempFile.getAbsolutePath(), cleanupException.getMessage());
-                }
+                // Success - temp file was moved, so it no longer exists
+                tempFile = null;
+            } catch (IOException | RuntimeException e) {
                 throw e;
-            } catch (RuntimeException e) {
-                // Clean up temp file on error (runtime failures should also not leave temp files)
-                try {
-                    java.nio.file.Files.deleteIfExists(tempFile.toPath());
-                } catch (Exception cleanupException) {
-                    logger.warn("Failed to delete temp file {}: {}", tempFile.getAbsolutePath(), cleanupException.getMessage());
+            } finally {
+                // Ensure temp file is cleaned up in all cases
+                if (tempFile != null && tempFile.exists()) {
+                    try {
+                        java.nio.file.Files.deleteIfExists(tempFile.toPath());
+                    } catch (Exception cleanupException) {
+                        logger.warn("Failed to delete temp file {}: {}", tempFile.getAbsolutePath(), cleanupException.getMessage());
+                    }
                 }
-                throw e;
             }
 
             logger.info("Saved detection results to: {}", outputFile.getAbsolutePath());

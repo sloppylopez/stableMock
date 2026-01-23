@@ -90,7 +90,8 @@ public final class WireMockServerManager {
                 WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
                         .port(currentPort)
                         .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
-                        .usingFilesUnderDirectory(mappingsDir.getAbsolutePath());
+                        .usingFilesUnderDirectory(mappingsDir.getAbsolutePath())
+                        .proxyTimeout(60000); // 60 seconds for proxy timeout (important for WSL - network can be slow)
 
                 WireMockServer server = new WireMockServer(config);
                 server.start();
@@ -290,7 +291,8 @@ public final class WireMockServerManager {
                 WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
                         .port(currentPort)
                         .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
-                        .usingFilesUnderDirectory(mappingsDir.getAbsolutePath());
+                        .usingFilesUnderDirectory(mappingsDir.getAbsolutePath())
+                        .proxyTimeout(60000); // 60 seconds for proxy timeout (important for WSL - network can be slow)
 
                 WireMockServer server = new WireMockServer(config);
                 server.start();
@@ -1206,9 +1208,9 @@ public final class WireMockServerManager {
                     if (attempts > 0) {
                         logger.debug("WireMock stub verified working on port {} after {} attempt(s)", port, attempts + 1);
                     }
-                    // Additional delay to ensure everything is fully initialized
+                    // Additional delay to ensure everything is fully initialized (increased for WSL)
                     try {
-                        Thread.sleep(200);
+                        Thread.sleep(500); // Increased from 200ms to 500ms for WSL
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }

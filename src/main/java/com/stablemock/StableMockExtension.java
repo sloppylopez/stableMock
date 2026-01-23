@@ -639,8 +639,8 @@ public class StableMockExtension
                 try {
                     com.fasterxml.jackson.databind.node.ObjectNode report = 
                             com.stablemock.core.reporting.RecordingReportGenerator.generateReport(testResourcesDir, testClassName);
-                    // Report is never null now (returns empty report if no recordings), but check if it has content
-                    // saveReport will handle deleting stale reports if empty
+                    // Report is never null now (returns empty report if there are no recordings)
+                    // saveReport will handle empty reports and delete any stale report files if needed
                     com.stablemock.core.reporting.RecordingReportGenerator.saveReport(report, testResourcesDir);
                 } catch (RuntimeException e) {
                     logger.error("Failed to generate recording report: {}", e.getMessage(), e);

@@ -1,81 +1,13 @@
 {
-  "generatedAt" : "2026-01-23T14:17:28.905744992Z",
+  "generatedAt" : "2026-01-23T14:04:20.404834956Z",
   "baseDirectory" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock",
-  "triggeredBy" : "GraphQLTest",
+  "triggeredBy" : "XmlNamespacePrefixTest",
   "testClasses" : [ {
     "testClass" : "DynamicFieldDetectionTest",
     "testMethods" : [ ]
   }, {
     "testClass" : "GraphQLTest",
     "testMethods" : [ {
-      "testMethod" : "testGraphQLQueryWithChangingVariables",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithChangingVariables",
-      "annotation" : {
-        "detectedFields" : {
-          "testClass" : "GraphQLTest",
-          "testMethod" : "testGraphQLQueryWithChangingVariables",
-          "detectedAt" : "2026-01-23T14:17:27.711407529Z",
-          "analyzed_requests_count" : 2,
-          "dynamic_fields" : [ {
-            "field_path" : "json:query",
-            "sample_values" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }" ]
-          }, {
-            "field_path" : "json:variables.code",
-            "sample_values" : [ "GB", "US" ]
-          } ],
-          "ignore_patterns" : [ "json:query", "json:variables.code" ]
-        },
-        "ignorePatterns" : [ "json:query", "json:variables.code" ],
-        "requests" : [ {
-          "method" : "POST",
-          "url" : "/graphql",
-          "requestCount" : 2,
-          "hasBody" : true,
-          "examples" : [ {
-            "mappingFile" : "graphql-a43c62e8-b16a-4581-b2cb-839ae2b099a5.json",
-            "request" : {
-              "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
-              "bodyJson" : {
-                "query" : "query GetCountry($code: ID!) { country(code: $code) { name capital } }",
-                "variables" : {
-                  "code" : "US"
-                }
-              },
-              "bodySource" : "mapping:graphql-a43c62e8-b16a-4581-b2cb-839ae2b099a5.json"
-            },
-            "response" : {
-              "status" : 500,
-              "bodyFileName" : "graphql-87af35f2-d861-4500-98f4-7c44620b533f.txt",
-              "body" : "Network failure trying to make a proxied request from WireMock to https://countries.trevorblades.com/graphql\r\nConnect to https://countries.trevorblades.com:443 [countries.trevorblades.com/151.101.133.51] failed: Connection timed out"
-            }
-          }, {
-            "mappingFile" : "graphql-b5cbb2d7-80fe-4c03-b15e-26c5cae1f342.json",
-            "request" : {
-              "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",
-              "bodyJson" : {
-                "query" : "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }",
-                "variables" : {
-                  "code" : "GB"
-                }
-              },
-              "bodySource" : "mapping:graphql-b5cbb2d7-80fe-4c03-b15e-26c5cae1f342.json"
-            },
-            "response" : {
-              "status" : 500,
-              "bodyFileName" : "graphql-b9006cad-6d4f-41b8-a4b8-ad5cbe424241.txt",
-              "body" : "Network failure trying to make a proxied request from WireMock to https://countries.trevorblades.com/graphql\r\nConnect to https://countries.trevorblades.com:443 [countries.trevorblades.com/151.101.133.51] failed: Connection timed out"
-            }
-          } ],
-          "mutatingFields" : [ {
-            "fieldPath" : "json:query",
-            "sampleValues" : [ "query GetCountry($code: ID!) { country(code: $code) { name capital currency } }", "query GetCountry($code: ID!) { country(code: $code) { name capital } }" ]
-          }, {
-            "fieldPath" : "json:variables.code",
-            "sampleValues" : [ "GB", "US" ]
-          } ]
-        } ]
-      }
-    }, {
       "testMethod" : "testGraphQLQueryWithGB",
       "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithGB",
       "annotation" : {
@@ -85,17 +17,17 @@
           "requestCount" : 1,
           "hasBody" : true,
           "examples" : [ {
-            "mappingFile" : "graphql-11019e4f-ed42-4a99-965c-bad827d9526d.json",
+            "mappingFile" : "graphql-1de6eead-aed8-4681-ab75-7dd1b5eca8b4.json",
             "request" : {
               "body" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
               "bodyJson" : {
                 "query" : "{ countries { code name } }"
               },
-              "bodySource" : "mapping:graphql-11019e4f-ed42-4a99-965c-bad827d9526d.json"
+              "bodySource" : "mapping:graphql-1de6eead-aed8-4681-ab75-7dd1b5eca8b4.json"
             },
             "response" : {
               "status" : 500,
-              "bodyFileName" : "graphql-3ec95156-4a3c-4b3b-8b42-f61f41fbc22a.txt",
+              "bodyFileName" : "graphql-0728b28d-9262-4f50-bf38-3f8c35832592.txt",
               "body" : "Network failure trying to make a proxied request from WireMock to https://countries.trevorblades.com/graphql\r\nConnect to https://countries.trevorblades.com:443 [countries.trevorblades.com/151.101.133.51] failed: Connection timed out"
             }
           } ]
@@ -135,40 +67,12 @@
           "requestCount" : 1,
           "hasBody" : false,
           "examples" : [ {
-            "mappingFile" : "get-eab92d55-3976-4f6f-97ac-6536ffb426a1.json",
+            "mappingFile" : "get-2876d868-5632-4c25-acab-541f40c10182.json",
             "request" : { },
             "response" : {
               "status" : 500,
-              "bodyFileName" : "get-fbe1dc75-1ae5-4e8f-9136-0e93e22af59d.txt",
+              "bodyFileName" : "get-515a46a6-4ddd-4315-a790-a971249e90c5.txt",
               "body" : "Network failure trying to make a proxied request from WireMock to https://postman-echo.com/get?id=99\r\nConnect to https://postman-echo.com:443 [postman-echo.com/162.159.142.41] failed: Connection timed out"
-            }
-          } ]
-        } ]
-      }
-    }, {
-      "testMethod" : "testParameterizedRequests[1]",
-      "folderPath" : "/mnt/k/dev2/stablemock/examples/spring-boot-example/src/test/resources/stablemock/ParameterizedTestExample/testParameterizedRequests[1]",
-      "annotation" : {
-        "requests" : [ {
-          "method" : "GET",
-          "url" : "/get?id=1",
-          "requestCount" : 2,
-          "hasBody" : false,
-          "examples" : [ {
-            "mappingFile" : "get-2cc910db-5a6f-4e3d-bf9a-cdc615415ca4.json",
-            "request" : { },
-            "response" : {
-              "status" : 500,
-              "bodyFileName" : "get-83638e00-8cfe-4011-b91c-6442faadcf4f.txt",
-              "body" : "Network failure trying to make a proxied request from WireMock to https://postman-echo.com/get?id=1\r\nConnect to https://postman-echo.com:443 [postman-echo.com/162.159.142.41] failed: Connection timed out"
-            }
-          }, {
-            "mappingFile" : "get-3dc63ed5-c335-47fd-9dbd-f03072a6da7a.json",
-            "request" : { },
-            "response" : {
-              "status" : 500,
-              "bodyFileName" : "get-0e3cb8b8-a168-4392-8bce-55c494fba05e.txt",
-              "body" : "Network failure trying to make a proxied request from WireMock to https://postman-echo.com/get?id=1\r\nConnect to https://postman-echo.com:443 [postman-echo.com/162.159.142.41] failed: Connection timed out"
             }
           } ]
         } ]

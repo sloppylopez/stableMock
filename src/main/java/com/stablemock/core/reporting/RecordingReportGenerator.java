@@ -598,7 +598,8 @@ public final class RecordingReportGenerator {
                     logger.debug("Deleted stale HTML recording report");
                 }
             } catch (Exception e) {
-                logger.warn("Failed to delete stale report files: {}", e.getMessage());
+                logger.warn("Failed to delete stale report files (json: {}, html: {}): {}", 
+                        jsonReportFile.getAbsolutePath(), htmlReportFile.getAbsolutePath(), e.getMessage(), e);
             }
             return;
         }
@@ -639,7 +640,8 @@ public final class RecordingReportGenerator {
                 File logoSource = new File(testResourcesDir, "images/stablemock-logo-transparent-outline.png");
                 if (logoSource.exists() && logoSource.isFile()) {
                     File logoFile = new File(stablemockDir, "stablemock-logo-transparent-outline.png");
-                    // REPLACE_EXISTING will overwrite if file exists, no exception thrown
+                    // REPLACE_EXISTING avoids FileAlreadyExistsException when target is an existing file
+                    // Note: Files.copy can still throw for non-file targets (e.g., directories) or permission issues
                     Files.copy(logoSource.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                     logger.info("Logo image copied from test resources to: {}", logoFile.getAbsolutePath());
                     return;
