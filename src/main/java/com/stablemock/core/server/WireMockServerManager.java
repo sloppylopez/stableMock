@@ -68,18 +68,18 @@ public final class WireMockServerManager {
                 WireMockServer server = new WireMockServer(config);
                 server.start();
                 
-                // Wait briefly to ensure server is ready (important for WSL/file system sync)
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
+                // Wait for server to be ready (important for WSL/file system sync)
+                // Use exponential backoff with readiness check
+                waitForServerReady(server, currentPort);
 
                 String primaryUrl = targetUrls.get(0);
                 server.stubFor(
                         WireMock.any(WireMock.anyUrl())
                                 .willReturn(WireMock.aResponse()
                                         .proxiedFrom(primaryUrl)));
+                
+                // Verify stub is registered and server is responding (important for WSL)
+                verifyStubWorking(server, currentPort);
 
                 if (attempt > 0) {
                     logger.info("Recording mode started on port {} (retry attempt {}) after port conflict, proxying to {}", 
@@ -258,12 +258,9 @@ public final class WireMockServerManager {
                 WireMockServer server = new WireMockServer(config);
                 server.start();
                 
-                // Wait briefly to ensure server is ready (important for WSL/file system sync)
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
+                // Wait for server to be ready (important for WSL/file system sync)
+                // Use exponential backoff with readiness check
+                waitForServerReady(server, currentPort);
                 
                 // Add catch-all stub to return 404 instead of proxying when no mapping matches
                 // This prevents WireMock from trying to proxy to the real API in playback mode
@@ -273,6 +270,9 @@ public final class WireMockServerManager {
                         .willReturn(WireMock.aResponse()
                             .withStatus(404)
                             .withBody("No matching stub mapping found")));
+                
+                // Verify stub is registered and server is responding (important for WSL)
+                verifyStubWorking(server, currentPort);
 
                 if (attempt > 0) {
                     logger.info("Playback mode started on port {} (retry attempt {}) after port conflict, loading mappings from {}", 
@@ -1077,5 +1077,121 @@ public final class WireMockServerManager {
 
     public static int findFreePort() {
         return PortFinder.findFreePort();
+    }
+
+    /**
+     * Waits for WireMock server to be ready to accept connections.
+     * Uses exponential backoff with a readiness check to ensure server is fully started.
+     * 
+     * @param server The WireMock server instance
+     * @param port The port the server is running on
+     */
+    private static void waitForServerReady(WireMockServer server, int port) {
+        int maxAttempts = 15; // Increased for WSL
+        long initialDelay = 100; // Start with 100ms (increased for WSL)
+        long maxDelay = 2000; // Cap at 2 seconds (increased for WSL)
+        
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            // Check if server is running
+            if (!server.isRunning()) {
+                long delay = Math.min(initialDelay * (1L << attempt), maxDelay);
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                continue;
+            }
+            
+            // Try to connect to verify server is ready (with longer timeout for WSL)
+            try {
+                java.net.Socket socket = new java.net.Socket();
+                socket.connect(new java.net.InetSocketAddress("localhost", port), 500); // Increased timeout to 500ms
+                socket.close();
+                
+                // Additional small delay after successful connection to ensure WireMock is fully initialized
+                // This is especially important in WSL where file system operations can be slower
+                try {
+                    Thread.sleep(200); // Wait 200ms after connection succeeds
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                
+                // Server is ready
+                if (attempt > 0) {
+                    logger.debug("WireMock server on port {} ready after {} attempt(s)", port, attempt + 1);
+                }
+                return;
+            } catch (java.io.IOException e) {
+                // Server not ready yet, wait and retry
+                long delay = Math.min(initialDelay * (1L << attempt), maxDelay);
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        }
+        
+        // If we get here, server might still be starting but we've waited long enough
+        logger.warn("WireMock server on port {} may not be fully ready after {} attempts, continuing anyway", port, maxAttempts);
+    }
+
+    /**
+     * Verifies that WireMock stub is working by making a test HTTP request.
+     * This ensures the server is not just accepting connections but also processing requests.
+     * 
+     * @param server The WireMock server instance
+     * @param port The port the server is running on
+     */
+    private static void verifyStubWorking(WireMockServer server, int port) {
+        int maxAttempts = 10;
+        int attempts = 0;
+        long delay = 50;
+        
+        while (attempts < maxAttempts) {
+            try {
+                // Make a simple HTTP request to verify stub is working
+                java.net.URL url = new java.net.URL("http://localhost:" + port + "/__admin");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(500);
+                conn.setReadTimeout(1000);
+                conn.setRequestMethod("GET");
+                
+                int responseCode = conn.getResponseCode();
+                conn.disconnect();
+                
+                // If we get any response (even 404), the server is working
+                if (responseCode > 0) {
+                    if (attempts > 0) {
+                        logger.debug("WireMock stub verified working on port {} after {} attempt(s)", port, attempts + 1);
+                    }
+                    // Additional delay to ensure everything is fully initialized
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return;
+                }
+            } catch (Exception e) {
+                // Server not ready yet, wait and retry
+                attempts++;
+                if (attempts < maxAttempts) {
+                    try {
+                        Thread.sleep(delay);
+                        delay = Math.min(delay * 2, 500); // Exponential backoff, max 500ms
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                }
+            }
+        }
+        
+        logger.warn("Could not verify WireMock stub on port {} after {} attempts, continuing anyway", port, maxAttempts);
     }
 }

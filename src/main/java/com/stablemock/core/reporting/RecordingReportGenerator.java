@@ -38,13 +38,20 @@ public final class RecordingReportGenerator {
     public static ObjectNode generateReport(File testResourcesDir, String triggeringTestClass) {
         File stablemockDir = new File(testResourcesDir, "stablemock");
         
-        if (!stablemockDir.exists() || !stablemockDir.isDirectory()) {
-            logger.debug("No stablemock directory found at: {}", stablemockDir.getAbsolutePath());
-            return null;
-        }
-
         ObjectNode report = objectMapper.createObjectNode();
         report.put("generatedAt", java.time.Instant.now().toString());
+        
+        if (!stablemockDir.exists() || !stablemockDir.isDirectory()) {
+            logger.debug("No stablemock directory found at: {}", stablemockDir.getAbsolutePath());
+            // Return empty report instead of null for consistency
+            report.put("baseDirectory", stablemockDir.getAbsolutePath());
+            if (triggeringTestClass != null) {
+                report.put("triggeredBy", triggeringTestClass);
+            }
+            report.putArray("testClasses");
+            return report;
+        }
+
         report.put("baseDirectory", stablemockDir.getAbsolutePath());
         if (triggeringTestClass != null) {
             report.put("triggeredBy", triggeringTestClass);
@@ -613,8 +620,13 @@ public final class RecordingReportGenerator {
                 File logoSource = new File(testResourcesDir, "images/stablemock-logo-transparent-outline.png");
                 if (logoSource.exists() && logoSource.isFile()) {
                     File logoFile = new File(stablemockDir, "stablemock-logo-transparent-outline.png");
-                    Files.copy(logoSource.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    logger.info("Logo image copied from test resources to: {}", logoFile.getAbsolutePath());
+                    try {
+                        Files.copy(logoSource.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        logger.info("Logo image copied from test resources to: {}", logoFile.getAbsolutePath());
+                    } catch (java.nio.file.FileAlreadyExistsException e) {
+                        // File already exists, that's fine - another test class may have already copied it
+                        logger.debug("Logo image already exists at: {}", logoFile.getAbsolutePath());
+                    }
                     return;
                 }
             }
@@ -628,8 +640,13 @@ public final class RecordingReportGenerator {
                 File possibleLogo = new File(currentDir, "src/test/resources/images/stablemock-logo-transparent-outline.png");
                 if (possibleLogo.exists() && possibleLogo.isFile()) {
                     File logoFile = new File(stablemockDir, "stablemock-logo-transparent-outline.png");
-                    Files.copy(possibleLogo.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    logger.info("Logo image copied from {} to: {}", possibleLogo.getAbsolutePath(), logoFile.getAbsolutePath());
+                    try {
+                        Files.copy(possibleLogo.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        logger.info("Logo image copied from {} to: {}", possibleLogo.getAbsolutePath(), logoFile.getAbsolutePath());
+                    } catch (java.nio.file.FileAlreadyExistsException e) {
+                        // File already exists, that's fine - another test class may have already copied it
+                        logger.debug("Logo image already exists at: {}", logoFile.getAbsolutePath());
+                    }
                     return;
                 }
                 currentDir = currentDir.getParentFile();

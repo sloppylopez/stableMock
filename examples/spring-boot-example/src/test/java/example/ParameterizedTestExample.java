@@ -64,9 +64,26 @@ public class ParameterizedTestExample extends BaseTestFeature {
         String mode = System.getProperty("stablemock.mode", "PLAYBACK");
         if ("RECORD".equalsIgnoreCase(mode)) {
             // In RECORD mode, we expect successful responses
+            // But allow for transient failures (timeouts, server not ready) especially in WSL
+            if (response.getStatusCode().value() != 200) {
+                // If we get a non-200 status, log it but don't fail immediately
+                // This can happen due to timing issues in WSL or network problems
+                System.err.println("WARNING: Got status " + response.getStatusCode().value() + 
+                    " for userId " + userId + " in RECORD mode. This may be a transient issue.");
+                // Only fail if we consistently get errors (retry once)
+                if (response.getStatusCode().value() == 500 || response.getStatusCode().value() == 503) {
+                    // Retry once after a brief wait
+                    try {
+                        Thread.sleep(200);
+                        response = restTemplate.getForEntity("/api/postmanecho/users/" + userId, String.class);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
             assertNotNull(response.getBody(), "Response body should not be null for userId " + userId);
             assertEquals(200, response.getStatusCode().value(), 
-                "Response should be 200 OK for userId " + userId);
+                "Response should be 200 OK for userId " + userId + " (after retry if needed)");
             
             // Verify the response contains expected data from postman-echo
             String body = response.getBody();
