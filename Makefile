@@ -88,7 +88,7 @@ spring-example:
 	if [ -n "$$CI" ]; then \
 		gradle_args="--no-daemon"; \
 	fi; \
-	cd examples/spring-boot-example && \
+	cd examples/spring-boot-example || exit 1; \
 	echo "=== Cleaning old recordings ===" && \
 	./gradlew cleanStableMock $$gradle_args && \
 	echo "=== Verifying cleanup completed ===" && \
@@ -105,7 +105,7 @@ spring-example:
 	sleep 1 && \
 	sync && \
 	echo "=== Record mode (first time) ===" && \
-	./gradlew stableMockRecord $$gradle_args && \
+	./gradlew stableMockRecord $$gradle_args || { echo "ERROR: stableMockRecord failed"; exit 1; } && \
 	echo "=== Waiting for mappings to be saved, files to be flushed, and ports to be released ===" && \
 	sleep 10 && \
 	echo "=== Verifying recordings from first run ===" && \

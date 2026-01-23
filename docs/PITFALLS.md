@@ -139,3 +139,69 @@ On WSL (Windows Subsystem for Linux), file writes may not be immediately visible
 3. Force file system sync by reading file attributes
 
 4. Run on native Linux or Windows when possible
+
+---
+
+## 6. WSL Network Timeout Issues
+
+### Problem
+
+Tests pass gracefully in CI pipelines (native Linux) but fail locally with `SocketTimeoutException` when running in WSL (Windows Subsystem for Linux). This is caused by WSL's network virtualization overhead.
+
+### Root Cause
+
+WSL uses a **virtualized network stack** that routes through the Windows host, adding significant latency and reducing throughput compared to native networking:
+
+1. **Network Stack Virtualization**: WSL network traffic goes through multiple layers (WSL → Windows host → physical network), adding latency
+2. **Resource Contention**: Multiple parallel processes competing for the virtualized network stack cause contention
+3. **Proxy Request Overhead**: WireMock proxy requests (test → WireMock → external API) take longer in WSL due to network virtualization
+
+### Symptoms
+
+- Tests pass in CI (native Linux) but fail locally in WSL
+- `SocketTimeoutException: Read timed out` errors during test execution
+- Timeouts occur when Feign clients call WireMock, which then proxies to external APIs
+- Errors like: `feign.RetryableException: Read timed out executing GET http://localhost:XXXXX/users/1`
+
+### Solutions
+
+1. **Increase Feign Client Timeouts** (in `src/test/resources/application.properties`):
+   ```properties
+   # Feign client timeout configuration (important for WSL)
+   # These timeouts need to be longer than WireMock's proxy timeout (60s)
+   feign.client.config.default.readTimeout=200000
+   feign.client.config.jsonPlaceholderClient.readTimeout=200000
+   feign.client.config.postmanEchoClient.readTimeout=200000
+   feign.client.config.graphQLClient.readTimeout=200000
+   ```
+
+2. **Increase WireMock Proxy Timeout** (already configured in `WireMockServerManager.java`):
+   ```java
+   .proxyTimeout(60000); // 60 seconds for proxy timeout (important for WSL)
+   ```
+
+3. **Timeout Chain**: Ensure timeout hierarchy:
+   - Feign client read timeout (200s) > WireMock proxy timeout (60s) > actual network request time
+
+4. **Alternative**: Run tests on native Linux or Windows instead of WSL when possible
+
+### Why This Happens
+
+- **CI pipelines** typically run on native Linux VMs with direct network access
+- **WSL** adds network virtualization overhead that native Linux doesn't have
+- The same tests that work in CI fail locally because WSL's network stack is slower
+
+### Verification
+
+If tests pass in CI but fail locally in WSL with timeouts, this is the issue. The 200-second Feign timeout should resolve it.
+
+### Troubleshooting
+
+If timeouts persist even with increased timeouts, try these steps in order:
+
+1. **Restart WSL**: `wsl --shutdown` (from PowerShell), then run tests again
+2. **Restart the computer**: Sometimes WSL's network stack gets into a bad state that only a full reboot fixes
+3. **Check Windows network state**: Ensure Windows host networking is working (try `ping google.com` from WSL)
+4. **Reduce system load**: Close other applications that might be using network resources
+
+**Note**: WSL network performance is non-deterministic. If tests passed yesterday but fail today with the same code, it's likely a WSL network state issue, not a code problem. Restarting WSL or the computer often resolves it.
