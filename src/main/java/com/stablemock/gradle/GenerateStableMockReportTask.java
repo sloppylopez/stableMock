@@ -39,7 +39,7 @@ public class GenerateStableMockReportTask extends DefaultTask {
         
         ObjectNode report = RecordingReportGenerator.generateReport(testResourcesDirFile, "GradleTask");
         
-        if (report != null) {
+        if (report != null && report.has("testClasses") && report.get("testClasses").size() > 0) {
             RecordingReportGenerator.saveReport(report, testResourcesDirFile);
             getLogger().lifecycle("Report generated successfully!");
             

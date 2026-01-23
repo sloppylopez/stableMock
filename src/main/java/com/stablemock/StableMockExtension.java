@@ -639,7 +639,8 @@ public class StableMockExtension
                 try {
                     com.fasterxml.jackson.databind.node.ObjectNode report = 
                             com.stablemock.core.reporting.RecordingReportGenerator.generateReport(testResourcesDir, testClassName);
-                    if (report != null) {
+                    // Report is never null now (returns empty report if no recordings), but check if it has content
+                    if (report != null && report.has("testClasses") && report.get("testClasses").size() > 0) {
                         com.stablemock.core.reporting.RecordingReportGenerator.saveReport(report, testResourcesDir);
                     }
                 } catch (RuntimeException e) {

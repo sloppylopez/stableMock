@@ -99,14 +99,32 @@ public final class AnalysisResultStorage {
                 patternsArray.add(pattern);
             }
 
-            // Write to file
-            objectMapper.writeValue(outputFile, json);
-            
-            // Small delay after file write to ensure file system sync (important for WSL)
+            // Use atomic write pattern: write to temp file then atomically move
+            File tempFile = new File(outputFile.getParentFile(), outputFile.getName() + ".tmp");
             try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                objectMapper.writeValue(tempFile, json);
+                // Force file system sync for durability (important for WSL)
+                try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(tempFile.toPath(), 
+                        java.nio.file.StandardOpenOption.WRITE)) {
+                    channel.force(true);
+                }
+                // Atomic move - this is the critical operation that ensures visibility
+                // Try atomic move first, fall back to regular move if not supported
+                try {
+                    java.nio.file.Files.move(tempFile.toPath(), outputFile.toPath(), 
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                    // Fall back to regular move if atomic move not supported (e.g., different filesystems)
+                    java.nio.file.Files.move(tempFile.toPath(), outputFile.toPath(), 
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (Exception e) {
+                // Clean up temp file on error
+                if (tempFile.exists()) {
+                    tempFile.delete();
+                }
+                throw e;
             }
 
             logger.info("Saved detection results to: {}", outputFile.getAbsolutePath());

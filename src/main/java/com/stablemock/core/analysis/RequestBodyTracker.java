@@ -139,13 +139,32 @@ public final class RequestBodyTracker {
      */
     private static void saveRequestHistory(File trackingFile, List<RequestSnapshot> history)
             throws IOException {
-        objectMapper.writeValue(trackingFile, history);
-        
-        // Small delay after file write to ensure file system sync (important for WSL)
+        // Use atomic write pattern: write to temp file then atomically move
+        File tempFile = new File(trackingFile.getParentFile(), trackingFile.getName() + ".tmp");
         try {
-            Thread.sleep(50);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            objectMapper.writeValue(tempFile, history);
+            // Force file system sync for durability (important for WSL)
+            try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(tempFile.toPath(), 
+                    java.nio.file.StandardOpenOption.WRITE)) {
+                channel.force(true);
+            }
+            // Atomic move - this is the critical operation that ensures visibility
+            // Try atomic move first, fall back to regular move if not supported
+            try {
+                java.nio.file.Files.move(tempFile.toPath(), trackingFile.toPath(), 
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                // Fall back to regular move if atomic move not supported (e.g., different filesystems)
+                java.nio.file.Files.move(tempFile.toPath(), trackingFile.toPath(), 
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (Exception e) {
+            // Clean up temp file on error
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
+            throw e;
         }
     }
 }
