@@ -36,11 +36,24 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         File mappingsSubDir = new File(mappingsDir, "mappings");
         File filesSubDir = new File(mappingsDir, "__files");
 
-        if (!mappingsSubDir.exists() && !mappingsSubDir.mkdirs()) {
-            throw new IOException("Failed to create mappings subdirectory: " + mappingsSubDir.getAbsolutePath());
+        // Use Files.createDirectories() which is atomic and handles race conditions
+        try {
+            java.nio.file.Files.createDirectories(mappingsSubDir.toPath());
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            if (!mappingsSubDir.isDirectory()) {
+                throw new IOException("Path exists but is not a directory: " + mappingsSubDir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            throw new IOException("Failed to create mappings subdirectory: " + mappingsSubDir.getAbsolutePath(), e);
         }
-        if (!filesSubDir.exists() && !filesSubDir.mkdirs()) {
-            throw new IOException("Failed to create __files subdirectory: " + filesSubDir.getAbsolutePath());
+        try {
+            java.nio.file.Files.createDirectories(filesSubDir.toPath());
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            if (!filesSubDir.isDirectory()) {
+                throw new IOException("Path exists but is not a directory: " + filesSubDir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            throw new IOException("Failed to create __files subdirectory: " + filesSubDir.getAbsolutePath(), e);
         }
 
         RecordSpecBuilder builder = new RecordSpecBuilder()

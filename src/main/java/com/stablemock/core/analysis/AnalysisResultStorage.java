@@ -57,10 +57,17 @@ public final class AnalysisResultStorage {
             File outputFile = getOutputFile(testResourcesDir, testClassName,
                     testMethodName, annotationIndex);
 
-            // Create parent directories if needed
+            // Create parent directories if needed (atomic operation to avoid race conditions)
             File parentDir = outputFile.getParentFile();
-            if (!parentDir.exists() && !parentDir.mkdirs()) {
-                throw new IOException("Failed to create directory: " + parentDir.getAbsolutePath());
+            try {
+                java.nio.file.Files.createDirectories(parentDir.toPath());
+            } catch (java.nio.file.FileAlreadyExistsException e) {
+                // Directory already exists, that's fine (another thread may have created it)
+                if (!parentDir.isDirectory()) {
+                    throw new IOException("Path exists but is not a directory: " + parentDir.getAbsolutePath());
+                }
+            } catch (Exception e) {
+                throw new IOException("Failed to create directory: " + parentDir.getAbsolutePath(), e);
             }
 
             // Convert to JSON
@@ -94,6 +101,13 @@ public final class AnalysisResultStorage {
 
             // Write to file
             objectMapper.writeValue(outputFile, json);
+            
+            // Small delay after file write to ensure file system sync (important for WSL)
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
 
             logger.info("Saved detection results to: {}", outputFile.getAbsolutePath());
             logger.info("Detected {} dynamic fields: {}",

@@ -678,8 +678,9 @@ public class StableMockExtension
         }
         
         // Try to verify port is actually released by attempting to bind to it
-        int maxAttempts = 10;
-        int delayMs = 50;
+        // Increased attempts and delay for WSL where port release can be slower
+        int maxAttempts = 30; // Increased from 10 for WSL (more conservative)
+        int delayMs = 150; // Increased from 50ms for WSL (more conservative)
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             try (java.net.ServerSocket socket = new java.net.ServerSocket()) {
                 socket.setReuseAddress(false);

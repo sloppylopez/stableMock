@@ -43,17 +43,44 @@ public final class WireMockServerManager {
             logger.warn("Multiple target URLs provided for recording; using only the first: {}", targetUrls.get(0));
         }
 
-        if (!mappingsDir.exists() && !mappingsDir.mkdirs()) {
-            throw new RuntimeException("Failed to create mappings directory: " + mappingsDir.getAbsolutePath());
+        // Use Files.createDirectories() which is atomic and handles race conditions
+        try {
+            java.nio.file.Files.createDirectories(mappingsDir.toPath());
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            // Directory already exists, that's fine (another thread may have created it)
+            if (!mappingsDir.isDirectory()) {
+                throw new RuntimeException("Path exists but is not a directory: " + mappingsDir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create mappings directory: " + mappingsDir.getAbsolutePath(), e);
         }
 
         File mappingsSubDir = new File(mappingsDir, "mappings");
         File filesSubDir = new File(mappingsDir, "__files");
-        if (!mappingsSubDir.exists() && !mappingsSubDir.mkdirs()) {
-            throw new RuntimeException("Failed to create mappings subdirectory: " + mappingsSubDir.getAbsolutePath());
+        try {
+            java.nio.file.Files.createDirectories(mappingsSubDir.toPath());
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            if (!mappingsSubDir.isDirectory()) {
+                throw new RuntimeException("Path exists but is not a directory: " + mappingsSubDir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create mappings subdirectory: " + mappingsSubDir.getAbsolutePath(), e);
         }
-        if (!filesSubDir.exists() && !filesSubDir.mkdirs()) {
-            throw new RuntimeException("Failed to create __files subdirectory: " + filesSubDir.getAbsolutePath());
+        try {
+            java.nio.file.Files.createDirectories(filesSubDir.toPath());
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            if (!filesSubDir.isDirectory()) {
+                throw new RuntimeException("Path exists but is not a directory: " + filesSubDir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create __files subdirectory: " + filesSubDir.getAbsolutePath(), e);
+        }
+        
+        // Small delay after directory creation to ensure file system sync (important for WSL)
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
 
         int currentPort = port;
@@ -123,9 +150,19 @@ public final class WireMockServerManager {
         logger.info("=== Starting WireMock playback on port {} ===", port);
         logger.info("Loading mappings from: {}", mappingsDir.getAbsolutePath());
         
-        if (!mappingsDir.exists() && !mappingsDir.mkdirs()) {
-            logger.error("Mappings directory does not exist: {}", mappingsDir.getAbsolutePath());
-        } else {
+        // Use Files.createDirectories() which is atomic and handles race conditions
+        try {
+            java.nio.file.Files.createDirectories(mappingsDir.toPath());
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            // Directory already exists, that's fine (another thread may have created it)
+            if (!mappingsDir.isDirectory()) {
+                logger.error("Path exists but is not a directory: {}", mappingsDir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            logger.error("Failed to create mappings directory: {} - {}", mappingsDir.getAbsolutePath(), e.getMessage());
+        }
+        
+        if (mappingsDir.exists() && mappingsDir.isDirectory()) {
             File mappingsSubDir = new File(mappingsDir, "mappings");
             if (mappingsSubDir.exists()) {
                 File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));

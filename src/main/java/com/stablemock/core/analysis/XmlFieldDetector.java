@@ -110,7 +110,7 @@ public final class XmlFieldDetector {
      * 
      * IMPORTANT: Strips namespace prefixes from element names before using in local-name().
      * The local-name() XPath function returns only the local part (without prefix),
-     * so we must extract the local name from qualified names like "ns4:OTA_HotelAvailRQ".
+     * so we must extract the local name from qualified names like "ns4:RequestElement".
      * 
      * @param path The element path (may contain namespace prefixes like "ns4:Element")
      * @return XPath expression using local-name() with prefixes stripped
@@ -126,7 +126,7 @@ public final class XmlFieldDetector {
                 continue;
             }
             // Extract local name (remove namespace prefix if present)
-            // Example: "ns4:OTA_HotelAvailRQ" -> "OTA_HotelAvailRQ"
+            // Example: "ns4:RequestElement" -> "RequestElement"
             // Example: "SOAP-ENV:Envelope" -> "Envelope"
             String localName = extractLocalName(part);
             if (xpath.length() == 0) {
@@ -142,7 +142,7 @@ public final class XmlFieldDetector {
      * Extracts the local name from a qualified name, removing any namespace prefix.
      * 
      * Examples:
-     * - "ns4:OTA_HotelAvailRQ" -> "OTA_HotelAvailRQ"
+     * - "ns4:RequestElement" -> "RequestElement"
      * - "SOAP-ENV:Envelope" -> "Envelope"
      * - "Element" -> "Element" (no prefix)
      * 
