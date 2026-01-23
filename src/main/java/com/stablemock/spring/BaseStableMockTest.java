@@ -4,7 +4,9 @@ import com.stablemock.WireMockContext;
 import com.stablemock.U;
 import org.springframework.test.context.DynamicPropertyRegistry;
 
-import java.lang.annotation.Annotation;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Properties;
 
 /**
  * Base class for Spring Boot tests using StableMock.
@@ -59,6 +61,10 @@ public abstract class BaseStableMockTest {
      * 3. Global system property: stablemock.baseUrl
      * 4. Default URL (from application.properties if not provided)
      * 
+     * Path preservation: Automatically preserves paths from original property values
+     * (system properties, application.properties, or defaultUrl) and appends them
+     * to the WireMock base URL.
+     * 
      * @param registry      The dynamic property registry
      * @param propertyName  The property name to register (e.g.,
      *                      "app.thirdparty.url")
@@ -71,10 +77,14 @@ public abstract class BaseStableMockTest {
             String propertyName,
             String testClassName,
             String defaultUrl) {
+        final String pathToPreserve = extractPathFromProperty(propertyName, defaultUrl);
         registry.add(propertyName, () -> {
             // Only override if StableMock is active (has ThreadLocal value)
             String baseUrl = getThreadLocalBaseUrl();
             if (baseUrl != null && !baseUrl.isEmpty()) {
+                if (pathToPreserve != null && !pathToPreserve.isEmpty()) {
+                    return baseUrl + pathToPreserve; // Preserve path
+                }
                 return baseUrl; // StableMock is active, use WireMock URL
             }
             // StableMock not active, check system properties as fallback
@@ -84,7 +94,15 @@ public abstract class BaseStableMockTest {
             }
             // If still no value, return default (which matches application.properties)
             // Spring will use application.properties value if we return null/empty
-            return baseUrl != null && !baseUrl.isEmpty() ? baseUrl : defaultUrl;
+            String fallbackUrl = baseUrl != null && !baseUrl.isEmpty() ? baseUrl : defaultUrl;
+            if (fallbackUrl != null && pathToPreserve != null && !pathToPreserve.isEmpty()) {
+                // Extract base URL from fallback and append path
+                String fallbackBase = extractBaseUrl(fallbackUrl);
+                if (fallbackBase != null) {
+                    return fallbackBase + pathToPreserve;
+                }
+            }
+            return fallbackUrl;
         });
     }
 
@@ -103,6 +121,10 @@ public abstract class BaseStableMockTest {
      * 3. Global system property: stablemock.baseUrl.<index>
      * 4. Default URL (from application.properties if not provided)
      * 
+     * Path preservation: Automatically preserves paths from original property values
+     * (system properties, application.properties, or defaultUrl) and appends them
+     * to the WireMock base URL.
+     * 
      * @param registry      The dynamic property registry
      * @param propertyName  The property name to register (e.g.,
      *                      "app.thirdparty.url")
@@ -117,10 +139,14 @@ public abstract class BaseStableMockTest {
             String testClassName,
             int index,
             String defaultUrl) {
+        final String pathToPreserve = extractPathFromProperty(propertyName, defaultUrl);
         registry.add(propertyName, () -> {
             // Only override if StableMock is active (has ThreadLocal value)
             String wireMockUrl = getThreadLocalBaseUrlByIndex(index);
             if (wireMockUrl != null && !wireMockUrl.isEmpty()) {
+                if (pathToPreserve != null && !pathToPreserve.isEmpty()) {
+                    return wireMockUrl + pathToPreserve; // Preserve path
+                }
                 return wireMockUrl; // StableMock is active, use WireMock URL
             }
             // StableMock not active, check system properties as fallback
@@ -130,7 +156,15 @@ public abstract class BaseStableMockTest {
             }
             // If still no value, return default (which matches application.properties)
             // Spring will use application.properties value if we return null/empty
-            return wireMockUrl != null && !wireMockUrl.isEmpty() ? wireMockUrl : defaultUrl;
+            String fallbackUrl = wireMockUrl != null && !wireMockUrl.isEmpty() ? wireMockUrl : defaultUrl;
+            if (fallbackUrl != null && pathToPreserve != null && !pathToPreserve.isEmpty()) {
+                // Extract base URL from fallback and append path
+                String fallbackBase = extractBaseUrl(fallbackUrl);
+                if (fallbackBase != null) {
+                    return fallbackBase + pathToPreserve;
+                }
+            }
+            return fallbackUrl;
         });
     }
 
@@ -266,5 +300,134 @@ public abstract class BaseStableMockTest {
         // Since @U is repeating, we use getAnnotationsByType which handles the
         // container
         return testClass.getAnnotationsByType(U.class);
+    }
+
+    /**
+     * Extracts the path from a property value by reading from multiple sources.
+     * Priority order:
+     * 1. System property
+     * 2. Classpath properties files (application-{profile}.properties, application.properties)
+     * 3. defaultUrl parameter (if it contains a path)
+     * 
+     * @param propertyName The property name to look up
+     * @param defaultUrl   The default URL from @U annotation (fallback source)
+     * @return The path component (e.g., "/sap/bc/bsp/sap/zey_4ct_ng_w2av/start.htm") or null if no path found
+     */
+    private static String extractPathFromProperty(String propertyName, String defaultUrl) {
+        // 1. Try system property
+        String value = System.getProperty(propertyName);
+        if (value != null && !value.isEmpty()) {
+            String path = extractPath(value);
+            if (path != null) {
+                return path;
+            }
+        }
+
+        // 2. Try properties files
+        String activeProfile = System.getProperty("spring.profiles.active", "");
+        String[] possibleFileNames = {
+            "application-" + activeProfile + ".properties",
+            "application.properties"
+        };
+
+        for (String fileName : possibleFileNames) {
+            String propValue = readPropertyFromClasspath(fileName, propertyName);
+            if (propValue != null && !propValue.isEmpty()) {
+                String path = extractPath(propValue);
+                if (path != null) {
+                    return path;
+                }
+            }
+        }
+
+        // 3. Try defaultUrl
+        if (defaultUrl != null && !defaultUrl.isEmpty()) {
+            return extractPath(defaultUrl);
+        }
+
+        return null;
+    }
+
+    /**
+     * Extracts the path component from a URL string.
+     * 
+     * @param urlString The URL string (e.g., "https://api.example.com/v1/users")
+     * @return The path component (e.g., "/v1/users") or null if no path or parsing fails
+     */
+    private static String extractPath(String urlString) {
+        try {
+            URL url = new URL(urlString);
+            String path = url.getPath();
+            // Also include query string if present
+            String query = url.getQuery();
+            if (query != null && !query.isEmpty()) {
+                path = path + "?" + query;
+            }
+            // Also include fragment if present
+            String fragment = url.getRef();
+            if (fragment != null && !fragment.isEmpty()) {
+                path = path + "#" + fragment;
+            }
+            return (path != null && !path.isEmpty()) ? path : null;
+        } catch (Exception e) {
+            // Graceful degradation: if URL parsing fails, return null
+            return null;
+        }
+    }
+
+    /**
+     * Extracts the base URL (protocol + host + port) from a URL string, removing the path.
+     * 
+     * @param urlString The full URL string
+     * @return The base URL (e.g., "https://api.example.com") or null if parsing fails
+     */
+    private static String extractBaseUrl(String urlString) {
+        try {
+            URL url = new URL(urlString);
+            int port = url.getPort();
+            if (port == -1) {
+                // Default port for protocol
+                return url.getProtocol() + "://" + url.getHost();
+            }
+            return url.getProtocol() + "://" + url.getHost() + ":" + port;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Reads a property value from a properties file on the classpath.
+     * Tries multiple classloaders for robustness.
+     * 
+     * @param fileName     The properties file name (e.g., "application.properties")
+     * @param propertyName The property name to read
+     * @return The property value or null if not found
+     */
+    private static String readPropertyFromClasspath(String fileName, String propertyName) {
+        ClassLoader[] classLoaders = {
+            Thread.currentThread().getContextClassLoader(),
+            BaseStableMockTest.class.getClassLoader(),
+            ClassLoader.getSystemClassLoader()
+        };
+
+        for (ClassLoader classLoader : classLoaders) {
+            if (classLoader == null) {
+                continue;
+            }
+            try (InputStream inputStream = classLoader.getResourceAsStream(fileName)) {
+                if (inputStream != null) {
+                    Properties properties = new Properties();
+                    properties.load(inputStream);
+                    String value = properties.getProperty(propertyName);
+                    if (value != null && !value.trim().isEmpty()) {
+                        return value.trim();
+                    }
+                }
+            } catch (Exception e) {
+                // Continue to next classloader or file
+            }
+        }
+
+        return null;
     }
 }
