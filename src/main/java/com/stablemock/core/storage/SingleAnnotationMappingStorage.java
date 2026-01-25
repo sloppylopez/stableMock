@@ -848,17 +848,15 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             if (postCount == 0 && postMappingsCopied == 0) {
                 logger.error("No POST mappings found in merged mappings! This will cause POST requests to fail.");
                 // List all test method directories to help debug
-                if (testMethodDirs != null && testMethodDirs.length > 0) {
-                    logger.error("Test method directories checked:");
-                    for (File testMethodDir : testMethodDirs) {
-                        File methodMappingsDir = new File(testMethodDir, "mappings");
-                        int fileCount = 0;
-                        if (methodMappingsDir.exists()) {
-                            File[] files = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-                            fileCount = files != null ? files.length : 0;
-                        }
-                        logger.error("  - {}: {} mapping file(s)", testMethodDir.getName(), fileCount);
+                logger.error("Test method directories checked:");
+                for (File testMethodDir : testMethodDirs) {
+                    File methodMappingsDir = new File(testMethodDir, "mappings");
+                    int fileCount = 0;
+                    if (methodMappingsDir.exists()) {
+                        File[] files = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                        fileCount = files != null ? files.length : 0;
                     }
+                    logger.error("  - {}: {} mapping file(s)", testMethodDir.getName(), fileCount);
                 }
             }
             if (getCount == 0 && getMappingsCopied == 0) {
@@ -867,10 +865,8 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         } else {
             logger.error("No mappings found in class-level directory after merge! Directory: {}", classMappingsDir.getAbsolutePath());
             // List what test method directories exist for debugging
-            if (testMethodDirs != null && testMethodDirs.length > 0) {
-                logger.error("Test method directories that were checked: {}", 
-                    java.util.Arrays.toString(java.util.Arrays.stream(testMethodDirs).map(File::getName).toArray(String[]::new)));
-            }
+            logger.error("Test method directories that were checked: {}", 
+                java.util.Arrays.toString(java.util.Arrays.stream(testMethodDirs).map(File::getName).toArray(String[]::new)));
         }
         
         // Ensure files are flushed to disk before WireMock tries to load them

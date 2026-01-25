@@ -81,7 +81,8 @@ public final class DynamicFieldAnalysisOrchestrator {
                 try {
                     // Get serve events from the specific server for this annotation index
                     List<ServeEvent> annotationServeEvents = allServeEvents;
-                    Integer annotationExistingRequestCount = existingRequestCount;
+                    // Treat null as 0 to avoid passing null downstream and to satisfy static analysis
+                    Integer annotationExistingRequestCount = existingRequestCount != null ? existingRequestCount : 0;
                     
                     if (allServers != null && !allServers.isEmpty() && annotationIndex < allServers.size()) {
                         // Multiple servers - get events from the specific server for this annotation
@@ -90,9 +91,12 @@ public final class DynamicFieldAnalysisOrchestrator {
                             annotationServeEvents = annotationServer.getAllServeEvents();
                             // For multiple servers, use per-server existing request counts when available
                             if (existingRequestCounts != null && annotationIndex < existingRequestCounts.size()) {
-                                annotationExistingRequestCount = existingRequestCounts.get(annotationIndex);
+                                Integer perServerCount = existingRequestCounts.get(annotationIndex);
+                                annotationExistingRequestCount = perServerCount != null ? perServerCount : 0;
                             } else {
-                                annotationExistingRequestCount = (annotationIndex == 0) ? existingRequestCount : 0;
+                                annotationExistingRequestCount = (annotationIndex == 0)
+                                        ? (existingRequestCount != null ? existingRequestCount : 0)
+                                        : 0;
                             }
                         }
                     }

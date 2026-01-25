@@ -59,12 +59,12 @@ class QueryParametersDynamicFieldsTest extends BaseStableMockTest {
         
         String mode = System.getProperty("stablemock.mode", "PLAYBACK");
         
-        Integer page1;
-        Integer limit1;
+        int page1;
+        int limit1;
         String timestamp1;
         String correlationId1;
-        Integer page2;
-        Integer limit2;
+        int page2;
+        int limit2;
         String timestamp2;
         String correlationId2;
         
@@ -86,24 +86,28 @@ class QueryParametersDynamicFieldsTest extends BaseStableMockTest {
                 Map<String, String> params1 = readQueryParamsFromMappings("testGetWithChangingQueryParams", 1);
                 Map<String, String> params2 = readQueryParamsFromMappings("testGetWithChangingQueryParams", 2);
                 
-                page1 = Integer.parseInt(params1.get("page"));
-                limit1 = Integer.parseInt(params1.get("limit"));
+                String page1Str = params1.get("page");
+                String limit1Str = params1.get("limit");
                 timestamp1 = params1.get("timestamp");
                 correlationId1 = params1.get("correlationId");
                 
-                page2 = Integer.parseInt(params2.get("page"));
-                limit2 = Integer.parseInt(params2.get("limit"));
+                String page2Str = params2.get("page");
+                String limit2Str = params2.get("limit");
                 timestamp2 = params2.get("timestamp");
                 correlationId2 = params2.get("correlationId");
                 
-                // Validate that we got all required parameters
-                if (params1.get("page") == null || params1.get("limit") == null || 
-                    params1.get("timestamp") == null || params1.get("correlationId") == null ||
-                    params2.get("page") == null || params2.get("limit") == null || 
-                    params2.get("timestamp") == null || params2.get("correlationId") == null) {
+                // Validate that we got all required parameters BEFORE parsing ints
+                if (page1Str == null || limit1Str == null || timestamp1 == null || correlationId1 == null ||
+                    page2Str == null || limit2Str == null || timestamp2 == null || correlationId2 == null) {
                     throw new RuntimeException("Failed to read all required query parameters from mappings. " +
                             "params1: " + params1 + ", params2: " + params2);
                 }
+                
+                page1 = Integer.parseInt(page1Str);
+                limit1 = Integer.parseInt(limit1Str);
+                
+                page2 = Integer.parseInt(page2Str);
+                limit2 = Integer.parseInt(limit2Str);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to read query parameters from mappings in playback mode. " +
                         "Make sure mappings exist and were recorded correctly. Error: " + e.getMessage(), e);
