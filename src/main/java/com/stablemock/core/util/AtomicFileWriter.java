@@ -73,7 +73,7 @@ public final class AtomicFileWriter {
                 try {
                     Files.deleteIfExists(tempPath);
                 } catch (Exception cleanupException) {
-                    logger.warn("Failed to delete temp file {}: {}", tempFile.getAbsolutePath(), cleanupException.getMessage());
+                    logger.warn("Failed to delete temp file {}", tempFile.getAbsolutePath(), cleanupException);
                 }
             }
         }
