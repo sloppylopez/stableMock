@@ -68,8 +68,6 @@ public final class AtomicFileWriter {
                 // Non-fatal; log at debug level if needed in the future.
             }
             tempFile = null;
-        } catch (IOException | RuntimeException e) {
-            throw e;
         } finally {
             if (tempFile != null && tempFile.exists()) {
                 try {
