@@ -36,10 +36,17 @@ public final class AtomicFileWriter {
      * @throws IOException if writing or moving fails
      */
     public static void writeAtomically(File targetFile, Writer writer) throws IOException {
-        Path tempPath = Files.createTempFile(
-                targetFile.getParentFile().toPath(),
-                targetFile.getName(),
-                ".tmp");
+        File parent = targetFile.getParentFile();
+        if (parent == null) {
+            throw new IOException("Target file must have a parent directory for atomic write: " + targetFile);
+        }
+        // Ensure parent directory exists
+        Files.createDirectories(parent.toPath());
+
+        // Files.createTempFile requires prefix length >= 3. Use a fixed, safe prefix
+        // and include the target file name in the suffix for easier debugging.
+        String suffix = "-" + targetFile.getName() + ".tmp";
+        Path tempPath = Files.createTempFile(parent.toPath(), "stablemock-", suffix);
         File tempFile = tempPath.toFile();
         try {
             writer.write(tempPath);
@@ -52,6 +59,13 @@ public final class AtomicFileWriter {
                         StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException e) {
                 Files.move(tempPath, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // Best-effort fsync of parent directory to improve rename durability on POSIX.
+            try (FileChannel dirChannel = FileChannel.open(parent.toPath(), StandardOpenOption.READ)) {
+                dirChannel.force(true);
+            } catch (IOException dirSyncException) {
+                // Non-fatal; log at debug level if needed in the future.
             }
             tempFile = null;
         } catch (IOException | RuntimeException e) {

@@ -168,20 +168,21 @@ WSL uses a **virtualized network stack** that routes through the Windows host, a
 1. **Increase Feign Client Timeouts** (in `src/test/resources/application.properties`):
    ```properties
    # Feign client timeout configuration (important for WSL)
-   # These timeouts need to be longer than WireMock's proxy timeout (60s)
+   # These timeouts need to be longer than WireMock's proxy timeout (default 60s)
    feign.client.config.default.readTimeout=200000
    feign.client.config.jsonPlaceholderClient.readTimeout=200000
    feign.client.config.postmanEchoClient.readTimeout=200000
    feign.client.config.graphQLClient.readTimeout=200000
    ```
 
-2. **Increase WireMock Proxy Timeout** (already configured in `WireMockServerManager.java`):
+2. **Increase WireMock Proxy Timeout** (configured in `WireMockServerManager.java` via `StableMockConfig`):
    ```java
-   .proxyTimeout(60000); // 60 seconds for proxy timeout (important for WSL)
+   // Default 60000 ms (60s), configurable via -Dstablemock.wiremock.proxyTimeoutMs
+   .proxyTimeout(StableMockConfig.getProxyTimeoutMs());
    ```
 
 3. **Timeout Chain**: Ensure timeout hierarchy:
-   - Feign client read timeout (200s) > WireMock proxy timeout (60s) > actual network request time
+   - Feign client read timeout (200s) > WireMock proxy timeout (default 60s) > actual network request time
 
 4. **Alternative**: Run tests on native Linux or Windows instead of WSL when possible
 
