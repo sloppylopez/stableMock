@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.common.FatalStartupException;
 import com.stablemock.core.config.PortFinder;
+import com.stablemock.core.config.StableMockConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -87,11 +88,12 @@ public final class WireMockServerManager {
         int maxRetries = 5;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
+                int proxyTimeoutMs = StableMockConfig.getProxyTimeoutMs();
                 WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
                         .port(currentPort)
                         .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
                         .usingFilesUnderDirectory(mappingsDir.getAbsolutePath())
-                        .proxyTimeout(60000); // 60 seconds for proxy timeout (important for WSL - network can be slow)
+                        .proxyTimeout(proxyTimeoutMs); // Configurable proxy timeout (default 60s, important for WSL)
 
                 WireMockServer server = new WireMockServer(config);
                 server.start();
@@ -288,11 +290,12 @@ public final class WireMockServerManager {
         int maxRetries = 5;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
+                int proxyTimeoutMs = StableMockConfig.getProxyTimeoutMs();
                 WireMockConfiguration config = WireMockConfiguration.wireMockConfig()
                         .port(currentPort)
                         .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
                         .usingFilesUnderDirectory(mappingsDir.getAbsolutePath())
-                        .proxyTimeout(60000); // 60 seconds for proxy timeout (important for WSL - network can be slow)
+                        .proxyTimeout(proxyTimeoutMs); // Configurable proxy timeout (default 60s, important for WSL)
 
                 WireMockServer server = new WireMockServer(config);
                 server.start();
@@ -1208,11 +1211,15 @@ public final class WireMockServerManager {
                     if (attempts > 0) {
                         logger.debug("WireMock stub verified working on port {} after {} attempt(s)", port, attempts + 1);
                     }
-                    // Additional delay to ensure everything is fully initialized (increased for WSL)
-                    try {
-                        Thread.sleep(500); // Increased from 200ms to 500ms for WSL
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
+                    // Additional delay to ensure everything is fully initialized.
+                    // Tunable via stablemock.wiremock.startupExtraSleepMs (default 500ms, tuned for WSL).
+                    int extraSleepMs = StableMockConfig.getStartupExtraSleepMs();
+                    if (extraSleepMs > 0) {
+                        try {
+                            Thread.sleep(extraSleepMs);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
                     }
                     return;
                 }

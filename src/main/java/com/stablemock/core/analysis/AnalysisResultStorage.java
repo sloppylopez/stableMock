@@ -99,24 +99,30 @@ public final class AnalysisResultStorage {
                 patternsArray.add(pattern);
             }
 
-            // Use atomic write pattern: write to temp file then atomically move
-            File tempFile = new File(outputFile.getParentFile(), outputFile.getName() + ".tmp");
+            // Use atomic write pattern: write to a unique temp file then atomically move.
+            // Using a unique temp file avoids cross-writer clobbering when multiple JVMs
+            // or processes write to the same directory concurrently.
+            java.nio.file.Path tempPath = java.nio.file.Files.createTempFile(
+                    outputFile.getParentFile().toPath(),
+                    outputFile.getName(),
+                    ".tmp");
+            File tempFile = tempPath.toFile();
             try {
                 objectMapper.writeValue(tempFile, json);
                 // Force file system sync for durability (important for WSL)
-                try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(tempFile.toPath(), 
+                try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(tempPath,
                         java.nio.file.StandardOpenOption.WRITE)) {
                     channel.force(true);
                 }
                 // Atomic move - this is the critical operation that ensures visibility
                 // Try atomic move first, fall back to regular move if not supported
                 try {
-                    java.nio.file.Files.move(tempFile.toPath(), outputFile.toPath(), 
+                    java.nio.file.Files.move(tempPath, outputFile.toPath(),
                             java.nio.file.StandardCopyOption.REPLACE_EXISTING,
                             java.nio.file.StandardCopyOption.ATOMIC_MOVE);
                 } catch (java.nio.file.AtomicMoveNotSupportedException e) {
                     // Fall back to regular move if atomic move not supported (e.g., different filesystems)
-                    java.nio.file.Files.move(tempFile.toPath(), outputFile.toPath(), 
+                    java.nio.file.Files.move(tempPath, outputFile.toPath(),
                             java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 }
                 // Success - temp file was moved, so it no longer exists
@@ -127,7 +133,7 @@ public final class AnalysisResultStorage {
                 // Ensure temp file is cleaned up in all cases
                 if (tempFile != null && tempFile.exists()) {
                     try {
-                        java.nio.file.Files.deleteIfExists(tempFile.toPath());
+                        java.nio.file.Files.deleteIfExists(tempPath);
                     } catch (Exception cleanupException) {
                         logger.warn("Failed to delete temp file {}: {}", tempFile.getAbsolutePath(), cleanupException.getMessage());
                     }

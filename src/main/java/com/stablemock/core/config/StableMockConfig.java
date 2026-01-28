@@ -13,6 +13,10 @@ public final class StableMockConfig {
     public static final String BASE_URL_PROPERTY = "stablemock.baseUrl";
     public static final String PORT_PROPERTY = "stablemock.port";
     public static final String GLOBAL_PROPERTIES_PROPERTY = "stablemock.globalProperties";
+    public static final String PROXY_TIMEOUT_MS_PROPERTY = "stablemock.wiremock.proxyTimeoutMs";
+    public static final int DEFAULT_PROXY_TIMEOUT_MS = 60000;
+    public static final String STARTUP_EXTRA_SLEEP_MS_PROPERTY = "stablemock.wiremock.startupExtraSleepMs";
+    public static final int DEFAULT_STARTUP_EXTRA_SLEEP_MS = 500;
     
     private StableMockConfig() {
         // utility class
@@ -32,5 +36,22 @@ public final class StableMockConfig {
 
     public static boolean useGlobalProperties() {
         return Boolean.parseBoolean(System.getProperty(GLOBAL_PROPERTIES_PROPERTY, "true"));
+    }
+
+    /**
+     * Returns the WireMock proxy timeout in milliseconds.
+     * Defaults to 60 seconds but can be overridden via system property.
+     */
+    public static int getProxyTimeoutMs() {
+        return Integer.getInteger(PROXY_TIMEOUT_MS_PROPERTY, DEFAULT_PROXY_TIMEOUT_MS);
+    }
+
+    /**
+     * Extra sleep after verifying WireMock stub startup, in milliseconds.
+     * Defaults to 500ms (tuned for WSL), but can be reduced or increased
+     * via system property depending on environment.
+     */
+    public static int getStartupExtraSleepMs() {
+        return Integer.getInteger(STARTUP_EXTRA_SLEEP_MS_PROPERTY, DEFAULT_STARTUP_EXTRA_SLEEP_MS);
     }
 }
