@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.stablemock.core.util.AtomicFileWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,46 +100,8 @@ public final class AnalysisResultStorage {
                 patternsArray.add(pattern);
             }
 
-            // Use atomic write pattern: write to a unique temp file then atomically move.
-            // Using a unique temp file avoids cross-writer clobbering when multiple JVMs
-            // or processes write to the same directory concurrently.
-            java.nio.file.Path tempPath = java.nio.file.Files.createTempFile(
-                    outputFile.getParentFile().toPath(),
-                    outputFile.getName(),
-                    ".tmp");
-            File tempFile = tempPath.toFile();
-            try {
-                objectMapper.writeValue(tempFile, json);
-                // Force file system sync for durability (important for WSL)
-                try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(tempPath,
-                        java.nio.file.StandardOpenOption.WRITE)) {
-                    channel.force(true);
-                }
-                // Atomic move - this is the critical operation that ensures visibility
-                // Try atomic move first, fall back to regular move if not supported
-                try {
-                    java.nio.file.Files.move(tempPath, outputFile.toPath(),
-                            java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-                            java.nio.file.StandardCopyOption.ATOMIC_MOVE);
-                } catch (java.nio.file.AtomicMoveNotSupportedException e) {
-                    // Fall back to regular move if atomic move not supported (e.g., different filesystems)
-                    java.nio.file.Files.move(tempPath, outputFile.toPath(),
-                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                }
-                // Success - temp file was moved, so it no longer exists
-                tempFile = null;
-            } catch (IOException | RuntimeException e) {
-                throw e;
-            } finally {
-                // Ensure temp file is cleaned up in all cases
-                if (tempFile != null && tempFile.exists()) {
-                    try {
-                        java.nio.file.Files.deleteIfExists(tempPath);
-                    } catch (Exception cleanupException) {
-                        logger.warn("Failed to delete temp file {}: {}", tempFile.getAbsolutePath(), cleanupException.getMessage());
-                    }
-                }
-            }
+            AtomicFileWriter.writeAtomically(outputFile, tempPath ->
+                    objectMapper.writeValue(tempPath.toFile(), json));
 
             logger.info("Saved detection results to: {}", outputFile.getAbsolutePath());
             logger.info("Detected {} dynamic fields: {}",
