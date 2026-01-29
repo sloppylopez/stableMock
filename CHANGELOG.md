@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Java 25 compatibility issues with Groovy compiler
 - Compilation errors in refactored components
 
-## [1.1.0] - TBD
+## [1.1.0] - 2026-01-14
 
 ### Added
 - Maven Central publishing integration (first Maven Central release)
