@@ -1,0 +1,44 @@
+{
+  "id" : "ac4921cf-e4fc-4b4f-b201-d1a64aa0f856",
+  "name" : "graphql",
+  "request" : {
+    "url" : "/graphql",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "graphql-d24d0bb0-5dff-4920-9d48-77d81c4c0bdf.json",
+    "headers" : {
+      "date" : "Fri, 23 Jan 2026 15:16:24 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=45;refill=24",
+      "vary" : "accept-encoding",
+      "stellate-rate-limit-decision" : "pass",
+      "access-control-allow-headers" : "*",
+      "gcdn-cache" : "HIT",
+      "x-served-by" : "cache-muc13927-MUC",
+      "stellate-rate-limit-budget-required" : "6",
+      "x-cache-hits" : "16",
+      "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
+      "access-control-expose-headers" : "*",
+      "access-control-allow-origin" : "*",
+      "access-control-allow-credentials" : "true",
+      "stellate-rate-limit-budget-remaining" : "45",
+      "access-control-max-age" : "600",
+      "x-powered-by" : "Stellate",
+      "content-type" : "application/json; charset=utf-8",
+      "x-cache" : "HIT",
+      "cache-control" : "public, s-maxage=2628000, stale-while-revalidate=2628000",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "accept-ranges" : "bytes",
+      "age" : "464810"
+    }
+  },
+  "uuid" : "ac4921cf-e4fc-4b4f-b201-d1a64aa0f856",
+  "persistent" : true,
+  "insertionIndex" : 0
+}

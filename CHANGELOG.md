@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - TBD
+
 ### Removed
 - Removed Gradle tasks: `stablemockStart`, `stablemockStop`, `stablemockStartRecording`, `stablemockStopRecording` (redundant, use `stableMockRecord` and `stableMockPlayback` instead)
 
@@ -39,8 +41,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build configuration uses Java toolchain with language version 17
 
 ### Fixed
+- Fixed `@StableMock` not working with JUnit 5 `@ParameterizedTest` runs (each parameter invocation is now correctly recorded/played back)
+- Fixed configuration/URL resolution when multiple variables reference the same URL (no collisions/overwrites; consistent request resolution)
 - Java 25 compatibility issues with Groovy compiler
 - Compilation errors in refactored components
+
+## [1.1.0] - 2026-01-14
+
+### Added
+- Maven Central publishing integration (first Maven Central release)
+
+### Changed
+- Canary release: no functional changes compared to 1.0.0 (publishing setup/validation)
 
 ## [1.0.0] - TBD
 
