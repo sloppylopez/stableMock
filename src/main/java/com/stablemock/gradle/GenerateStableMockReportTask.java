@@ -39,21 +39,20 @@ public class GenerateStableMockReportTask extends DefaultTask {
         
         ObjectNode report = RecordingReportGenerator.generateReport(testResourcesDirFile, "GradleTask");
         
-        if (report != null) {
-            RecordingReportGenerator.saveReport(report, testResourcesDirFile);
+        // saveReport will handle deleting stale reports if empty
+        RecordingReportGenerator.saveReport(report, testResourcesDirFile);
+        
+        File jsonReport = new File(testResourcesDirFile, "stablemock/recording-report.json");
+        File htmlReport = new File(testResourcesDirFile, "stablemock/recording-report.html");
+        
+        if (jsonReport.exists()) {
             getLogger().lifecycle("Report generated successfully!");
-            
-            File jsonReport = new File(testResourcesDirFile, "stablemock/recording-report.json");
-            File htmlReport = new File(testResourcesDirFile, "stablemock/recording-report.html");
-            
-            if (jsonReport.exists()) {
-                getLogger().lifecycle("JSON report: {}", jsonReport.getAbsolutePath());
-            }
+            getLogger().lifecycle("JSON report: {}", jsonReport.getAbsolutePath());
             if (htmlReport.exists()) {
                 getLogger().lifecycle("HTML report: {}", htmlReport.getAbsolutePath());
             }
         } else {
-            getLogger().warn("No recordings found in stablemock directory. Run tests in RECORD mode first.");
+            getLogger().lifecycle("No recordings found - no report generated");
         }
     }
 }

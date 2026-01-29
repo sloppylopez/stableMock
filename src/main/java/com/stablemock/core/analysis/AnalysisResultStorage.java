@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.stablemock.core.util.AtomicFileWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,15 +100,8 @@ public final class AnalysisResultStorage {
                 patternsArray.add(pattern);
             }
 
-            // Write to file
-            objectMapper.writeValue(outputFile, json);
-            
-            // Small delay after file write to ensure file system sync (important for WSL)
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            AtomicFileWriter.writeAtomically(outputFile, tempPath ->
+                    objectMapper.writeValue(tempPath.toFile(), json));
 
             logger.info("Saved detection results to: {}", outputFile.getAbsolutePath());
             logger.info("Detected {} dynamic fields: {}",

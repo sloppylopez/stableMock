@@ -1,17 +1,17 @@
 {
   "testClass" : "XmlNamespacePrefixTest",
   "testMethod" : "testXmlWithNamespacePrefixes",
-  "detectedAt" : "2026-01-23T10:11:47.879655600Z",
+  "detectedAt" : "2026-01-23T16:09:05.510553100Z",
   "analyzed_requests_count" : 4,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='SessionToken']",
-    "sample_values" : [ "1769163071934", "1769163071583", "1769163107207" ]
+    "sample_values" : [ "1769184507121", "1769184506916", "1769184544986" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='RequestId']",
-    "sample_values" : [ "1769163071924", "1769163071573", "1769163107197" ]
+    "sample_values" : [ "1769184507111", "1769184506906", "1769184544976" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='Timestamp']",
-    "sample_values" : [ "2026-01-23T10:11:11.934675600Z", "2026-01-23T10:11:11.583076900Z", "2026-01-23T10:11:47.207207900Z" ]
+    "sample_values" : [ "2026-01-23T16:08:27.121183400Z", "2026-01-23T16:08:26.916940400Z", "2026-01-23T16:09:04.986793700Z" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='SessionToken']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='RequestId']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='Timestamp']" ]
 }

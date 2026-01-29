@@ -33,7 +33,7 @@ public final class RecordingReportGenerator {
      * 
      * @param testResourcesDir Test resources directory (e.g., src/test/resources)
      * @param triggeringTestClass Optional test class name that triggered this report generation
-     * @return The generated report as a JSON object, or null if no recordings found
+     * @return The generated report as a JSON object (never null). If no recordings exist, returns an empty report with empty testClasses array.
      */
     public static ObjectNode generateReport(File testResourcesDir, String triggeringTestClass) {
         File stablemockDir = new File(testResourcesDir, "stablemock");
@@ -583,6 +583,26 @@ public final class RecordingReportGenerator {
         if (report == null) {
             return;
         }
+        // Check if report has any content (test classes) before saving
+        if (report.has("testClasses") && report.get("testClasses").size() == 0) {
+            logger.debug("Skipping report save - no test classes found");
+            // Ensure any existing reports from previous runs are removed to avoid stale data
+            File stablemockDir = new File(testResourcesDir, "stablemock");
+            File jsonReportFile = new File(stablemockDir, "recording-report.json");
+            File htmlReportFile = new File(stablemockDir, "recording-report.html");
+            try {
+                if (java.nio.file.Files.deleteIfExists(jsonReportFile.toPath())) {
+                    logger.debug("Deleted stale JSON recording report");
+                }
+                if (java.nio.file.Files.deleteIfExists(htmlReportFile.toPath())) {
+                    logger.debug("Deleted stale HTML recording report");
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to delete stale report files (json: {}, html: {}): {}", 
+                        jsonReportFile.getAbsolutePath(), htmlReportFile.getAbsolutePath(), e.getMessage(), e);
+            }
+            return;
+        }
         
         File stablemockDir = new File(testResourcesDir, "stablemock");
         File jsonReportFile = new File(stablemockDir, "recording-report.json");
@@ -620,13 +640,10 @@ public final class RecordingReportGenerator {
                 File logoSource = new File(testResourcesDir, "images/stablemock-logo-transparent-outline.png");
                 if (logoSource.exists() && logoSource.isFile()) {
                     File logoFile = new File(stablemockDir, "stablemock-logo-transparent-outline.png");
-                    try {
-                        Files.copy(logoSource.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                        logger.info("Logo image copied from test resources to: {}", logoFile.getAbsolutePath());
-                    } catch (java.nio.file.FileAlreadyExistsException e) {
-                        // File already exists, that's fine - another test class may have already copied it
-                        logger.debug("Logo image already exists at: {}", logoFile.getAbsolutePath());
-                    }
+                    // REPLACE_EXISTING avoids FileAlreadyExistsException when target is an existing file
+                    // Note: Files.copy can still throw for non-file targets (e.g., directories) or permission issues
+                    Files.copy(logoSource.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    logger.info("Logo image copied from test resources to: {}", logoFile.getAbsolutePath());
                     return;
                 }
             }
@@ -640,13 +657,9 @@ public final class RecordingReportGenerator {
                 File possibleLogo = new File(currentDir, "src/test/resources/images/stablemock-logo-transparent-outline.png");
                 if (possibleLogo.exists() && possibleLogo.isFile()) {
                     File logoFile = new File(stablemockDir, "stablemock-logo-transparent-outline.png");
-                    try {
-                        Files.copy(possibleLogo.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                        logger.info("Logo image copied from {} to: {}", possibleLogo.getAbsolutePath(), logoFile.getAbsolutePath());
-                    } catch (java.nio.file.FileAlreadyExistsException e) {
-                        // File already exists, that's fine - another test class may have already copied it
-                        logger.debug("Logo image already exists at: {}", logoFile.getAbsolutePath());
-                    }
+                    // REPLACE_EXISTING will overwrite if file exists, no exception thrown
+                    Files.copy(possibleLogo.toPath(), logoFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    logger.info("Logo image copied from {} to: {}", possibleLogo.getAbsolutePath(), logoFile.getAbsolutePath());
                     return;
                 }
                 currentDir = currentDir.getParentFile();

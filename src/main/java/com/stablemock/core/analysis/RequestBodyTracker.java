@@ -2,6 +2,7 @@ package com.stablemock.core.analysis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.stablemock.core.util.AtomicFileWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,13 +140,7 @@ public final class RequestBodyTracker {
      */
     private static void saveRequestHistory(File trackingFile, List<RequestSnapshot> history)
             throws IOException {
-        objectMapper.writeValue(trackingFile, history);
-        
-        // Small delay after file write to ensure file system sync (important for WSL)
-        try {
-            Thread.sleep(50);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        AtomicFileWriter.writeAtomically(trackingFile, tempPath ->
+                objectMapper.writeValue(tempPath.toFile(), history));
     }
 }
