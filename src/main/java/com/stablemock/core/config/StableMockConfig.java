@@ -51,9 +51,10 @@ public final class StableMockConfig {
     /**
      * Extra sleep after verifying WireMock stub startup, in milliseconds.
      * Defaults to 500ms (tuned for WSL), but can be reduced or increased
-     * via system property depending on environment.
+     * via system property. Negative values are normalized to 0 (no sleep).
      */
     public static int getStartupExtraSleepMs() {
-        return Integer.getInteger(STARTUP_EXTRA_SLEEP_MS_PROPERTY, DEFAULT_STARTUP_EXTRA_SLEEP_MS);
+        int value = Integer.getInteger(STARTUP_EXTRA_SLEEP_MS_PROPERTY, DEFAULT_STARTUP_EXTRA_SLEEP_MS);
+        return value > 0 ? value : 0;
     }
 }
