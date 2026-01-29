@@ -10,7 +10,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.channels.FileChannel;
+import java.util.Set;
 
 /**
  * Shared atomic write pattern: unique temp file, write, fsync, atomic move.
@@ -48,17 +51,39 @@ public final class AtomicFileWriter {
         String suffix = "-" + targetFile.getName() + ".tmp";
         Path tempPath = Files.createTempFile(parent.toPath(), "stablemock-", suffix);
         File tempFile = tempPath.toFile();
+        Path targetPath = targetFile.toPath();
+        Set<PosixFilePermission> existingPermissions = null;
+        if (targetFile.exists()) {
+            PosixFileAttributeView existingView = Files.getFileAttributeView(targetPath, PosixFileAttributeView.class);
+            if (existingView != null) {
+                try {
+                    existingPermissions = existingView.readAttributes().permissions();
+                } catch (IOException ignored) {
+                    // Best-effort; ignore if unreadable
+                }
+            }
+        }
         try {
             writer.write(tempPath);
             try (FileChannel channel = FileChannel.open(tempPath, StandardOpenOption.WRITE)) {
                 channel.force(true);
             }
             try {
-                Files.move(tempPath, targetFile.toPath(),
+                Files.move(tempPath, targetPath,
                         StandardCopyOption.REPLACE_EXISTING,
                         StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException e) {
-                Files.move(tempPath, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                Files.move(tempPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+            if (existingPermissions != null) {
+                PosixFileAttributeView newView = Files.getFileAttributeView(targetPath, PosixFileAttributeView.class);
+                if (newView != null) {
+                    try {
+                        newView.setPermissions(existingPermissions);
+                    } catch (IOException ignored) {
+                        // Best-effort; non-POSIX or constrained dirs may fail
+                    }
+                }
             }
 
             // Best-effort fsync of parent directory to improve rename durability on POSIX.

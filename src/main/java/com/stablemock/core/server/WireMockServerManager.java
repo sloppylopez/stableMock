@@ -1212,7 +1212,7 @@ public final class WireMockServerManager {
                         logger.debug("WireMock stub verified working on port {} after {} attempt(s)", port, attempts + 1);
                     }
                     // Additional delay to ensure everything is fully initialized.
-                    // Tunable via stablemock.wiremock.startupExtraSleepMs (default 500ms, tuned for WSL).
+                    // Default 0; set stablemock.wiremock.startupExtraSleepMs (e.g. 500) for WSL if needed.
                     int extraSleepMs = StableMockConfig.getStartupExtraSleepMs();
                     if (extraSleepMs > 0) {
                         try {
