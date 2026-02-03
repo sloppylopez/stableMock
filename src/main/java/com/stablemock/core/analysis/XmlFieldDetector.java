@@ -99,6 +99,37 @@ public final class XmlFieldDetector {
 
                     logger.info("Detected dynamic XML field: {} (samples: {})",
                             xmlPath, sampleValues.size());
+                } else if (isLikelyDateOrTimeField(path)) {
+                    // Values are the same, but path name suggests it's a date/time field
+                    // These fields often vary per test run even if same within a single run
+                    // Mark as dynamic to handle "per-run" variation (e.g., dates set from "now")
+                    List<String> sampleValues = new ArrayList<>();
+                    for (int i = 0; i < Math.min(3, values.size()); i++) {
+                        sampleValues.add(values.get(i));
+                    }
+
+                    // Generate XPath pattern for WireMock XML matching
+                    String xpathPattern;
+                    if (path.contains("@")) {
+                        // Attribute: root/child@attr -> //root/child/@attr
+                        String[] parts = path.split("@");
+                        String elementPath = parts[0];
+                        String attrName = parts[1];
+                        String localAttrName = extractLocalName(attrName);
+                        xpathPattern = buildElementPathXPath(elementPath)
+                                + "/@*[local-name()='" + localAttrName + "']";
+                    } else {
+                        // Element: use full path to avoid over-broad matches
+                        xpathPattern = buildElementPathXPath(path);
+                    }
+                    String xmlPath = "xml:" + xpathPattern;
+
+                    result.addDynamicField(new DetectionResult.DynamicField(
+                            xmlPath, sampleValues));
+                    result.addIgnorePattern(xmlPath);
+
+                    logger.info("Detected likely date/time XML field (heuristic): {} (samples: {})",
+                            xmlPath, sampleValues.size());
                 }
             }
         }
@@ -161,6 +192,47 @@ public final class XmlFieldDetector {
         }
         // No prefix, return as-is
         return qualifiedName;
+    }
+
+    /**
+     * Checks if a path name suggests it's a date/time field that likely varies per test run.
+     * This heuristic helps detect fields that are set from "now" or similar per-run values,
+     * even when all requests in a single run have the same value.
+     * 
+     * @param path The XML path (e.g., "root/child@Start" or "root/StayDateRange/Start")
+     * @return true if the path name suggests it's a date/time field
+     */
+    private static boolean isLikelyDateOrTimeField(String path) {
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
+        
+        // Extract the last part of the path (element or attribute name)
+        String lastPart;
+        if (path.contains("@")) {
+            // Attribute: extract attribute name
+            String[] parts = path.split("@");
+            lastPart = parts[parts.length - 1];
+        } else {
+            // Element: extract last element name
+            String[] parts = path.split("/");
+            lastPart = parts[parts.length - 1];
+        }
+        
+        // Remove namespace prefix if present
+        lastPart = extractLocalName(lastPart);
+        
+        // Check for date/time-related keywords (case-insensitive)
+        String lowerPart = lastPart.toLowerCase();
+        return lowerPart.contains("date") ||
+               lowerPart.contains("time") ||
+               lowerPart.equals("start") ||
+               lowerPart.equals("end") ||
+               lowerPart.contains("timestamp") ||
+               lowerPart.contains("echotoken") ||
+               lowerPart.contains("transactionidentifier") ||
+               lowerPart.contains("sessiontoken") ||
+               lowerPart.contains("requestid");
     }
 
 }

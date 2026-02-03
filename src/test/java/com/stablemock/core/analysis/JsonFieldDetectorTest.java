@@ -172,5 +172,139 @@ class JsonFieldDetectorTest {
         assertEquals(1, result.getDynamicFields().size());
         assertEquals(3, result.getDynamicFields().get(0).sampleValues().size());
     }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_SameDateValues() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        // Same date values (as would happen in a single test run)
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"startDate\":\"2025-02-23\",\"endDate\":\"2025-02-24\"}"),
+            objectMapper.readTree("{\"startDate\":\"2025-02-23\",\"endDate\":\"2025-02-24\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should detect startDate and endDate via heuristic even though values are same
+        assertEquals(2, result.getDynamicFields().size());
+        assertEquals(2, result.getIgnorePatterns().size());
+        
+        var fieldPaths = result.getDynamicFields().stream()
+            .map(f -> f.fieldPath())
+            .toList();
+        assertTrue(fieldPaths.contains("json:startDate"),
+            "Should detect startDate via heuristic. Found: " + fieldPaths);
+        assertTrue(fieldPaths.contains("json:endDate"),
+            "Should detect endDate via heuristic. Found: " + fieldPaths);
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_Timestamp() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"timestamp\":\"2025-02-23T10:00:00Z\"}"),
+            objectMapper.readTree("{\"timestamp\":\"2025-02-23T10:00:00Z\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should detect timestamp via heuristic
+        assertEquals(1, result.getDynamicFields().size());
+        assertEquals("json:timestamp", result.getDynamicFields().get(0).fieldPath());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_StartEnd() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"start\":\"2025-02-23\",\"end\":\"2025-02-24\"}"),
+            objectMapper.readTree("{\"start\":\"2025-02-23\",\"end\":\"2025-02-24\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should detect start and end via heuristic
+        assertEquals(2, result.getDynamicFields().size());
+        var fieldPaths = result.getDynamicFields().stream()
+            .map(f -> f.fieldPath())
+            .toList();
+        assertTrue(fieldPaths.contains("json:start"),
+            "Should detect start via heuristic. Found: " + fieldPaths);
+        assertTrue(fieldPaths.contains("json:end"),
+            "Should detect end via heuristic. Found: " + fieldPaths);
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_NoFalsePositive() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        // Field names don't suggest date/time, values are same - should NOT be detected
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"id\":123,\"name\":\"test\"}"),
+            objectMapper.readTree("{\"id\":123,\"name\":\"test\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should NOT detect id or name as dynamic (no heuristic match, values are same)
+        assertTrue(result.getDynamicFields().isEmpty());
+        assertTrue(result.getIgnorePatterns().isEmpty());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_RequestId() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"requestId\":\"abc-123\"}"),
+            objectMapper.readTree("{\"requestId\":\"abc-123\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should detect requestId via heuristic
+        assertEquals(1, result.getDynamicFields().size());
+        assertEquals("json:requestId", result.getDynamicFields().get(0).fieldPath());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_SessionToken() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"sessionToken\":\"token-123\"}"),
+            objectMapper.readTree("{\"sessionToken\":\"token-123\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should detect sessionToken via heuristic
+        assertEquals(1, result.getDynamicFields().size());
+        assertEquals("json:sessionToken", result.getDynamicFields().get(0).fieldPath());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_NestedDateField() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"search\":{\"startDate\":\"2025-02-23\",\"endDate\":\"2025-02-24\"}}"),
+            objectMapper.readTree("{\"search\":{\"startDate\":\"2025-02-23\",\"endDate\":\"2025-02-24\"}}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should detect nested startDate and endDate via heuristic
+        assertEquals(2, result.getDynamicFields().size());
+        var fieldPaths = result.getDynamicFields().stream()
+            .map(f -> f.fieldPath())
+            .toList();
+        assertTrue(fieldPaths.contains("json:search.startDate"),
+            "Should detect nested startDate via heuristic. Found: " + fieldPaths);
+        assertTrue(fieldPaths.contains("json:search.endDate"),
+            "Should detect nested endDate via heuristic. Found: " + fieldPaths);
+    }
 }
 
