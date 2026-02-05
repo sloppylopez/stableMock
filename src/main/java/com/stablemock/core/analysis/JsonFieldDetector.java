@@ -131,39 +131,13 @@ public final class JsonFieldDetector {
                                     jsonPath, sampleValues.size());
                         }
                     } else {
-                        // Values are the same - check if it's a likely date/time field
+                        // Values are the same - recurse if complex type to check nested structure
                         JsonNode firstValueNode = fieldValues.get(0);
                         boolean isComplexType = firstValueNode.isObject() || firstValueNode.isArray();
                         
                         if (isComplexType) {
                             // Values are same, but recurse to check nested structure
                             detectDynamicFieldsInJsonRecursive(fieldValues, currentPath, result);
-                        } else if (isLikelyDateOrTimeField(fieldName)) {
-                            // Values are the same, but field name suggests it's a date/time field
-                            // These fields often vary per test run even if same within a single run
-                            // Mark as dynamic to handle "per-run" variation (e.g., dates set from "now")
-                            List<String> sampleValues = new ArrayList<>();
-                            for (JsonNode value : fieldValues) {
-                                if (value.isTextual()) {
-                                    sampleValues.add(value.asText());
-                                } else {
-                                    sampleValues.add(value.toString());
-                                }
-                            }
-
-                            // Limit sample values to first 3
-                            if (sampleValues.size() > 3) {
-                                sampleValues = sampleValues.subList(0, 3);
-                            }
-
-                            String jsonPath = "json:" + currentPath;
-
-                            result.addDynamicField(new DetectionResult.DynamicField(
-                                    jsonPath, sampleValues));
-                            result.addIgnorePattern(jsonPath);
-
-                            logger.info("Detected likely date/time JSON field (heuristic): {} (samples: {})",
-                                    jsonPath, sampleValues.size());
                         }
                     }
                 }
@@ -194,31 +168,8 @@ public final class JsonFieldDetector {
         }
     }
 
-    /**
-     * Checks if a field name suggests it's a date/time field that likely varies per test run.
-     * This heuristic helps detect fields that are set from "now" or similar per-run values,
-     * even when all requests in a single run have the same value.
-     * 
-     * @param fieldName The JSON field name (e.g., "startDate", "endDate", "timestamp")
-     * @return true if the field name suggests it's a date/time field
-     */
-    private static boolean isLikelyDateOrTimeField(String fieldName) {
-        if (fieldName == null || fieldName.isEmpty()) {
-            return false;
-        }
-        
-        // Check for date/time-related keywords (case-insensitive)
-        String lowerName = fieldName.toLowerCase();
-        return lowerName.contains("date") ||
-               lowerName.contains("time") ||
-               lowerName.equals("start") ||
-               lowerName.equals("end") ||
-               lowerName.contains("timestamp") ||
-               lowerName.contains("echotoken") ||
-               lowerName.contains("transactionidentifier") ||
-               lowerName.contains("sessiontoken") ||
-               lowerName.contains("requestid");
-    }
+
+    
 
 }
 

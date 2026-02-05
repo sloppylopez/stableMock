@@ -44,9 +44,21 @@ public final class WireMockServerManager {
             logger.warn("Multiple target URLs provided for recording; using only the first: {}", targetUrls.get(0));
         }
 
-        // Use Files.createDirectories() which is atomic and handles race conditions
+        // During recording, WireMock needs the base directory structure
+        // For class-level servers (parameterized tests), WireMock's snapshotRecord will write to
+        // mappingsDir/mappings and mappingsDir/__files, so we need to ensure both exist at class level
+        // Method-specific directories will be created in afterEach when mappings are saved
         try {
             java.nio.file.Files.createDirectories(mappingsDir.toPath());
+            // Create mappings and __files directories at class level for WireMock's snapshotRecord
+            File classMappingsDir = new File(mappingsDir, "mappings");
+            File classFilesDir = new File(mappingsDir, "__files");
+            if (!classMappingsDir.exists()) {
+                java.nio.file.Files.createDirectories(classMappingsDir.toPath());
+            }
+            if (!classFilesDir.exists()) {
+                java.nio.file.Files.createDirectories(classFilesDir.toPath());
+            }
         } catch (java.nio.file.FileAlreadyExistsException e) {
             // Directory already exists, that's fine (another thread may have created it)
             if (!mappingsDir.isDirectory()) {
@@ -54,34 +66,6 @@ public final class WireMockServerManager {
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to create mappings directory: " + mappingsDir.getAbsolutePath(), e);
-        }
-
-        File mappingsSubDir = new File(mappingsDir, "mappings");
-        File filesSubDir = new File(mappingsDir, "__files");
-        try {
-            java.nio.file.Files.createDirectories(mappingsSubDir.toPath());
-        } catch (java.nio.file.FileAlreadyExistsException e) {
-            if (!mappingsSubDir.isDirectory()) {
-                throw new RuntimeException("Path exists but is not a directory: " + mappingsSubDir.getAbsolutePath());
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create mappings subdirectory: " + mappingsSubDir.getAbsolutePath(), e);
-        }
-        try {
-            java.nio.file.Files.createDirectories(filesSubDir.toPath());
-        } catch (java.nio.file.FileAlreadyExistsException e) {
-            if (!filesSubDir.isDirectory()) {
-                throw new RuntimeException("Path exists but is not a directory: " + filesSubDir.getAbsolutePath());
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create __files subdirectory: " + filesSubDir.getAbsolutePath(), e);
-        }
-        
-        // Small delay after directory creation to ensure file system sync (important for WSL)
-        try {
-            Thread.sleep(50);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
 
         int currentPort = port;
@@ -250,9 +234,14 @@ public final class WireMockServerManager {
                 if (!ignorePatterns.isEmpty()) {
                     logger.info("Applying {} ignore patterns to stub files for {}", 
                             ignorePatterns.size(), testClassName + "." + testMethodName);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Patterns to apply: {}", ignorePatterns);
+                    }
                     File playbackMappingsDir = preparePlaybackMappings(mappingsDir);
                     applyIgnorePatternsToStubFiles(playbackMappingsDir, ignorePatterns, testMethodName);
                     mappingsDir = playbackMappingsDir;
+                } else {
+                    logger.info("No ignore patterns to apply for {}", testClassName + "." + testMethodName);
                 }
             } else {
                 // Class-level: apply patterns per test method based on mapping file prefixes
@@ -270,7 +259,11 @@ public final class WireMockServerManager {
                                 List<String> methodPatterns = com.stablemock.core.analysis.AnalysisResultStorage
                                         .loadIgnorePatterns(testResourcesDir, testClassName, methodName);
                                 if (!methodPatterns.isEmpty()) {
+                                    logger.info("Loaded {} ignore patterns for method {}: {}", 
+                                            methodPatterns.size(), methodName, methodPatterns);
                                     patternsByMethod.put(methodName, methodPatterns);
+                                } else {
+                                    logger.debug("No ignore patterns found for method {}", methodName);
                                 }
                             }
                         }
@@ -350,6 +343,19 @@ public final class WireMockServerManager {
     }
     
     /**
+     * Applies ignore patterns to a method-specific directory (before merge).
+     * This is a public method to allow applying patterns before merging.
+     */
+    public static void applyIgnorePatternsToMethodDirectory(File methodMappingsDir, List<String> ignorePatterns) {
+        if (ignorePatterns == null || ignorePatterns.isEmpty()) {
+            logger.info("No ignore patterns to apply to method directory: {}", methodMappingsDir.getAbsolutePath());
+            return;
+        }
+        logger.info("Applying {} ignore patterns to method directory: {}", ignorePatterns.size(), methodMappingsDir.getAbsolutePath());
+        applyIgnorePatternsToStubFiles(methodMappingsDir, ignorePatterns, null);
+    }
+    
+    /**
      * Applies ignore patterns to WireMock stub files before loading.
      * This approach uses WireMock 3's canonical placeholder mechanism:
      * 1. For JSON: Replaces ignored field values with `${json-unit.ignore}` placeholders
@@ -363,26 +369,39 @@ public final class WireMockServerManager {
      * for both JSON and XML formats consistently.
      */
     private static void applyIgnorePatternsToStubFiles(File mappingsDir, List<String> ignorePatterns, String testMethodName) {
+        logger.info("applyIgnorePatternsToStubFiles called with mappingsDir: {}, patterns: {}", 
+                mappingsDir.getAbsolutePath(), ignorePatterns.size());
         try {
             File mappingsSubDir = new File(mappingsDir, "mappings");
+            logger.info("Checking mappings subdirectory: {} (exists: {})", 
+                    mappingsSubDir.getAbsolutePath(), mappingsSubDir.exists());
             if (!mappingsSubDir.exists() || !mappingsSubDir.isDirectory()) {
+                logger.warn("Mappings subdirectory does not exist: {}", mappingsSubDir.getAbsolutePath());
                 return;
             }
             
             File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
-            if (mappingFiles == null) {
+            if (mappingFiles == null || mappingFiles.length == 0) {
+                logger.warn("No mapping files found in: {}", mappingsSubDir.getAbsolutePath());
                 return;
             }
+            logger.info("Found {} mapping file(s) to process in {}", mappingFiles.length, mappingsSubDir.getAbsolutePath());
             
             com.fasterxml.jackson.databind.ObjectMapper objectMapper = 
                     new com.fasterxml.jackson.databind.ObjectMapper();
             
             for (File mappingFile : mappingFiles) {
                 try {
-                    // For method-level, only apply patterns to mappings from this method
-                    if (testMethodName != null && !mappingFile.getName().startsWith(testMethodName + "_")) {
-                        continue;
-                    }
+                    // For method-level: WireMock doesn't add method name prefixes to mapping files.
+                    // If testMethodName is provided, apply patterns to all files in the directory.
+                    // The method isolation is handled by:
+                    // 1. Method-specific directories (before merge), OR
+                    // 2. Per-method invocation (after merge - we're called once per method)
+                    // So we don't need to check file name prefixes.
+                    // Note: This means patterns will be applied to all files, but that's correct
+                    // because we're being invoked per-method and the directory contains only that method's files
+                    // (either because it's method-specific, or because merge hasn't happened yet, or because
+                    // we're applying to the merged directory but only for this specific method invocation).
                     
                     com.fasterxml.jackson.databind.JsonNode mapping = objectMapper.readTree(mappingFile);
                     com.fasterxml.jackson.databind.node.ObjectNode mappingObj = 
@@ -450,7 +469,12 @@ public final class WireMockServerManager {
                                                 patternObj.put("enablePlaceholders", true);
                                                 patternObj.put("ignoreWhitespace", true);
                                                 modified = true;
-                                                logger.debug("Changed {} to equalToXml with xmlunit.ignore placeholders", matcherKey);
+                                                logger.info("Changed {} to equalToXml with xmlunit.ignore placeholders for {}", matcherKey, mappingFile.getName());
+                                                if (logger.isDebugEnabled() && !normalizedXml.equals(expectedBody)) {
+                                                    logger.debug("XML normalized - original length: {}, normalized length: {}", expectedBody.length(), normalizedXml.length());
+                                                }
+                                            } else {
+                                                logger.debug("XML normalization did not change body for {} (patterns: {})", mappingFile.getName(), ignorePatterns.size());
                                             }
                                         }
                                         // If neither JSON nor XML, skip silently
@@ -494,35 +518,36 @@ public final class WireMockServerManager {
             com.fasterxml.jackson.databind.ObjectMapper objectMapper = 
                     new com.fasterxml.jackson.databind.ObjectMapper();
             
+            // WireMock generates mapping files with UUIDs, not method name prefixes
+            // So we can't match files to methods by filename. Instead, apply ALL patterns
+            // from all methods to all files. This is safe because patterns are idempotent
+            // and the directory structure already isolates methods (before merge).
+            List<String> allPatterns = new java.util.ArrayList<>();
+            for (List<String> methodPatterns : patternsByMethod.values()) {
+                for (String pattern : methodPatterns) {
+                    if (!allPatterns.contains(pattern)) {
+                        allPatterns.add(pattern);
+                    }
+                }
+            }
+            
+            // Merge with annotation patterns (annotation patterns have priority)
+            if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
+                allPatterns.removeAll(annotationIgnorePatterns);
+                allPatterns.addAll(annotationIgnorePatterns);
+            }
+            
+            if (allPatterns.isEmpty()) {
+                logger.debug("No ignore patterns to apply per method");
+                return;
+            }
+            
+            logger.info("Applying {} ignore patterns (from {} method(s)) to all mapping files", 
+                    allPatterns.size(), patternsByMethod.size());
+            
             for (File mappingFile : mappingFiles) {
                 try {
-                    // Find which test method this mapping belongs to based on filename prefix
-                    String fileName = mappingFile.getName();
-                    String matchingMethod = null;
-                    for (String methodName : patternsByMethod.keySet()) {
-                        if (fileName.startsWith(methodName + "_")) {
-                            matchingMethod = methodName;
-                            break;
-                        }
-                    }
-                    
-                    // Only apply patterns if this mapping belongs to a known test method
-                    if (matchingMethod == null) {
-                        continue;
-                    }
-                    
-                    // Get patterns for this specific test method
-                    List<String> ignorePatterns = new java.util.ArrayList<>(patternsByMethod.get(matchingMethod));
-                    
-                    // Merge with annotation patterns
-                    if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
-                        ignorePatterns.removeAll(annotationIgnorePatterns);
-                        ignorePatterns.addAll(annotationIgnorePatterns);
-                    }
-                    
-                    if (ignorePatterns.isEmpty()) {
-                        continue;
-                    }
+                    List<String> ignorePatterns = allPatterns;
                     
                     com.fasterxml.jackson.databind.JsonNode mapping = objectMapper.readTree(mappingFile);
                     com.fasterxml.jackson.databind.node.ObjectNode mappingObj = 
@@ -571,8 +596,8 @@ public final class WireMockServerManager {
                                                 patternObj.put("ignoreArrayOrder", false);
                                                 patternObj.put("ignoreExtraElements", true);
                                                 modified = true;
-                                                logger.debug("Modified mapping {} for test method {} with json-unit.ignore placeholders", 
-                                                        mappingFile.getName(), matchingMethod);
+                                                logger.debug("Modified mapping {} with json-unit.ignore placeholders", 
+                                                        mappingFile.getName());
                                             }
                                         } else if (isXml) {
                                             String normalizedXml = normalizeXmlStringWithPlaceholders(expectedBody, ignorePatterns);
@@ -583,8 +608,8 @@ public final class WireMockServerManager {
                                                 patternObj.put("enablePlaceholders", true);
                                                 patternObj.put("ignoreWhitespace", true);
                                                 modified = true;
-                                                logger.debug("Modified mapping {} for test method {} with xmlunit.ignore placeholders", 
-                                                        mappingFile.getName(), matchingMethod);
+                                                logger.debug("Modified mapping {} with xmlunit.ignore placeholders", 
+                                                        mappingFile.getName());
                                             }
                                         }
                                     }
@@ -593,8 +618,11 @@ public final class WireMockServerManager {
                             
                             if (modified) {
                                 objectMapper.writerWithDefaultPrettyPrinter().writeValue(mappingFile, mapping);
-                                logger.debug("Applied {} ignore patterns to mapping {} for test method {}", 
-                                        ignorePatterns.size(), mappingFile.getName(), matchingMethod);
+                                logger.info("Applied {} ignore patterns to mapping {}", 
+                                        ignorePatterns.size(), mappingFile.getName());
+                            } else {
+                                logger.debug("No modifications needed for mapping {} (no matching patterns)", 
+                                        mappingFile.getName());
                             }
                         }
                     }
@@ -722,11 +750,39 @@ public final class WireMockServerManager {
             Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes("UTF-8")));
             
             // Apply ignore patterns - replace ignored elements/attributes with placeholders
+            int patternsApplied = 0;
+            logger.debug("Processing {} ignore patterns for XML normalization", ignorePatterns.size());
             for (String pattern : ignorePatterns) {
                 if (pattern.startsWith("xml:")) {
                     String xpathPattern = pattern.substring(4);
+                    // Handle xml://*[...] format: after removing xml:, we get //*[...]
+                    // This is actually an absolute path from root, not a descendant search
+                    // Strip the leading // if pattern is //*[...] to treat as absolute path
+                    if (xpathPattern.startsWith("//*[")) {
+                        xpathPattern = xpathPattern.substring(2); // Remove // to make it *[...]
+                    }
+                    logger.debug("Processing XML pattern: {} -> {}", pattern, xpathPattern);
+                    String xmlBefore = docToString(doc);
                     applyXmlIgnorePattern(doc, xpathPattern);
+                    String xmlAfter = docToString(doc);
+                    if (!xmlBefore.equals(xmlAfter)) {
+                        patternsApplied++;
+                        logger.info("Applied XML ignore pattern: {}", pattern);
+                        // Verify placeholder is actually in the XML
+                        if (!xmlAfter.contains("${xmlunit.ignore}")) {
+                            logger.warn("Pattern {} was applied but placeholder not found in XML! XML length: {} -> {}", 
+                                    pattern, xmlBefore.length(), xmlAfter.length());
+                        }
+                    } else {
+                        logger.debug("Pattern did not modify XML: {}", pattern);
+                    }
                 }
+            }
+            
+            if (patternsApplied > 0) {
+                logger.info("Applied {} XML ignore pattern(s), {} total patterns processed", patternsApplied, ignorePatterns.size());
+            } else if (!ignorePatterns.isEmpty()) {
+                logger.warn("No XML patterns were applied! {} patterns processed but XML unchanged", ignorePatterns.size());
             }
             
             // Convert back to string
@@ -739,8 +795,28 @@ public final class WireMockServerManager {
             transformer.transform(new DOMSource(doc), new StreamResult(writer));
             return writer.toString();
         } catch (Exception e) {
-            logger.debug("Failed to normalize XML: {}", e.getMessage());
+            logger.warn("Failed to normalize XML with {} patterns: {}", ignorePatterns.size(), e.getMessage());
+            if (logger.isDebugEnabled()) {
+                logger.debug("XML normalization error details", e);
+            }
             return xml;
+        }
+    }
+    
+    /**
+     * Helper method to convert Document to string for comparison.
+     */
+    private static String docToString(Document doc) {
+        try {
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "no");
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(doc), new StreamResult(writer));
+            return writer.toString();
+        } catch (Exception e) {
+            return "";
         }
     }
     
@@ -930,27 +1006,47 @@ public final class WireMockServerManager {
     
     /**
      * Sets ignored elements/attributes to ${xmlunit.ignore} placeholder.
+     * Supports both absolute paths (*[...]) and descendant paths (//*[...]).
      */
     private static void applyXmlIgnorePattern(Document doc, String xpathPattern) {
-        if (xpathPattern.startsWith("//")) {
-            if (xpathPattern.contains("@")) {
-                // Attribute pattern: //*[local-name()='element']/@*[local-name()='attr']
-                String[] parts = xpathPattern.split("/@");
-                if (parts.length == 2) {
-                    String elementPattern = parts[0];
-                    String attrPattern = parts[1];
-                    List<String> elementPath = extractElementPathFromXPath(elementPattern);
-                    String attrName = extractAttributeNameFromXPath(attrPattern);
-                    if (!elementPath.isEmpty() && attrName != null) {
-                        setXmlAttributesToPlaceholderByPath(doc, elementPath, attrName);
-                    }
+        // Handle both absolute paths (*[...]) and descendant paths (//*[...])
+        boolean isDescendantPath = xpathPattern.startsWith("//");
+        boolean isAbsolutePath = xpathPattern.startsWith("*[");
+        
+        logger.debug("applyXmlIgnorePattern: pattern={}, isDescendantPath={}, isAbsolutePath={}", 
+                xpathPattern, isDescendantPath, isAbsolutePath);
+        
+        if (!isDescendantPath && !isAbsolutePath) {
+            // Pattern doesn't match expected format, skip
+            logger.warn("Pattern doesn't match expected format (must start with *[ or //): {}", xpathPattern);
+            return;
+        }
+        
+        if (xpathPattern.contains("@")) {
+            // Attribute pattern: *[...]/@*[...] or //*[...]/@*[...]
+            String[] parts = xpathPattern.split("/@");
+            if (parts.length == 2) {
+                String elementPattern = parts[0];
+                String attrPattern = parts[1];
+                List<String> elementPath = extractElementPathFromXPath(elementPattern);
+                String attrName = extractAttributeNameFromXPath(attrPattern);
+                logger.debug("Attribute pattern - elementPath={}, attrName={}", elementPath, attrName);
+                if (!elementPath.isEmpty() && attrName != null) {
+                    setXmlAttributesToPlaceholderByPath(doc, elementPath, attrName);
+                } else {
+                    logger.warn("Failed to extract elementPath or attrName from pattern: {}", xpathPattern);
                 }
             } else {
-                // Element pattern: //*[local-name()='element']
-                List<String> elementPath = extractElementPathFromXPath(xpathPattern);
-                if (!elementPath.isEmpty()) {
-                    setXmlElementsToPlaceholderByPath(doc, elementPath);
-                }
+                logger.warn("Invalid attribute pattern format (expected exactly one /@): {}", xpathPattern);
+            }
+        } else {
+            // Element pattern: *[...] or //*[...]
+            List<String> elementPath = extractElementPathFromXPath(xpathPattern);
+            logger.debug("Element pattern - elementPath={}", elementPath);
+            if (!elementPath.isEmpty()) {
+                setXmlElementsToPlaceholderByPath(doc, elementPath);
+            } else {
+                logger.warn("Failed to extract elementPath from pattern: {}", xpathPattern);
             }
         }
     }
@@ -988,14 +1084,25 @@ public final class WireMockServerManager {
         if (elementPath.isEmpty()) {
             return;
         }
-        NodeList elements = doc.getElementsByTagName("*");
-        for (int i = 0; i < elements.getLength(); i++) {
-            Node node = elements.item(i);
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-                String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
-                if (localName.equals(elementPath.get(0))) {
-                    applyElementPathPlaceholder(element, elementPath, 1);
+        // Start from document root element and traverse the path
+        Element rootElement = doc.getDocumentElement();
+        if (rootElement != null) {
+            String rootLocalName = rootElement.getLocalName() != null ? rootElement.getLocalName() : rootElement.getNodeName();
+            if (rootLocalName.equals(elementPath.get(0))) {
+                // Root matches first element in path, traverse from root
+                applyElementPathPlaceholder(rootElement, elementPath, 1);
+            } else {
+                // Root doesn't match, search for matching elements (fallback for non-standard XML)
+                NodeList elements = doc.getElementsByTagName("*");
+                for (int i = 0; i < elements.getLength(); i++) {
+                    Node node = elements.item(i);
+                    if (node.getNodeType() == Node.ELEMENT_NODE) {
+                        Element element = (Element) node;
+                        String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
+                        if (localName.equals(elementPath.get(0))) {
+                            applyElementPathPlaceholder(element, elementPath, 1);
+                        }
+                    }
                 }
             }
         }
@@ -1022,14 +1129,25 @@ public final class WireMockServerManager {
         if (elementPath.isEmpty()) {
             return;
         }
-        NodeList elements = doc.getElementsByTagName("*");
-        for (int i = 0; i < elements.getLength(); i++) {
-            Node node = elements.item(i);
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-                String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
-                if (localName.equals(elementPath.get(0))) {
-                    applyElementPathAttributePlaceholder(element, elementPath, 1, attrName);
+        // Start from document root element and traverse the path
+        Element rootElement = doc.getDocumentElement();
+        if (rootElement != null) {
+            String rootLocalName = rootElement.getLocalName() != null ? rootElement.getLocalName() : rootElement.getNodeName();
+            if (rootLocalName.equals(elementPath.get(0))) {
+                // Root matches first element in path, traverse from root
+                applyElementPathAttributePlaceholder(rootElement, elementPath, 1, attrName);
+            } else {
+                // Root doesn't match, search for matching elements (fallback for non-standard XML)
+                NodeList elements = doc.getElementsByTagName("*");
+                for (int i = 0; i < elements.getLength(); i++) {
+                    Node node = elements.item(i);
+                    if (node.getNodeType() == Node.ELEMENT_NODE) {
+                        Element element = (Element) node;
+                        String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
+                        if (localName.equals(elementPath.get(0))) {
+                            applyElementPathAttributePlaceholder(element, elementPath, 1, attrName);
+                        }
+                    }
                 }
             }
         }
@@ -1067,23 +1185,39 @@ public final class WireMockServerManager {
 
     private static void applyElementPathAttributePlaceholder(Element element, List<String> elementPath, int index, String attrName) {
         if (index == elementPath.size()) {
+            // Reached target element - set attribute placeholder
+            String elementLocalName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
             if (element.hasAttribute(attrName)) {
                 element.setAttribute(attrName, "${xmlunit.ignore}");
+                logger.debug("Set attribute {} to placeholder on element {}", attrName, elementLocalName);
+            } else {
+                // Check all attributes to see what's available (for debugging)
+                logger.warn("Element {} does not have attribute {}. Available attributes: {}", 
+                        elementLocalName, attrName, 
+                        java.util.stream.IntStream.range(0, element.getAttributes().getLength())
+                                .mapToObj(i -> element.getAttributes().item(i).getNodeName())
+                                .collect(java.util.stream.Collectors.joining(", ")));
             }
             return;
         }
 
         NodeList children = element.getChildNodes();
         String expectedName = elementPath.get(index);
+        int matchesFound = 0;
         for (int i = 0; i < children.getLength(); i++) {
             Node node = children.item(i);
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 Element child = (Element) node;
                 String localName = child.getLocalName() != null ? child.getLocalName() : child.getNodeName();
                 if (localName.equals(expectedName)) {
+                    matchesFound++;
                     applyElementPathAttributePlaceholder(child, elementPath, index + 1, attrName);
                 }
             }
+        }
+        if (matchesFound == 0) {
+            logger.debug("No child element '{}' found at path index {} in element {}", 
+                    expectedName, index, element.getLocalName() != null ? element.getLocalName() : element.getNodeName());
         }
     }
     

@@ -126,6 +126,9 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         // WireMock returns serve events in REVERSE chronological order (newest first)
         // So we need to get elements from the START of the list, not the end
+        // Count-based filtering: get the newest N events where N = total - existing count
+        // This works because each test method captures its request count at the start,
+        // so the difference gives us only the events from this test method
         int newEventsCount = allServeEvents.size() - existingRequestCount;
         List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> candidateEvents = 
             newEventsCount > 0 ? allServeEvents.subList(0, newEventsCount) : new java.util.ArrayList<>();
