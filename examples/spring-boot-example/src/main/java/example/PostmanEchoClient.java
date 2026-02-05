@@ -12,6 +12,13 @@ public interface PostmanEchoClient {
     @GetMapping("/get")
     String getUser(@RequestParam("id") int id);
 
+    @GetMapping("/get")
+    String getWithParams(
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            @RequestParam(value = "test", required = false) String test,
+            @RequestParam(value = "request", required = false) String request);
+
     @PostMapping(value = "/post", consumes = "application/xml")
     String postXml(@RequestBody String xmlBody);
 }

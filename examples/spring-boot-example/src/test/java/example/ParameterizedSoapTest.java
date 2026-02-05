@@ -44,7 +44,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @U(urls = { "https://postman-echo.com" },
    properties = { "app.postmanecho.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@Disabled("Temporarily disabled - XML matching issue in playback mode (IllegalArgumentException: type: -1)")
 public class ParameterizedSoapTest extends BaseTestFeature {
 
     @Autowired

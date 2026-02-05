@@ -161,7 +161,6 @@ public class ParameterizedTestExample extends BaseTestFeature {
 
     @ParameterizedTest
     @MethodSource("multipleRequestsWithDynamicDates")
-    @Disabled("Temporarily disabled - failing in playback mode")
     void testMultipleRequestsWithDynamicDates(String testName) {
         // Simulate dynamic dates set in @BeforeEach (like FullFlowFlexibleIT)
         // Dates change per test run, so they need to be auto-ignored
