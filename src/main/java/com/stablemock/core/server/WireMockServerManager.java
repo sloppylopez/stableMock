@@ -465,7 +465,9 @@ public final class WireMockServerManager {
                                             
                                             // Check if this is SOAP XML with namespaces (triggers XMLUnit bug)
                                             boolean isSoapXml = expectedBody.contains("soap:Envelope") || 
+                                                    expectedBody.contains("SOAP-ENV:Envelope") ||
                                                     expectedBody.contains("xmlns:soap") ||
+                                                    expectedBody.contains("xmlns:SOAP-ENV") ||
                                                     expectedBody.contains("http://schemas.xmlsoap.org");
                                             
                                             if (hasAttributePatterns && isSoapXml) {
@@ -545,12 +547,22 @@ public final class WireMockServerManager {
             
             for (File mappingFile : mappingFiles) {
                 try {
-                    // Extract method name from file prefix (e.g., "testSoapFlow[2]" from "testSoapFlow[2]_post-uuid.json")
+                    // Extract method name from file prefix. Merged files are named "methodName_originalName.json"
+                    // (e.g. "should_make_a_full_flow_until_confirmation_using_flexible_payment[1]_sap_bc_....json").
+                    // Match against known method names so names containing underscores are resolved correctly.
                     String fileName = mappingFile.getName();
                     String methodName = null;
-                    int underscoreIdx = fileName.indexOf('_');
-                    if (underscoreIdx > 0) {
-                        methodName = fileName.substring(0, underscoreIdx);
+                    for (String knownMethod : patternsByMethod.keySet()) {
+                        if (fileName.startsWith(knownMethod + "_")) {
+                            methodName = knownMethod;
+                            break;
+                        }
+                    }
+                    if (methodName == null) {
+                        int underscoreIdx = fileName.indexOf('_');
+                        if (underscoreIdx > 0) {
+                            methodName = fileName.substring(0, underscoreIdx);
+                        }
                     }
                     
                     // Get patterns specific to this method
@@ -635,7 +647,9 @@ public final class WireMockServerManager {
                                             
                                             // Check if this is SOAP XML with namespaces (triggers XMLUnit bug)
                                             boolean isSoapXml = expectedBody.contains("soap:Envelope") || 
+                                                    expectedBody.contains("SOAP-ENV:Envelope") ||
                                                     expectedBody.contains("xmlns:soap") ||
+                                                    expectedBody.contains("xmlns:SOAP-ENV") ||
                                                     expectedBody.contains("http://schemas.xmlsoap.org");
                                             
                                             if (hasAttributePatterns && isSoapXml) {
@@ -789,6 +803,9 @@ public final class WireMockServerManager {
      * Extracts an XPath expression that matches the key element(s) in SOAP XML.
      * This is used to avoid the XMLUnit "type: -1" bug with namespaced SOAP XML.
      * Returns an XPath that matches based on the SOAP body's root element.
+     * When multiple stubs exist for the same operation (e.g. parameterized tests), appends
+     * a discriminator (e.g. RatePlanCode) so each stub matches only its request variant
+     * and responses are not mixed.
      */
     private static String extractSoapXPathMatch(String xml) {
         try {
@@ -797,30 +814,92 @@ public final class WireMockServerManager {
             javax.xml.parsers.DocumentBuilder builder = factory.newDocumentBuilder();
             org.w3c.dom.Document doc = builder.parse(new java.io.ByteArrayInputStream(xml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
             
-            // Find the SOAP Body element
             org.w3c.dom.NodeList bodyNodes = doc.getElementsByTagNameNS("http://schemas.xmlsoap.org/soap/envelope/", "Body");
             if (bodyNodes.getLength() > 0) {
                 org.w3c.dom.Node bodyNode = bodyNodes.item(0);
-                // Get the first child element of the Body (the actual request element)
                 org.w3c.dom.NodeList children = bodyNode.getChildNodes();
                 for (int i = 0; i < children.getLength(); i++) {
                     org.w3c.dom.Node child = children.item(i);
                     if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
                         String localName = child.getLocalName();
-                        // Create XPath that matches based on the root element name inside SOAP Body
-                        // Use local-name() to handle namespace prefix variations
-                        return "//*[local-name()='Body']/*[local-name()='" + localName + "']";
+                        String baseXpath = "//*[local-name()='Body']/*[local-name()='" + localName + "']";
+                        String discriminator = extractSoapXPathDiscriminator((org.w3c.dom.Element) child);
+                        if (discriminator != null && !discriminator.isEmpty()) {
+                            return baseXpath + discriminator;
+                        }
+                        return baseXpath;
                     }
                 }
             }
-            
-            // Fallback: just match any SOAP Envelope
             return "//*[local-name()='Envelope']";
         } catch (Exception e) {
             logger.warn("Failed to extract SOAP XPath match: {}", e.getMessage());
-            // Fallback to a very permissive match
             return "//*[local-name()='Envelope']";
         }
+    }
+
+    /**
+     * Finds a stable attribute in the SOAP body root subtree to distinguish this request
+     * from others (e.g. RatePlanCode in OTA_HotelAvailRQ). Avoids mixing responses when
+     * multiple parameterized invocations are merged into one playback.
+     */
+    private static String extractSoapXPathDiscriminator(org.w3c.dom.Element bodyRoot) {
+        String[] elementNames = {"RatePlanCandidate", "RoomStayCandidate", "HotelRef"};
+        String[] discriminatorAttrs = {"RatePlanCode", "RatePlanID", "RoomTypeCode", "HotelCode"};
+        for (String eltName : elementNames) {
+            java.util.List<org.w3c.dom.Node> found = findElementsByLocalName(bodyRoot, eltName);
+            for (org.w3c.dom.Node n : found) {
+                org.w3c.dom.NamedNodeMap attrs = n.getAttributes();
+                if (attrs == null) continue;
+                for (String attrName : discriminatorAttrs) {
+                    for (int a = 0; a < attrs.getLength(); a++) {
+                        org.w3c.dom.Node attr = attrs.item(a);
+                        if (attr.getLocalName() != null && attrName.equals(attr.getLocalName())) {
+                            String val = attr.getNodeValue();
+                            if (val != null && !val.isEmpty()) {
+                                String eltLocal = n.getLocalName() != null ? n.getLocalName() : n.getNodeName();
+                                return "//*[local-name()='" + eltLocal + "'][@*[local-name()='" + attrName + "']=" + xpathLiteral(val) + "]";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        String[] discriminatorElements = {"UserType", "CustomerCode", "CardNumber", "Category"};
+        for (String eltName : discriminatorElements) {
+            java.util.List<org.w3c.dom.Node> found = findElementsByLocalName(bodyRoot, eltName);
+            for (org.w3c.dom.Node n : found) {
+                String text = n.getTextContent();
+                if (text != null) {
+                    text = text.trim();
+                }
+                if (text != null && !text.isEmpty()) {
+                    return "//*[local-name()='" + eltName + "' and normalize-space()=" + xpathLiteral(text) + "]";
+                }
+            }
+        }
+        return null;
+    }
+
+    private static java.util.List<org.w3c.dom.Node> findElementsByLocalName(org.w3c.dom.Node node, String localName) {
+        java.util.List<org.w3c.dom.Node> out = new java.util.ArrayList<>();
+        if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+            String ln = node.getLocalName() != null ? node.getLocalName() : node.getNodeName();
+            if (localName.equals(ln)) {
+                out.add(node);
+            }
+        }
+        org.w3c.dom.NodeList children = node.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            out.addAll(findElementsByLocalName(children.item(i), localName));
+        }
+        return out;
+    }
+
+    private static String xpathLiteral(String val) {
+        if (val == null) return "''";
+        if (val.indexOf('\'') < 0) return "'" + val + "'";
+        return "\"" + val.replace("\"", "\"\"") + "\"";
     }
 
     /**

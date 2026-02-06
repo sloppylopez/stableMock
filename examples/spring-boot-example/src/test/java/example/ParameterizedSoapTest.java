@@ -91,6 +91,8 @@ public class ParameterizedSoapTest extends BaseTestFeature {
         assertNotNull(availabilityResponse.getBody(), "Search response body should not be null for " + userType);
         assertEquals(200, availabilityResponse.getStatusCode().value(), 
             "Search response should be 200 OK for " + userType);
+        assertTrue(availabilityResponse.getBody().contains("<UserType>" + userType + "</UserType>"),
+            "Search response should contain user type for " + userType);
 
         // Request 2: Create reservation SOAP request
         String bookingXml = generateBookingRequest(userType, customerCode);

@@ -206,3 +206,57 @@ If timeouts persist even with increased timeouts, try these steps in order:
 4. **Reduce system load**: Close other applications that might be using network resources
 
 **Note**: WSL network performance is non-deterministic. If tests passed yesterday but fail today with the same code, it's likely a WSL network state issue, not a code problem. Restarting WSL or the computer often resolves it.
+
+---
+
+## 7. WireMock `equalToXml` Bug with SOAP / Namespaced XML
+
+### Problem
+
+When request bodies are SOAP XML (or other namespaced XML) and StableMock has detected **dynamic attributes** to ignore, using WireMock's `equalToXml` matcher can cause an internal error:
+
+- **Symptom**: Playback fails with `feign.FeignException$InternalServerError: [500 Server Error]` and root cause `java.lang.IllegalArgumentException: type: -1`.
+- **Cause**: WireMock delegates to XMLUnit for XML comparison. With namespaced SOAP and certain attribute/value comparisons, XMLUnit can throw `IllegalArgumentException: type: -1` (an unknown comparison type). Using `exemptedComparisons` (e.g. `ATTR_VALUE`) does not fix this; the error occurs deeper in the comparison logic.
+
+### Solution (StableMock Workaround)
+
+For **SOAP XML** requests that have **dynamic attribute** ignore patterns, StableMock does **not** use `equalToXml`. Instead it:
+
+1. **Detects SOAP**: Request body contains `soap:Envelope` or `xmlns:soap`.
+2. **Replaces the matcher**: Removes `equalToXml` and uses WireMock's **`matchesXPath`** matcher instead.
+3. **Builds an XPath**: Parses the recorded XML, finds the SOAP `Body` element and its first child (the operation root, e.g. `SearchAvailabilityRQ`), and generates an XPath that matches by **local name** only, e.g.:
+   - `//*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']`
+4. **Effect**: Playback matches requests by “same SOAP operation” (body root element), and does not compare dynamic attributes at all, so the XMLUnit bug is avoided.
+
+Non-SOAP XML with dynamic fields still uses `equalToXml` with `${xmlunit.ignore}` placeholders where applicable; only SOAP + dynamic attributes trigger the `matchesXPath` path.
+
+### Affected Code
+
+- `WireMockServerManager.java`: `applyIgnorePatternsToStubFilesPerMethod` (and the shared body-matcher logic) replaces `equalToXml` with `matchesXPath` when the body is SOAP and there are dynamic attribute patterns.
+- `extractSoapXPathMatch(String xml)`: Builds the XPath from the SOAP Body’s first child element using `local-name()`, with fallback to `//*[local-name()='Envelope']` on parse failure.
+
+### Implications
+
+- **Matching is by operation, not full body**: Two requests with the same SOAP body root (e.g. same `Body` child local name) will match the same stub even if other elements/attributes differ. For parameterized SOAP tests that send the same operation type with different dynamic values, this is usually desired.
+- **Stricter matching**: If you need to distinguish two SOAP requests that share the same body root but differ in other ways, the current workaround does not support that; you would need method-specific stubs or different operations.
+
+---
+
+## 8. Method Name with Underscores: Ignore Patterns Not Applied (Class-Level Playback)
+
+### Problem
+
+After merging parameterized test mappings, files are named `methodName_originalMappingName.json`. The code used to derive the method name by taking the substring **before the first underscore**. If the test method name itself contains underscores (e.g. `should_make_a_full_flow_until_confirmation_using_flexible_payment`), that yields a wrong prefix (e.g. `"should"`), so no ignore patterns are found for that method and stubs keep strict body matching (e.g. `equalToXml`). Playback then returns 404 for requests whose body differs (e.g. new `transactionId` / `echoToken`).
+
+### Why Some Tests Pass and Others Fail
+
+- **Method without underscores** (e.g. `testSoapFlow`): Merged file `testSoapFlow[0]_post-uuid.json` → substring before first `_` is `testSoapFlow[0]` → matches `patternsByMethod` → patterns applied → playback passes.
+- **Method with underscores** (e.g. `should_make_a_full_flow_...`): Merged file `should_make_a_full_flow_..._sap_bc_....json` → substring before first `_` is `should` → no match → patterns not applied → 404.
+
+### Solution
+
+In `applyIgnorePatternsToStubFilesPerMethod`, resolve the method name by matching the file name against **known method names** from `patternsByMethod`: if the file name starts with `knownMethod + "_"`, use that method. Only fall back to “substring before first underscore” when no known method matches. This way method names that contain underscores (e.g. `should_make_a_full_flow_until_confirmation_using_flexible_payment[1]`) are resolved correctly and ignore patterns (and SOAP `matchesXPath` workaround) are applied.
+
+### Affected Code
+
+- `WireMockServerManager.java`: `applyIgnorePatternsToStubFilesPerMethod` – method name extraction from merged mapping file name.
