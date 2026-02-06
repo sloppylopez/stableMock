@@ -22,7 +22,8 @@ class XmlFieldDetectorTest {
         assertEquals(1, result.getDynamicFields().size());
         assertTrue(result.getDynamicFields().get(0).fieldPath().contains("timestamp"));
         assertEquals(1, result.getIgnorePatterns().size());
-        assertTrue(result.getIgnorePatterns().get(0).startsWith("xml://"));
+        assertTrue(result.getIgnorePatterns().get(0).startsWith("xml:"), 
+            "Pattern should start with 'xml:', got: " + result.getIgnorePatterns().get(0));
     }
 
     @Test
@@ -143,9 +144,9 @@ class XmlFieldDetectorTest {
         
         assertEquals(1, result.getIgnorePatterns().size());
         String pattern = result.getIgnorePatterns().get(0);
-        assertTrue(pattern.startsWith("xml://"));
-        assertTrue(pattern.contains("local-name()"));
-        assertTrue(pattern.contains("timestamp"));
+        assertTrue(pattern.startsWith("xml:"), "Pattern should start with 'xml:', got: " + pattern);
+        assertTrue(pattern.contains("local-name()"), "Pattern should contain 'local-name()', got: " + pattern);
+        assertTrue(pattern.contains("timestamp"), "Pattern should contain 'timestamp', got: " + pattern);
     }
 
     @Test
@@ -161,6 +162,125 @@ class XmlFieldDetectorTest {
         
         assertEquals(1, result.getDynamicFields().size());
         assertTrue(result.getIgnorePatterns().get(0).contains("timestamp"));
+    }
+
+    @Test
+    void testDetectDynamicFieldsInXml_HeuristicDetection_SameDateValues() {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        // Same date values (as would happen in a single test run)
+        List<String> xmlBodies = List.of(
+            "<root><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></root>",
+            "<root><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></root>"
+        );
+        
+        XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
+        
+        // Should detect Start and End via heuristic even though values are same
+        assertEquals(2, result.getDynamicFields().size());
+        assertEquals(2, result.getIgnorePatterns().size());
+        
+        var fieldPaths = result.getDynamicFields().stream()
+            .map(f -> f.fieldPath())
+            .toList();
+        assertTrue(fieldPaths.stream().anyMatch(p -> p.contains("Start")),
+            "Should detect Start attribute via heuristic. Found: " + fieldPaths);
+        assertTrue(fieldPaths.stream().anyMatch(p -> p.contains("End")),
+            "Should detect End attribute via heuristic. Found: " + fieldPaths);
+    }
+
+    @Test
+    void testDetectDynamicFieldsInXml_HeuristicDetection_DateElement() {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<String> xmlBodies = List.of(
+            "<root><startDate>2025-02-23</startDate><endDate>2025-02-24</endDate></root>",
+            "<root><startDate>2025-02-23</startDate><endDate>2025-02-24</endDate></root>"
+        );
+        
+        XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
+        
+        // Should detect startDate and endDate via heuristic
+        assertEquals(2, result.getDynamicFields().size());
+        var fieldPaths = result.getDynamicFields().stream()
+            .map(f -> f.fieldPath())
+            .toList();
+        assertTrue(fieldPaths.stream().anyMatch(p -> p.contains("startDate")),
+            "Should detect startDate via heuristic. Found: " + fieldPaths);
+        assertTrue(fieldPaths.stream().anyMatch(p -> p.contains("endDate")),
+            "Should detect endDate via heuristic. Found: " + fieldPaths);
+    }
+
+    @Test
+    void testDetectDynamicFieldsInXml_HeuristicDetection_Timestamp() {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<String> xmlBodies = List.of(
+            "<root><timestamp>2025-02-23T10:00:00Z</timestamp></root>",
+            "<root><timestamp>2025-02-23T10:00:00Z</timestamp></root>"
+        );
+        
+        XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
+        
+        // Should detect timestamp via heuristic
+        assertEquals(1, result.getDynamicFields().size());
+        assertTrue(result.getDynamicFields().get(0).fieldPath().contains("timestamp"));
+    }
+
+    @Test
+    void testDetectDynamicFieldsInXml_HeuristicDetection_NoFalsePositive() {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        // Field name doesn't suggest date/time, values are same - should NOT be detected
+        List<String> xmlBodies = List.of(
+            "<root><id>123</id><name>test</name></root>",
+            "<root><id>123</id><name>test</name></root>"
+        );
+        
+        XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
+        
+        // Should NOT detect id or name as dynamic (no heuristic match, values are same)
+        assertTrue(result.getDynamicFields().isEmpty());
+        assertTrue(result.getIgnorePatterns().isEmpty());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInXml_HeuristicDetection_NestedStayDateRange() {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        // Simulating OTA HotelAvailRQ structure
+        List<String> xmlBodies = List.of(
+            "<Envelope><Body><OTA_HotelAvailRQ><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></OTA_HotelAvailRQ></Body></Envelope>",
+            "<Envelope><Body><OTA_HotelAvailRQ><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></OTA_HotelAvailRQ></Body></Envelope>"
+        );
+        
+        XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
+        
+        // Should detect Start and End attributes via heuristic
+        assertEquals(2, result.getDynamicFields().size());
+        var fieldPaths = result.getDynamicFields().stream()
+            .map(f -> f.fieldPath())
+            .toList();
+        assertTrue(fieldPaths.stream().anyMatch(p -> p.contains("Start")),
+            "Should detect Start attribute via heuristic. Found: " + fieldPaths);
+        assertTrue(fieldPaths.stream().anyMatch(p -> p.contains("End")),
+            "Should detect End attribute via heuristic. Found: " + fieldPaths);
+    }
+
+    @Test
+    void testDetectDynamicFieldsInXml_HeuristicDetection_RequestId() {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<String> xmlBodies = List.of(
+            "<root><requestId>abc-123</requestId></root>",
+            "<root><requestId>abc-123</requestId></root>"
+        );
+        
+        XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
+        
+        // Should detect requestId via heuristic
+        assertEquals(1, result.getDynamicFields().size());
+        assertTrue(result.getDynamicFields().get(0).fieldPath().contains("requestId"));
     }
 }
 

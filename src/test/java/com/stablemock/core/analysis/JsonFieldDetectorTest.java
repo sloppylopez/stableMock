@@ -172,5 +172,115 @@ class JsonFieldDetectorTest {
         assertEquals(1, result.getDynamicFields().size());
         assertEquals(3, result.getDynamicFields().get(0).sampleValues().size());
     }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_SameDateValues() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        // Same date values (as would happen in a single test run)
+        // NOTE: Heuristic detection was removed per user request, so fields with same values are NOT detected
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"startDate\":\"2025-02-23\",\"endDate\":\"2025-02-24\"}"),
+            objectMapper.readTree("{\"startDate\":\"2025-02-23\",\"endDate\":\"2025-02-24\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should NOT detect startDate and endDate since values are same (heuristic detection removed)
+        assertEquals(0, result.getDynamicFields().size());
+        assertEquals(0, result.getIgnorePatterns().size());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_Timestamp() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"timestamp\":\"2025-02-23T10:00:00Z\"}"),
+            objectMapper.readTree("{\"timestamp\":\"2025-02-23T10:00:00Z\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should NOT detect timestamp since values are same (heuristic detection removed)
+        assertEquals(0, result.getDynamicFields().size());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_StartEnd() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"start\":\"2025-02-23\",\"end\":\"2025-02-24\"}"),
+            objectMapper.readTree("{\"start\":\"2025-02-23\",\"end\":\"2025-02-24\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should NOT detect start and end since values are same (heuristic detection removed)
+        assertEquals(0, result.getDynamicFields().size());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_NoFalsePositive() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        // Field names don't suggest date/time, values are same - should NOT be detected
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"id\":123,\"name\":\"test\"}"),
+            objectMapper.readTree("{\"id\":123,\"name\":\"test\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should NOT detect id or name as dynamic (no heuristic match, values are same)
+        assertTrue(result.getDynamicFields().isEmpty());
+        assertTrue(result.getIgnorePatterns().isEmpty());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_RequestId() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"requestId\":\"abc-123\"}"),
+            objectMapper.readTree("{\"requestId\":\"abc-123\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should NOT detect requestId since values are same (heuristic detection removed)
+        assertEquals(0, result.getDynamicFields().size());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_SessionToken() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"sessionToken\":\"token-123\"}"),
+            objectMapper.readTree("{\"sessionToken\":\"token-123\"}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should NOT detect sessionToken since values are same (heuristic detection removed)
+        assertEquals(0, result.getDynamicFields().size());
+    }
+
+    @Test
+    void testDetectDynamicFieldsInJson_HeuristicDetection_NestedDateField() throws Exception {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+        
+        List<JsonNode> bodies = List.of(
+            objectMapper.readTree("{\"search\":{\"startDate\":\"2025-02-23\",\"endDate\":\"2025-02-24\"}}"),
+            objectMapper.readTree("{\"search\":{\"startDate\":\"2025-02-23\",\"endDate\":\"2025-02-24\"}}")
+        );
+        
+        JsonFieldDetector.detectDynamicFieldsInJson(bodies, result);
+        
+        // Should NOT detect nested startDate and endDate since values are same (heuristic detection removed)
+        assertEquals(0, result.getDynamicFields().size());
+    }
 }
 

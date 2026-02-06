@@ -396,8 +396,8 @@ public class StableMockExtension
             } else {
                 // mergePerTestMethodMappings expects class-level directory, not method-level
                 File classMappingsDir = mappingsDir.getParentFile();
-                MappingStorage.mergePerTestMethodMappings(classMappingsDir);
-                // Collect ignore patterns from all annotations (for method-level)
+                
+                // Collect annotation ignore patterns
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
                     String[] ignore = annotation.ignore();
@@ -409,9 +409,15 @@ public class StableMockExtension
                         }
                     }
                 }
-                // After merge, mappings are in class-level directory, so use that for playback
+                
+                // Merge first, then let startPlayback apply patterns from ALL test methods
+                // This ensures patterns from all parameterized test invocations are applied to all merged mappings
+                MappingStorage.mergePerTestMethodMappings(classMappingsDir);
+                
+                // After merge, start playback - startPlayback will load patterns from ALL test methods
+                // and apply them to all mappings (when testMethodName is null, it loads patterns from all methods)
                 wireMockServer = WireMockServerManager.startPlayback(port, classMappingsDir, 
-                        testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns);
+                        testResourcesDir, testClassName, null, annotationIgnorePatterns);
             }
 
             methodStore.putServer(wireMockServer);
@@ -435,14 +441,25 @@ public class StableMockExtension
 
     @Override
     public void afterEach(ExtensionContext context) throws Exception {
+        String testMethodName = TestContextResolver.getTestMethodIdentifier(context);
+        System.out.println("=== STABLEMOCK afterEach called for: " + testMethodName + " ===");
+        logger.info("=== afterEach called for: {} ===", testMethodName);
+        
         ExtensionContextManager.MethodLevelStore methodStore = new ExtensionContextManager.MethodLevelStore(context);
         Boolean useClassLevelServer = methodStore.getUseClassLevelServer();
         ReentrantLock classLock = methodStore.getClassLock();
+
+        System.out.println("=== STABLEMOCK afterEach: useClassLevelServer=" + useClassLevelServer + ", isRecordMode=" + StableMockConfig.isRecordMode() + " ===");
+        logger.info("=== afterEach: useClassLevelServer={}, isRecordMode={} ===", 
+                useClassLevelServer, StableMockConfig.isRecordMode());
 
         try {
             if (useClassLevelServer != null && useClassLevelServer) {
                 File mappingsDir = methodStore.getMappingsDir();
                 String targetUrl = methodStore.getTargetUrl();
+
+                logger.info("=== afterEach: mappingsDir={}, targetUrl={} ===", 
+                        mappingsDir != null ? mappingsDir.getAbsolutePath() : "null", targetUrl);
 
                 if (StableMockConfig.isRecordMode() && mappingsDir != null && targetUrl != null) {
                     ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(
@@ -488,6 +505,8 @@ public class StableMockExtension
                                         existingRequestCounts, testResourcesDir, testClassName, annotationInfos, allServers);
                             }
                         } else {
+                            logger.info("=== afterEach: serveEvents.size()={}, existingRequestCount={}, mappingsDir={} ===", 
+                                    serveEvents.size(), existingRequestCount, mappingsDir != null ? mappingsDir.getAbsolutePath() : "null");
                             if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
                                 // Check if scenario mode is enabled
                                 U[] annotations = TestContextResolver.findAllUAnnotations(context);
@@ -500,12 +519,17 @@ public class StableMockExtension
                                 }
                                 
                                 Long testMethodStartTime = methodStore.getTestMethodStartTime();
+                                logger.info("=== Saving mappings: {} new event(s) for test method ===", 
+                                        serveEvents.size() - existingRequestCount);
                                 MappingStorage.saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl,
                                         existingRequestCount, scenario, testMethodStartTime);
 
                                 // Track requests and run detection for single annotation
                                 performDynamicFieldDetection(context, server, existingRequestCount, null,
                                         testResourcesDir, testClassName, null);
+                            } else {
+                                logger.warn("=== NOT Saving mappings: serveEvents.size()={} <= existingRequestCount={} (no new events detected) ===", 
+                                        serveEvents.size(), existingRequestCount);
                             }
                         }
                     }

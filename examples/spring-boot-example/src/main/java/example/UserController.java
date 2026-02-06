@@ -42,6 +42,16 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/postmanecho/get")
+    public ResponseEntity<String> getFromPostmanEcho(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String test,
+            @RequestParam(required = false) String request) {
+        String response = thirdPartyService.getFromPostmanEchoWithParams(startDate, endDate, test, request);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping(value = "/graphql", consumes = "application/json")
     public ResponseEntity<String> executeGraphQL(@RequestBody String requestBody) {
         String response = thirdPartyService.executeGraphQL(requestBody);

@@ -139,6 +139,7 @@ public final class AnalysisResultStorage {
                     testMethodName, annotationIndex);
 
             if (!outputFile.exists()) {
+                logger.debug("Detection results file not found: {}", outputFile.getAbsolutePath());
                 return List.of();
             }
 
@@ -146,19 +147,25 @@ public final class AnalysisResultStorage {
             ArrayNode patternsArray = (ArrayNode) json.get("ignore_patterns");
 
             if (patternsArray == null) {
+                logger.debug("No ignore_patterns array found in {}", outputFile.getAbsolutePath());
                 return List.of();
             }
 
             List<String> patterns = new java.util.ArrayList<>();
             patternsArray.forEach(node -> patterns.add(node.asText()));
 
-            logger.debug("Loaded {} auto-detected ignore patterns from {}",
+            logger.info("Loaded {} auto-detected ignore patterns from {}",
                     patterns.size(), outputFile.getAbsolutePath());
+            if (logger.isDebugEnabled() && !patterns.isEmpty()) {
+                logger.debug("Loaded patterns: {}", patterns);
+            }
 
             return patterns;
 
         } catch (Exception e) {
-            logger.debug("No detection results found or failed to load: {}", e.getMessage());
+            logger.warn("Failed to load detection results from {}: {}", 
+                    getOutputFile(testResourcesDir, testClassName, testMethodName, annotationIndex).getAbsolutePath(),
+                    e.getMessage());
             return List.of();
         }
     }

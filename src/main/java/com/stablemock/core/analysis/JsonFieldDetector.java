@@ -130,9 +130,15 @@ public final class JsonFieldDetector {
                             logger.info("Detected dynamic JSON field: {} (samples: {})",
                                     jsonPath, sampleValues.size());
                         }
-                    } else if (fieldValues.get(0).isObject() || fieldValues.get(0).isArray()) {
-                        // Values are same, but recurse to check nested structure
-                        detectDynamicFieldsInJsonRecursive(fieldValues, currentPath, result);
+                    } else {
+                        // Values are the same - recurse if complex type to check nested structure
+                        JsonNode firstValueNode = fieldValues.get(0);
+                        boolean isComplexType = firstValueNode.isObject() || firstValueNode.isArray();
+                        
+                        if (isComplexType) {
+                            // Values are same, but recurse to check nested structure
+                            detectDynamicFieldsInJsonRecursive(fieldValues, currentPath, result);
+                        }
                     }
                 }
             }
@@ -161,6 +167,9 @@ public final class JsonFieldDetector {
             }
         }
     }
+
+
+    
 
 }
 
