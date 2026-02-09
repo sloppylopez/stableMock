@@ -295,6 +295,24 @@ public class StableMockExtension
                 methodStore.putExistingRequestCounts(existingRequestCounts);
             }
 
+            // Parameterized playback: set scenario state so this invocation matches only its own stubs
+            if (!StableMockConfig.isRecordMode() && testMethodIdentifier != null && testMethodIdentifier.contains("[")) {
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\[(\\d+)\\]").matcher(testMethodIdentifier);
+                if (m.find()) {
+                    String state = m.group(1);
+                    String scenarioName = "stablemock-param-" + testMethodIdentifier.replaceAll("\\[\\d+\\].*", "");
+                    WireMockServerManager.setScenarioState(port, scenarioName, state);
+                    List<Integer> allPorts = classStore.getPorts();
+                    if (allPorts != null) {
+                        for (int p : allPorts) {
+                            if (p != port) {
+                                WireMockServerManager.setScenarioState(p, scenarioName, state);
+                            }
+                        }
+                    }
+                }
+            }
+
             // Refresh class-scoped properties (Spring may have evaluated @DynamicPropertySource early)
             System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
             System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(port));

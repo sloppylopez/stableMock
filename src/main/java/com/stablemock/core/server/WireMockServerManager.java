@@ -479,6 +479,7 @@ public final class WireMockServerManager {
                                                 // This matches based on the presence of the SOAP structure
                                                 String xpathMatch = extractSoapXPathMatch(expectedBody, ignorePatterns);
                                                 patternObj.put("matchesXPath", xpathMatch);
+                                                mappingObj.put("priority", soapXPathPriority(xpathMatch));
                                                 
                                                 modified = true;
                                                 logger.info("Changed {} to matchesXPath for SOAP XML in {} (avoiding XMLUnit bug)", 
@@ -660,6 +661,7 @@ public final class WireMockServerManager {
                                                 // Extract a key element from the XML to create a minimal match
                                                 String xpathMatch = extractSoapXPathMatch(expectedBody, ignorePatterns);
                                                 patternObj.put("matchesXPath", xpathMatch);
+                                                mappingObj.put("priority", soapXPathPriority(xpathMatch));
                                                 
                                                 modified = true;
                                                 logger.info("Changed {} to matchesXPath for SOAP XML in {} (avoiding XMLUnit bug)", 
@@ -677,7 +679,7 @@ public final class WireMockServerManager {
                                                     
                                                     modified = true;
                                                     logger.debug("Modified mapping {} with xmlunit.ignore placeholders", 
-                                                            mappingFile.getName());
+                                                        mappingFile.getName());
                                                 }
                                             }
                                         }
@@ -838,6 +840,19 @@ public final class WireMockServerManager {
         }
     }
 
+    /** WireMock: lower priority = match first. More XPath predicates = more specific = lower number. */
+    private static int soapXPathPriority(String xpathMatch) {
+        if (xpathMatch == null) return 10;
+        int n = 0;
+        int idx = 0;
+        final String pred = "[.//*[local-name()=";
+        while ((idx = xpathMatch.indexOf(pred, idx)) != -1) {
+            n++;
+            idx += 1;
+        }
+        return n >= 3 ? 1 : n == 2 ? 2 : n == 1 ? 3 : 10;
+    }
+
     /**
      * Finds a stable attribute in the SOAP body root subtree to distinguish this request
      * from others (e.g. RatePlanCode in OTA_HotelAvailRQ). Avoids mixing responses when
@@ -900,36 +915,23 @@ public final class WireMockServerManager {
         }
 
         // Generic fallback: pick up to 3 non-empty leaf element texts (not ignored).
-        // Build predicates so the *request root* must contain each descendant (valid XPath).
         java.util.List<org.w3c.dom.Node> leafElements = findLeafElements(bodyRoot);
         java.util.List<String> predicates = new java.util.ArrayList<>();
         java.util.Set<String> seen = new java.util.HashSet<>();
         for (org.w3c.dom.Node n : leafElements) {
             String ln = n.getLocalName() != null ? n.getLocalName() : n.getNodeName();
-            if (ignoredNames.contains(ln)) {
-                continue;
-            }
+            if (ignoredNames.contains(ln)) continue;
             String text = n.getTextContent();
-            if (text != null) {
-                text = text.trim();
-            }
-            if (text == null || text.isEmpty()) {
-                continue;
-            }
+            if (text != null) text = text.trim();
+            if (text == null || text.isEmpty()) continue;
             String key = ln + "::" + text;
-            if (!seen.add(key)) {
-                continue;
-            }
+            if (!seen.add(key)) continue;
             predicates.add("[.//*[local-name()='" + ln + "' and normalize-space()=" + xpathLiteral(text) + "]]");
-            if (predicates.size() >= 3) {
-                break;
-            }
+            if (predicates.size() >= 3) break;
         }
         if (!predicates.isEmpty()) {
             StringBuilder sb = new StringBuilder();
-            for (String p : predicates) {
-                sb.append(p);
-            }
+            for (String p : predicates) sb.append(p);
             return sb.toString();
         }
         return null;
@@ -1652,5 +1654,34 @@ public final class WireMockServerManager {
         }
         
         logger.warn("Could not verify WireMock stub on port {} after {} attempts, continuing anyway", port, maxAttempts);
+    }
+
+    /**
+     * Sets WireMock scenario state so parameterized invocation [N] matches only stubs with requiredScenarioState "N".
+     * Call from beforeEach when using class-level server in playback with parameterized tests.
+     */
+    public static void setScenarioState(int port, String scenarioName, String state) {
+        try {
+            String path = "/__admin/scenarios/" + scenarioName + "/state";
+            java.net.URL url = new java.net.URL("http://localhost:" + port + path);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+            conn.setRequestMethod("PUT");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            try (java.io.OutputStream os = conn.getOutputStream()) {
+                os.write(("{\"state\":\"" + state + "\"}").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            int code = conn.getResponseCode();
+            conn.disconnect();
+            if (code >= 200 && code < 300) {
+                logger.debug("Set scenario {} state to {} on port {}", scenarioName, state, port);
+            } else {
+                logger.warn("Failed to set scenario state: {} {} for scenario {}", code, conn.getResponseMessage(), scenarioName);
+            }
+        } catch (Exception e) {
+            logger.warn("Could not set scenario state for {} to {}: {}", scenarioName, state, e.getMessage());
+        }
     }
 }

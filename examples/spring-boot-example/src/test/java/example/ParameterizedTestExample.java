@@ -4,6 +4,8 @@ import com.stablemock.U;
 import example.inheritance.BaseTestFeature;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -54,6 +56,7 @@ public class ParameterizedTestExample extends BaseTestFeature {
 
     @ParameterizedTest
     @MethodSource("hostTypeAvailabilityRequest")
+    @Execution(ExecutionMode.SAME_THREAD)
     void testParameterizedRequests(int userId) {
         // Make GET request through Spring Boot controller to postman-echo
         // Flow: Test -> Controller -> ThirdPartyService -> PostmanEchoClient -> postman-echo.com/get?id={userId}
@@ -161,6 +164,7 @@ public class ParameterizedTestExample extends BaseTestFeature {
 
     @ParameterizedTest
     @MethodSource("multipleRequestsWithDynamicDates")
+    @Execution(ExecutionMode.SAME_THREAD)
     void testMultipleRequestsWithDynamicDates(String testName) {
         // Simulate dynamic dates set in @BeforeEach (like FullFlowFlexibleIT)
         // Dates change per test run, so they need to be auto-ignored

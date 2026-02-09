@@ -660,6 +660,16 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             return;
         }
         
+        // Parameterized: only add scenario when multiple invocations exist (e.g. [0] and [1])
+        java.util.Map<String, Integer> paramBaseNameCount = new java.util.HashMap<>();
+        for (File testMethodDir : testMethodDirs) {
+            int idx = parseParameterizedInvocationIndex(testMethodDir.getName());
+            if (idx >= 0) {
+                String base = testMethodDir.getName().replaceAll("\\[\\d+\\].*", "");
+                paramBaseNameCount.merge(base, 1, Integer::sum);
+            }
+        }
+
         // Single URL case - merge test method mappings to class-level directory
         int totalMappingsCopied = 0;
         int postMappingsCopied = 0;
@@ -735,8 +745,26 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                                 continue;
                             }
                             
+                            // For parameterized tests with multiple invocations: add scenario so each invocation matches only its own stubs
+                            int paramIndex = parseParameterizedInvocationIndex(testMethodDir.getName());
+                            String methodBase = testMethodDir.getName().replaceAll("\\[\\d+\\].*", "");
+                            boolean isMultiInvocationParam = paramIndex >= 0 && paramBaseNameCount.getOrDefault(methodBase, 0) >= 2;
+                            if (isMultiInvocationParam) {
+                                try {
+                                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                    com.fasterxml.jackson.databind.node.ObjectNode mappingObj =
+                                            (com.fasterxml.jackson.databind.node.ObjectNode) mapper.readTree(destFile);
+                                    String scenarioName = "stablemock-param-" + methodBase;
+                                    mappingObj.put("scenarioName", scenarioName);
+                                    mappingObj.put("requiredScenarioState", String.valueOf(paramIndex));
+                                    mapper.writerWithDefaultPrettyPrinter().writeValue(destFile, mappingObj);
+                                    logger.debug("  Added scenario {} requiredScenarioState={} for parameterized stub", scenarioName, paramIndex);
+                                } catch (Exception e) {
+                                    logger.warn("  Failed to add scenario to {}: {}", destFile.getName(), e.getMessage());
+                                }
+                            }
+                            
                             // Additional verification: try to read the file to ensure it's accessible
-                            // This helps catch file system caching issues on Linux with JDK 17
                             try {
                                 java.nio.file.Files.readAllBytes(destFile.toPath());
                             } catch (Exception e) {
@@ -980,5 +1008,12 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             return ((EqualToXmlPattern) bodyPattern).getExpected();
         }
         return null;
+    }
+
+    /** Returns 0-based invocation index if name matches methodName[N], else -1. */
+    private static int parseParameterizedInvocationIndex(String methodDirName) {
+        if (methodDirName == null) return -1;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\[(\\d+)\\]").matcher(methodDirName);
+        return m.find() ? Integer.parseInt(m.group(1)) : -1;
     }
 }
