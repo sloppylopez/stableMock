@@ -477,7 +477,7 @@ public final class WireMockServerManager {
                                                 
                                                 // Extract a key element from the XML to create a minimal match
                                                 // This matches based on the presence of the SOAP structure
-                                                String xpathMatch = extractSoapXPathMatch(expectedBody);
+                                                String xpathMatch = extractSoapXPathMatch(expectedBody, ignorePatterns);
                                                 patternObj.put("matchesXPath", xpathMatch);
                                                 
                                                 modified = true;
@@ -658,7 +658,7 @@ public final class WireMockServerManager {
                                                 patternObj.remove(matcherKey);
                                                 
                                                 // Extract a key element from the XML to create a minimal match
-                                                String xpathMatch = extractSoapXPathMatch(expectedBody);
+                                                String xpathMatch = extractSoapXPathMatch(expectedBody, ignorePatterns);
                                                 patternObj.put("matchesXPath", xpathMatch);
                                                 
                                                 modified = true;
@@ -807,7 +807,7 @@ public final class WireMockServerManager {
      * a discriminator (e.g. RatePlanCode) so each stub matches only its request variant
      * and responses are not mixed.
      */
-    private static String extractSoapXPathMatch(String xml) {
+    private static String extractSoapXPathMatch(String xml, java.util.List<String> ignorePatterns) {
         try {
             javax.xml.parsers.DocumentBuilderFactory factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(true);
@@ -823,7 +823,7 @@ public final class WireMockServerManager {
                     if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
                         String localName = child.getLocalName();
                         String baseXpath = "//*[local-name()='Body']/*[local-name()='" + localName + "']";
-                        String discriminator = extractSoapXPathDiscriminator((org.w3c.dom.Element) child);
+                        String discriminator = extractSoapXPathDiscriminator((org.w3c.dom.Element) child, ignorePatterns);
                         if (discriminator != null && !discriminator.isEmpty()) {
                             return baseXpath + discriminator;
                         }
@@ -843,15 +843,19 @@ public final class WireMockServerManager {
      * from others (e.g. RatePlanCode in OTA_HotelAvailRQ). Avoids mixing responses when
      * multiple parameterized invocations are merged into one playback.
      */
-    private static String extractSoapXPathDiscriminator(org.w3c.dom.Element bodyRoot) {
+    private static String extractSoapXPathDiscriminator(org.w3c.dom.Element bodyRoot, java.util.List<String> ignorePatterns) {
         String[] elementNames = {"RatePlanCandidate", "RoomStayCandidate", "HotelRef"};
         String[] discriminatorAttrs = {"RatePlanCode", "RatePlanID", "RoomTypeCode", "HotelCode"};
+        java.util.Set<String> ignoredNames = extractIgnoredLocalNames(ignorePatterns);
         for (String eltName : elementNames) {
             java.util.List<org.w3c.dom.Node> found = findElementsByLocalName(bodyRoot, eltName);
             for (org.w3c.dom.Node n : found) {
                 org.w3c.dom.NamedNodeMap attrs = n.getAttributes();
                 if (attrs == null) continue;
                 for (String attrName : discriminatorAttrs) {
+                    if (ignoredNames.contains(attrName)) {
+                        continue;
+                    }
                     for (int a = 0; a < attrs.getLength(); a++) {
                         org.w3c.dom.Node attr = attrs.item(a);
                         if (attr.getLocalName() != null && attrName.equals(attr.getLocalName())) {
@@ -865,8 +869,11 @@ public final class WireMockServerManager {
                 }
             }
         }
-        String[] discriminatorElements = {"UserType", "CustomerCode", "CardNumber", "Category"};
+        String[] discriminatorElements = {"UserType", "CustomerCode", "CardNumber", "Category", "Channel", "SubChannel"};
         for (String eltName : discriminatorElements) {
+            if (ignoredNames.contains(eltName)) {
+                continue;
+            }
             java.util.List<org.w3c.dom.Node> found = findElementsByLocalName(bodyRoot, eltName);
             for (org.w3c.dom.Node n : found) {
                 String text = n.getTextContent();
@@ -878,7 +885,39 @@ public final class WireMockServerManager {
                 }
             }
         }
+
+        // Generic fallback: pick the first non-empty leaf element text not ignored.
+        java.util.List<org.w3c.dom.Node> leafElements = findLeafElements(bodyRoot);
+        for (org.w3c.dom.Node n : leafElements) {
+            String ln = n.getLocalName() != null ? n.getLocalName() : n.getNodeName();
+            if (ignoredNames.contains(ln)) {
+                continue;
+            }
+            String text = n.getTextContent();
+            if (text != null) {
+                text = text.trim();
+            }
+            if (text != null && !text.isEmpty()) {
+                return "//*[local-name()='" + ln + "' and normalize-space()=" + xpathLiteral(text) + "]";
+            }
+        }
         return null;
+    }
+
+    private static java.util.Set<String> extractIgnoredLocalNames(java.util.List<String> ignorePatterns) {
+        java.util.Set<String> ignored = new java.util.HashSet<>();
+        if (ignorePatterns == null || ignorePatterns.isEmpty()) {
+            return ignored;
+        }
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("local-name\\(\\)='([^']+)'");
+        for (String p : ignorePatterns) {
+            if (p == null) continue;
+            java.util.regex.Matcher matcher = pattern.matcher(p);
+            while (matcher.find()) {
+                ignored.add(matcher.group(1));
+            }
+        }
+        return ignored;
     }
 
     private static java.util.List<org.w3c.dom.Node> findElementsByLocalName(org.w3c.dom.Node node, String localName) {
@@ -892,6 +931,28 @@ public final class WireMockServerManager {
         org.w3c.dom.NodeList children = node.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             out.addAll(findElementsByLocalName(children.item(i), localName));
+        }
+        return out;
+    }
+
+    private static java.util.List<org.w3c.dom.Node> findLeafElements(org.w3c.dom.Node node) {
+        java.util.List<org.w3c.dom.Node> out = new java.util.ArrayList<>();
+        if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+            org.w3c.dom.NodeList children = node.getChildNodes();
+            boolean hasElementChild = false;
+            for (int i = 0; i < children.getLength(); i++) {
+                if (children.item(i).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+                    hasElementChild = true;
+                    break;
+                }
+            }
+            if (!hasElementChild) {
+                out.add(node);
+            } else {
+                for (int i = 0; i < children.getLength(); i++) {
+                    out.addAll(findLeafElements(children.item(i)));
+                }
+            }
         }
         return out;
     }

@@ -61,14 +61,28 @@ public final class MappingStorage {
      * Merges per-test-method mappings for single annotation case.
      */
     public static void mergePerTestMethodMappings(File baseMappingsDir) {
-        SingleAnnotationMappingStorage.mergePerTestMethodMappings(baseMappingsDir);
+        SingleAnnotationMappingStorage.mergePerTestMethodMappings(baseMappingsDir, baseMappingsDir);
+    }
+
+    /**
+     * Merges per-test-method mappings into a separate output directory.
+     */
+    public static void mergePerTestMethodMappings(File baseMappingsDir, File outputMappingsDir) {
+        SingleAnnotationMappingStorage.mergePerTestMethodMappings(baseMappingsDir, outputMappingsDir);
     }
     
     /**
      * Merges annotation mappings for a specific URL index (multiple annotation case).
      */
     public static void mergeAnnotationMappingsForUrlIndex(File baseMappingsDir, int urlIndex) {
-        MultipleAnnotationMappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, urlIndex);
+        MultipleAnnotationMappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, baseMappingsDir, urlIndex);
+    }
+
+    /**
+     * Merges annotation mappings into a separate output directory for a URL index.
+     */
+    public static void mergeAnnotationMappingsForUrlIndex(File baseMappingsDir, File outputMappingsDir, int urlIndex) {
+        MultipleAnnotationMappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, outputMappingsDir, urlIndex);
     }
     
     /**

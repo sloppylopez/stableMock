@@ -100,6 +100,14 @@ public final class ExtensionContextManager {
             return store.get("targetUrl", String.class);
         }
 
+        public void putTempMappingsDir(File tempMappingsDir) {
+            store.put("tempMappingsDir", tempMappingsDir);
+        }
+
+        public File getTempMappingsDir() {
+            return store.get("tempMappingsDir", File.class);
+        }
+
         public void removeServer() {
             store.remove("wireMockServer");
         }

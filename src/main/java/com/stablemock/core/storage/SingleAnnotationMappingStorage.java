@@ -579,16 +579,18 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         }
     }
     
-    public static void mergePerTestMethodMappings(File baseMappingsDir) {
+    public static void mergePerTestMethodMappings(File baseMappingsDir, File outputMappingsDir) {
+        File effectiveOutputDir = outputMappingsDir != null ? outputMappingsDir : baseMappingsDir;
         logger.info("=== mergePerTestMethodMappings called for: {} ===", baseMappingsDir.getAbsolutePath());
+        logger.info("=== mergePerTestMethodMappings output dir: {} ===", effectiveOutputDir.getAbsolutePath());
         
         if (!baseMappingsDir.exists()) {
             logger.error("Base mappings directory does not exist: {}", baseMappingsDir.getAbsolutePath());
             return;
         }
         
-        File classMappingsDir = new File(baseMappingsDir, "mappings");
-        File classFilesDir = new File(baseMappingsDir, "__files");
+        File classMappingsDir = new File(effectiveOutputDir, "mappings");
+        File classFilesDir = new File(effectiveOutputDir, "__files");
         
         logger.info("Class mappings dir: {}", classMappingsDir.getAbsolutePath());
         logger.info("Class files dir: {}", classFilesDir.getAbsolutePath());

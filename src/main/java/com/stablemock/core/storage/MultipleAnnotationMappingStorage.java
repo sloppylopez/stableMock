@@ -256,8 +256,9 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
      * Merges all test methods' annotation_X mappings for a specific URL index into url_X directory.
      * This is used in playback mode for multiple URLs.
      */
-    public static void mergeAnnotationMappingsForUrlIndex(File baseMappingsDir, int urlIndex) {
-        File urlDir = new File(baseMappingsDir, "url_" + urlIndex);
+    public static void mergeAnnotationMappingsForUrlIndex(File baseMappingsDir, File outputMappingsDir, int urlIndex) {
+        File effectiveOutputDir = outputMappingsDir != null ? outputMappingsDir : baseMappingsDir;
+        File urlDir = new File(effectiveOutputDir, "url_" + urlIndex);
         File urlMappingsDir = new File(urlDir, "mappings");
         File urlFilesDir = new File(urlDir, "__files");
 

@@ -63,6 +63,8 @@ public class StableMockExtension
         File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
 
         ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(context);
+        File serverMappingsDir = getOrCreateTempMappingsDir(context, testClassName);
+        classStore.putTempMappingsDir(serverMappingsDir);
 
         boolean isRecordMode = StableMockConfig.isRecordMode();
         boolean hasMultipleUrls = allUrls.size() > 1;
@@ -75,7 +77,7 @@ public class StableMockExtension
             for (int i = 0; i < allUrls.size(); i++) {
                 String targetUrl = allUrls.get(i);
                 int port = WireMockServerManager.findFreePort();
-                File urlMappingsDir = new File(baseMappingsDir, "url_" + i);
+                File urlMappingsDir = new File(serverMappingsDir, "url_" + i);
 
                 WireMockServer server;
                 if (isRecordMode) {
@@ -84,7 +86,7 @@ public class StableMockExtension
                 } else {
                     // In playback mode, merge all test methods' annotation_X mappings for this URL
                     // index
-                    MappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, i);
+                    MappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, serverMappingsDir, i);
                     // Collect ignore patterns from all annotations (for class-level, we use all annotations)
                     List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
                     for (U annotation : annotations) {
@@ -145,15 +147,15 @@ public class StableMockExtension
             WireMockServer server;
 
             if (isRecordMode) {
-                server = WireMockServerManager.startRecording(port, baseMappingsDir, allUrls);
+                server = WireMockServerManager.startRecording(port, serverMappingsDir, allUrls);
             } else {
                 logger.info("=== PLAYBACK MODE: Merging test method mappings for {} ===", testClassName);
                 try {
-                    MappingStorage.mergePerTestMethodMappings(baseMappingsDir);
+                    MappingStorage.mergePerTestMethodMappings(baseMappingsDir, serverMappingsDir);
                     logger.info("=== Merge completed successfully for {} ===", testClassName);
                     
                     // Verify mappings exist before starting WireMock (prevents race conditions in CI)
-                    File classMappingsDir = new File(baseMappingsDir, "mappings");
+                    File classMappingsDir = new File(serverMappingsDir, "mappings");
                     if (classMappingsDir.exists()) {
                         File[] mappingFiles = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
                         if (mappingFiles != null && mappingFiles.length > 0) {
@@ -180,7 +182,7 @@ public class StableMockExtension
                         }
                     }
                 }
-                server = WireMockServerManager.startPlayback(port, baseMappingsDir, 
+                server = WireMockServerManager.startPlayback(port, serverMappingsDir, 
                         testResourcesDir, testClassName, null, annotationIgnorePatterns);
             }
 
@@ -234,6 +236,15 @@ public class StableMockExtension
         WireMockServer classServer = classStore.getServer();
 
         ExtensionContextManager.MethodLevelStore methodStore = new ExtensionContextManager.MethodLevelStore(context);
+        String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
+        boolean isParameterized = testMethodIdentifier.contains("[");
+        boolean isSpringBootTest = TestContextResolver.isSpringBootTest(context);
+
+        if (classServer != null && isParameterized && !isSpringBootTest) {
+            logger.info("Parameterized test detected ({}). Using method-level server to avoid merged mappings.",
+                    testMethodIdentifier);
+            classServer = null;
+        }
 
         if (classServer != null) {
             if (StableMockConfig.isRecordMode()) {
@@ -256,7 +267,6 @@ public class StableMockExtension
             }
 
             String testClassName = TestContextResolver.getTestClassName(context);
-            String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
             File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
             File mappingsDir = new File(testResourcesDir, "stablemock/" + testClassName + "/" + testMethodIdentifier);
 
@@ -332,7 +342,6 @@ public class StableMockExtension
 
         String mode = StableMockConfig.getMode();
         String testClassName = TestContextResolver.getTestClassName(context);
-        String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
         File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
         File mappingsDir = new File(testResourcesDir, "stablemock/" + testClassName + "/" + testMethodIdentifier);
 
@@ -394,9 +403,6 @@ public class StableMockExtension
             if (StableMockConfig.isRecordMode()) {
                 wireMockServer = WireMockServerManager.startRecording(port, mappingsDir, allUrls);
             } else {
-                // mergePerTestMethodMappings expects class-level directory, not method-level
-                File classMappingsDir = mappingsDir.getParentFile();
-                
                 // Collect annotation ignore patterns
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
@@ -410,14 +416,24 @@ public class StableMockExtension
                     }
                 }
                 
-                // Merge first, then let startPlayback apply patterns from ALL test methods
-                // This ensures patterns from all parameterized test invocations are applied to all merged mappings
-                MappingStorage.mergePerTestMethodMappings(classMappingsDir);
-                
-                // After merge, start playback - startPlayback will load patterns from ALL test methods
-                // and apply them to all mappings (when testMethodName is null, it loads patterns from all methods)
-                wireMockServer = WireMockServerManager.startPlayback(port, classMappingsDir, 
-                        testResourcesDir, testClassName, null, annotationIgnorePatterns);
+                if (isParameterized) {
+                    // Parameterized tests should not use merged mappings; keep per-invocation isolation.
+                    wireMockServer = WireMockServerManager.startPlayback(port, mappingsDir,
+                            testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns);
+                } else {
+                    // mergePerTestMethodMappings expects class-level directory, not method-level
+                    File classMappingsDir = mappingsDir.getParentFile();
+                    File tempMappingsDir = getOrCreateTempMappingsDir(context, testClassName);
+                    
+                    // Merge first, then let startPlayback apply patterns from ALL test methods
+                    // This ensures patterns from all parameterized test invocations are applied to all merged mappings
+                    MappingStorage.mergePerTestMethodMappings(classMappingsDir, tempMappingsDir);
+                    
+                    // After merge, start playback - startPlayback will load patterns from ALL test methods
+                    // and apply them to all mappings (when testMethodName is null, it loads patterns from all methods)
+                    wireMockServer = WireMockServerManager.startPlayback(port, tempMappingsDir, 
+                            testResourcesDir, testClassName, null, annotationIgnorePatterns);
+                }
             }
 
             methodStore.putServer(wireMockServer);
@@ -474,7 +490,10 @@ public class StableMockExtension
 
                         String testClassName = TestContextResolver.getTestClassName(context);
                         File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-                        File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+                        File baseMappingsDir = classStore.getTempMappingsDir();
+                        if (baseMappingsDir == null) {
+                            baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+                        }
 
                         List<WireMockServerManager.AnnotationInfo> annotationInfos = methodStore
                                 .getAnnotationInfos();
@@ -657,6 +676,11 @@ public class StableMockExtension
                     }
                 }
             }
+
+            File tempMappingsDir = classStore.getTempMappingsDir();
+            if (tempMappingsDir != null && tempMappingsDir.exists()) {
+                deleteDirectory(tempMappingsDir);
+            }
             
             // Generate recording report after all recordings are complete (only in record mode)
             if (StableMockConfig.isRecordMode()) {
@@ -727,6 +751,37 @@ public class StableMockExtension
                     logger.debug("Port {} may still be in TIME_WAIT state after {} attempts", port, maxAttempts);
                 }
             }
+        }
+    }
+
+    private static File getOrCreateTempMappingsDir(ExtensionContext context, String testClassName) {
+        ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(context);
+        File existing = classStore.getTempMappingsDir();
+        if (existing != null) {
+            return existing;
+        }
+        try {
+            String safeName = testClassName != null ? testClassName.replaceAll("[^a-zA-Z0-9._-]", "_") : "test";
+            java.nio.file.Path tempPath = java.nio.file.Files.createTempDirectory("stablemock-" + safeName + "-");
+            File tempDir = tempPath.toFile();
+            classStore.putTempMappingsDir(tempDir);
+            return tempDir;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create temp mappings directory", e);
+        }
+    }
+
+    private static void deleteDirectory(File dir) {
+        try (Stream<Path> stream = java.nio.file.Files.walk(dir.toPath())) {
+            stream.sorted(Comparator.reverseOrder())
+                    .map(java.nio.file.Path::toFile)
+                    .forEach(file -> {
+                        if (!file.delete()) {
+                            logger.warn("Failed to delete file: {}", file.getPath());
+                        }
+                    });
+        } catch (Exception e) {
+            logger.warn("Failed to clean up temp mappings dir {}: {}", dir.getAbsolutePath(), e.getMessage());
         }
     }
 
