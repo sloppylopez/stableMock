@@ -869,7 +869,9 @@ public final class WireMockServerManager {
                 }
             }
         }
+        // Collect up to 3 known discriminator elements (same format as multi-predicate) so we distinguish parameterized cases.
         String[] discriminatorElements = {"UserType", "CustomerCode", "CardNumber", "Category", "Channel", "SubChannel"};
+        java.util.List<String> knownPredicates = new java.util.ArrayList<>();
         for (String eltName : discriminatorElements) {
             if (ignoredNames.contains(eltName)) {
                 continue;
@@ -881,13 +883,27 @@ public final class WireMockServerManager {
                     text = text.trim();
                 }
                 if (text != null && !text.isEmpty()) {
-                    return "//*[local-name()='" + eltName + "' and normalize-space()=" + xpathLiteral(text) + "]";
+                    knownPredicates.add("[.//*[local-name()='" + eltName + "' and normalize-space()=" + xpathLiteral(text) + "]]");
+                    break;
                 }
             }
+            if (knownPredicates.size() >= 3) {
+                break;
+            }
+        }
+        if (!knownPredicates.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (String p : knownPredicates) {
+                sb.append(p);
+            }
+            return sb.toString();
         }
 
-        // Generic fallback: pick the first non-empty leaf element text not ignored.
+        // Generic fallback: pick up to 3 non-empty leaf element texts (not ignored).
+        // Build predicates so the *request root* must contain each descendant (valid XPath).
         java.util.List<org.w3c.dom.Node> leafElements = findLeafElements(bodyRoot);
+        java.util.List<String> predicates = new java.util.ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
         for (org.w3c.dom.Node n : leafElements) {
             String ln = n.getLocalName() != null ? n.getLocalName() : n.getNodeName();
             if (ignoredNames.contains(ln)) {
@@ -897,9 +913,24 @@ public final class WireMockServerManager {
             if (text != null) {
                 text = text.trim();
             }
-            if (text != null && !text.isEmpty()) {
-                return "//*[local-name()='" + ln + "' and normalize-space()=" + xpathLiteral(text) + "]";
+            if (text == null || text.isEmpty()) {
+                continue;
             }
+            String key = ln + "::" + text;
+            if (!seen.add(key)) {
+                continue;
+            }
+            predicates.add("[.//*[local-name()='" + ln + "' and normalize-space()=" + xpathLiteral(text) + "]]");
+            if (predicates.size() >= 3) {
+                break;
+            }
+        }
+        if (!predicates.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            for (String p : predicates) {
+                sb.append(p);
+            }
+            return sb.toString();
         }
         return null;
     }
