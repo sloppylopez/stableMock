@@ -402,7 +402,7 @@ public class MyTest extends BaseStableMockTest {
 
 #### 3. Protected dynamic fields
 
-When auto-detection would ignore a field that you need for correct stub matching (e.g. SOAP `RatePlanCode` or `RoomTypeCode` that distinguish different flows), you can **protect** those fields so they are never added to `ignore_patterns`. Protected fields remain in the request matcher, so the right stub is matched during playback.
+When auto-detection would ignore a field that you need for correct stub matching (e.g. SOAP `SampleFieldA` or `SampleFieldC` that distinguish different flows), you can **protect** those fields so they are never added to `ignore_patterns`. Protected fields remain in the request matcher, so the right stub is matched during playback.
 
 **System property (semicolon-separated):**
 ```bash
@@ -544,7 +544,7 @@ StableMock sets the following system properties that you can use in your tests:
 ### Configuration Properties
 - `stablemock.mode` - Set to `RECORD` or `PLAYBACK` (automatically set by Gradle tasks)
 - `stablemock.showMatches` - Set to `true` to enable detailed request matching logs for debugging
-- `stablemock.protectedDynamicFields` - Semicolon-separated list of field paths that must not be added to `ignore_patterns` (e.g. SOAP RatePlanCode, RoomTypeCode). Same syntax as `ignore_patterns` in `detected-fields.json`.
+- `stablemock.protectedDynamicFields` - Semicolon-separated list of field paths that must not be added to `ignore_patterns` (e.g. SOAP SampleFieldA, SampleFieldC). Same syntax as `ignore_patterns` in `detected-fields.json`.
 
 ## Debugging and Troubleshooting
 

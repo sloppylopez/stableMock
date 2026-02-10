@@ -120,7 +120,7 @@ class AnalysisResultStorageProtectedFieldsTest {
         java.io.File dir = java.nio.file.Files.createTempDirectory("stablemock-protected-test").toFile();
         try {
             DetectionResult result = new DetectionResult("SomeTest", "testMethod", 2);
-            result.addDynamicField(new DetectionResult.DynamicField(RATE_PLAN_CODE_PATH, List.of("NHWEB", "NHWEB_NHR")));
+            result.addDynamicField(new DetectionResult.DynamicField(RATE_PLAN_CODE_PATH, List.of("CODE_A", "CODE_B")));
             result.addIgnorePattern(RATE_PLAN_CODE_PATH);
             result.addDynamicField(new DetectionResult.DynamicField(ECHO_TOKEN_PATH, List.of("1", "2")));
             result.addIgnorePattern(ECHO_TOKEN_PATH);

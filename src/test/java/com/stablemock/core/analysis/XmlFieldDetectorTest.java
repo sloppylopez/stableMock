@@ -250,8 +250,8 @@ class XmlFieldDetectorTest {
         
         // Simulating OTA HotelAvailRQ structure
         List<String> xmlBodies = List.of(
-            "<Envelope><Body><OTA_HotelAvailRQ><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></OTA_HotelAvailRQ></Body></Envelope>",
-            "<Envelope><Body><OTA_HotelAvailRQ><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></OTA_HotelAvailRQ></Body></Envelope>"
+                "<Envelope><Body><SampleRQ><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></SampleRQ></Body></Envelope>",
+                "<Envelope><Body><SampleRQ><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></SampleRQ></Body></Envelope>"
         );
         
         XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);

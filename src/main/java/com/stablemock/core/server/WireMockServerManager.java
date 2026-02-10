@@ -808,7 +808,7 @@ public final class WireMockServerManager {
      * This is used to avoid the XMLUnit "type: -1" bug with namespaced SOAP XML.
      * Returns an XPath that matches based on the SOAP body's root element.
      * When multiple stubs exist for the same operation (e.g. parameterized tests), appends
-     * a discriminator (e.g. RatePlanCode) so each stub matches only its request variant
+     * a discriminator (e.g. SampleFieldA) so each stub matches only its request variant
      * and responses are not mixed.
      */
     private static String extractSoapXPathMatch(String xml, java.util.List<String> ignorePatterns) {

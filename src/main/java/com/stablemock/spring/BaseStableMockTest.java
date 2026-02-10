@@ -36,9 +36,9 @@ public abstract class BaseStableMockTest {
 
     /**
      * Returns dynamic field paths that must not be added to ignore_patterns (protected fields).
-     * Override in subclasses to protect SOAP/XML fields (e.g. RatePlanCode, RoomTypeCode) so
+     * Override in subclasses to protect SOAP/XML fields (e.g. SampleFieldA, SampleFieldC) so
      * that different flows do not share the same stub. Uses same syntax as detected-fields.json
-     * (e.g. xml:...RatePlanCandidate']/@*[local-name()='RatePlanCode']).
+     * (e.g. xml:...SamplePlanCandidate']/@*[local-name()='SampleFieldA']).
      * Default implementation returns values from system property stablemock.protectedDynamicFields
      * (semicolon-separated).
      */

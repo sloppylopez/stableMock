@@ -297,12 +297,12 @@ Add `@Execution(ExecutionMode.SAME_THREAD)` on the parameterized test method tha
 
 ### Problem
 
-Auto-detection adds varying SOAP fields (e.g. `RatePlanCode`, `RoomTypeCode`) to `ignore_patterns`. During playback, the **availability** request can then match a stub recorded for a **different** flow (e.g. `NHWEB` instead of `NHWEB_NHR`). The availability response has short codes, the **reservation** response has full codes, and application validation (e.g. `checkData(selectedRoom, reservationData)`) fails because `ratePriceGroupCode` / `ratePlanCode` or `roomCategoryCode` / `roomType` no longer match.
+Auto-detection adds varying SOAP fields (e.g. discriminator attributes) to `ignore_patterns`. During playback, the **availability** request can then match a stub recorded for a **different** flow (e.g. `CODE_A` instead of `CODE_B`). The availability response has short codes, the **reservation** response has full codes, and application validation fails because plan/room fields no longer match.
 
 ### Symptoms
 
 - Test passes against real TMS but fails in playback with 500 or "DATA ERROR".
-- Logs show e.g. `checkRatePlan: false (NHWEB/NHWEB_NHR)` or `checkRoomType: false (STDDBL/SUPDBL)`.
+- Logs show e.g. `checkRatePlan: false (CODE_A/CODE_B)` or `checkRoomType: false (TYPE_A/TYPE_B)`.
 
 ### Solution
 
