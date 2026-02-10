@@ -17,6 +17,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -24,9 +25,12 @@ import java.util.concurrent.locks.ReentrantLock;
  * Supports both RECORD and PLAYBACK modes with parallel execution.
  */
 public class StableMockExtension
-        implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, AfterAllCallback, ParameterResolver {
+        implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, AfterAllCallback, ParameterResolver, InvocationInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(StableMockExtension.class);
+
+    /** Serializes parameterized invocations that use scenario state (per test class). */
+    private static final ConcurrentHashMap<String, ReentrantLock> scenarioLocks = new ConcurrentHashMap<>();
 
     @Override
     public void beforeAll(ExtensionContext context) {
@@ -87,20 +91,23 @@ public class StableMockExtension
                     // In playback mode, merge all test methods' annotation_X mappings for this URL
                     // index
                     MappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, serverMappingsDir, i);
-                    // Collect ignore patterns from all annotations (for class-level, we use all annotations)
+                    // Collect ignore and dontIgnore from all annotations (for class-level, we use all annotations)
                     List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                    List<String> annotationDontIgnore = new java.util.ArrayList<>();
                     for (U annotation : annotations) {
-                        String[] ignore = annotation.ignore();
-                        if (ignore != null) {
-                            for (String pattern : ignore) {
-                                if (pattern != null && !pattern.isEmpty()) {
-                                    annotationIgnorePatterns.add(pattern);
-                                }
+                        if (annotation.ignore() != null) {
+                            for (String pattern : annotation.ignore()) {
+                                if (pattern != null && !pattern.isEmpty()) annotationIgnorePatterns.add(pattern);
+                            }
+                        }
+                        if (annotation.dontIgnore() != null) {
+                            for (String path : annotation.dontIgnore()) {
+                                if (path != null && !path.isEmpty()) annotationDontIgnore.add(path);
                             }
                         }
                     }
                     server = WireMockServerManager.startPlayback(port, urlMappingsDir, 
-                            testResourcesDir, testClassName, null, annotationIgnorePatterns);
+                            testResourcesDir, testClassName, null, annotationIgnorePatterns, annotationDontIgnore);
                 }
 
                 servers.add(server);
@@ -170,20 +177,23 @@ public class StableMockExtension
                     throw new RuntimeException("Failed to merge test method mappings for " + testClassName, e);
                 }
                 
-                // Collect ignore patterns from all annotations (for class-level, we use all annotations)
+                // Collect ignore and dontIgnore from all annotations (for class-level, we use all annotations)
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                List<String> annotationDontIgnore = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
-                    String[] ignore = annotation.ignore();
-                    if (ignore != null) {
-                        for (String pattern : ignore) {
-                            if (pattern != null && !pattern.isEmpty()) {
-                                annotationIgnorePatterns.add(pattern);
-                            }
+                    if (annotation.ignore() != null) {
+                        for (String pattern : annotation.ignore()) {
+                            if (pattern != null && !pattern.isEmpty()) annotationIgnorePatterns.add(pattern);
+                        }
+                    }
+                    if (annotation.dontIgnore() != null) {
+                        for (String path : annotation.dontIgnore()) {
+                            if (path != null && !path.isEmpty()) annotationDontIgnore.add(path);
                         }
                     }
                 }
                 server = WireMockServerManager.startPlayback(port, serverMappingsDir, 
-                        testResourcesDir, testClassName, null, annotationIgnorePatterns);
+                        testResourcesDir, testClassName, null, annotationIgnorePatterns, annotationDontIgnore);
             }
 
             classStore.putServer(server);
@@ -295,7 +305,8 @@ public class StableMockExtension
                 methodStore.putExistingRequestCounts(existingRequestCounts);
             }
 
-            // Parameterized playback: set scenario state so this invocation matches only its own stubs
+            // Parameterized playback: set scenario state so this invocation matches only its own stubs.
+            // Invocations must run sequentially (@Execution(SAME_THREAD)); see docs/PITFALLS.md.
             if (!StableMockConfig.isRecordMode() && testMethodIdentifier != null && testMethodIdentifier.contains("[")) {
                 java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\[(\\d+)\\]").matcher(testMethodIdentifier);
                 if (m.find()) {
@@ -423,13 +434,16 @@ public class StableMockExtension
             } else {
                 // Collect annotation ignore patterns
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                List<String> annotationDontIgnore = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
-                    String[] ignore = annotation.ignore();
-                    if (ignore != null) {
-                        for (String pattern : ignore) {
-                            if (pattern != null && !pattern.isEmpty()) {
-                                annotationIgnorePatterns.add(pattern);
-                            }
+                    if (annotation.ignore() != null) {
+                        for (String pattern : annotation.ignore()) {
+                            if (pattern != null && !pattern.isEmpty()) annotationIgnorePatterns.add(pattern);
+                        }
+                    }
+                    if (annotation.dontIgnore() != null) {
+                        for (String path : annotation.dontIgnore()) {
+                            if (path != null && !path.isEmpty()) annotationDontIgnore.add(path);
                         }
                     }
                 }
@@ -437,7 +451,7 @@ public class StableMockExtension
                 if (isParameterized) {
                     // Parameterized tests should not use merged mappings; keep per-invocation isolation.
                     wireMockServer = WireMockServerManager.startPlayback(port, mappingsDir,
-                            testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns);
+                            testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnore);
                 } else {
                     // mergePerTestMethodMappings expects class-level directory, not method-level
                     File classMappingsDir = mappingsDir.getParentFile();
@@ -450,7 +464,7 @@ public class StableMockExtension
                     // After merge, start playback - startPlayback will load patterns from ALL test methods
                     // and apply them to all mappings (when testMethodName is null, it loads patterns from all methods)
                     wireMockServer = WireMockServerManager.startPlayback(port, tempMappingsDir, 
-                            testResourcesDir, testClassName, null, annotationIgnorePatterns);
+                            testResourcesDir, testClassName, null, annotationIgnorePatterns, annotationDontIgnore);
                 }
             }
 
@@ -803,6 +817,18 @@ public class StableMockExtension
         }
     }
 
+    private static java.util.Set<String> collectDontIgnoreFromAnnotations(ExtensionContext context) {
+        java.util.Set<String> out = new java.util.LinkedHashSet<>();
+        for (U annotation : TestContextResolver.findAllUAnnotations(context)) {
+            if (annotation.dontIgnore() != null) {
+                for (String path : annotation.dontIgnore()) {
+                    if (path != null && !path.isEmpty()) out.add(path);
+                }
+            }
+        }
+        return out;
+    }
+
     /**
      * Performs dynamic field detection by delegating to the orchestrator.
      * 
@@ -823,13 +849,14 @@ public class StableMockExtension
 
         // Get test method identifier from context (includes invocation index for parameterized tests)
         String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
+        java.util.Set<String> annotationDontIgnore = collectDontIgnoreFromAnnotations(context);
 
         // Delegate to orchestrator - all logic moved there for better separation of
         // concerns. The orchestrator gets serve events directly from the server.
         DynamicFieldAnalysisOrchestrator.analyzeAndPersist(
-                server, existingRequestCount, existingRequestCounts, testResourcesDir, testClassName, testMethodIdentifier, annotationInfos, null);
+                server, existingRequestCount, existingRequestCounts, testResourcesDir, testClassName, testMethodIdentifier, annotationInfos, null, context.getRequiredTestClass(), annotationDontIgnore);
     }
-    
+
     /**
      * Performs dynamic field detection with explicit server list (for multiple URLs/annotations).
      */
@@ -844,10 +871,11 @@ public class StableMockExtension
 
         // Get test method identifier from context (includes invocation index for parameterized tests)
         String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
+        java.util.Set<String> annotationDontIgnore = collectDontIgnoreFromAnnotations(context);
 
         // Delegate to orchestrator with all servers. The orchestrator gets serve events directly from the servers.
         DynamicFieldAnalysisOrchestrator.analyzeAndPersist(
-                server, existingRequestCount, existingRequestCounts, testResourcesDir, testClassName, testMethodIdentifier, annotationInfos, allServers);
+                server, existingRequestCount, existingRequestCounts, testResourcesDir, testClassName, testMethodIdentifier, annotationInfos, allServers, context.getRequiredTestClass(), annotationDontIgnore);
     }
 
     @Override
@@ -899,5 +927,48 @@ public class StableMockExtension
                     "and that beforeAll has completed. Current port value: " + port);
         }
         return null;
+    }
+
+    @Override
+    public void interceptTestMethod(InvocationInterceptor.Invocation<Void> invocation,
+            ReflectiveInvocationContext<Method> invocationContext, ExtensionContext context) throws Throwable {
+        ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(context);
+        boolean playback = !StableMockConfig.isRecordMode();
+        boolean hasClassServer = classStore.getServer() != null;
+        String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
+        boolean parameterized = testMethodIdentifier != null && testMethodIdentifier.contains("[");
+        if (playback && hasClassServer && parameterized) {
+            String lockKey = context.getRequiredTestClass().getName();
+            ReentrantLock lock = scenarioLocks.computeIfAbsent(lockKey, k -> new ReentrantLock());
+            lock.lock();
+            try {
+                Integer port = classStore.getPort();
+                if (port != null) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\[(\\d+)\\]").matcher(testMethodIdentifier);
+                    if (m.find()) {
+                        String state = m.group(1);
+                        String scenarioName = "stablemock-param-" + testMethodIdentifier.replaceAll("\\[\\d+\\].*", "");
+                        logger.info("StableMock parameterized playback: setting scenario {} to state {} (invocation [{}])",
+                                scenarioName, state, state);
+                        WireMockServerManager.setScenarioState(port, scenarioName, state);
+                        List<Integer> allPorts = classStore.getPorts();
+                        if (allPorts != null) {
+                            for (int p : allPorts) {
+                                if (p != port) {
+                                    WireMockServerManager.setScenarioState(p, scenarioName, state);
+                                }
+                            }
+                        }
+                        // Allow WireMock admin to apply scenario state before test requests
+                        Thread.sleep(80);
+                    }
+                }
+                invocation.proceed();
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            invocation.proceed();
+        }
     }
 }

@@ -133,7 +133,7 @@ public final class WireMockServerManager {
     
     public static WireMockServer startPlayback(int port, File mappingsDir, 
             File testResourcesDir, String testClassName, String testMethodName, 
-            List<String> annotationIgnorePatterns) {
+            List<String> annotationIgnorePatterns, List<String> annotationDontIgnore) {
         logger.info("=== Starting WireMock playback on port {} ===", port);
         logger.info("Loading mappings from: {}", mappingsDir.getAbsolutePath());
         
@@ -214,11 +214,13 @@ public final class WireMockServerManager {
         // Load detected ignore patterns and modify stub files before loading
         // For class-level, apply patterns per test method based on mapping file prefixes
         if (testResourcesDir != null && testClassName != null) {
+            java.util.Set<String> dontIgnoreSet = (annotationDontIgnore != null && !annotationDontIgnore.isEmpty())
+                    ? new java.util.LinkedHashSet<>(annotationDontIgnore) : null;
             if (testMethodName != null) {
                 // Method-level: load patterns for this specific method
                 List<String> ignorePatterns = new java.util.ArrayList<>();
                 ignorePatterns.addAll(com.stablemock.core.analysis.AnalysisResultStorage
-                        .loadIgnorePatterns(testResourcesDir, testClassName, testMethodName));
+                        .loadIgnorePatterns(testResourcesDir, testClassName, testMethodName, null, dontIgnoreSet));
                 
                 // Merge with annotation patterns
                 if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
@@ -230,7 +232,7 @@ public final class WireMockServerManager {
                             ignorePatterns.size() - annotationIgnorePatterns.size(), 
                             annotationIgnorePatterns.size());
                 }
-                
+
                 if (!ignorePatterns.isEmpty()) {
                     logger.info("Applying {} ignore patterns to stub files for {}", 
                             ignorePatterns.size(), testClassName + "." + testMethodName);
@@ -257,7 +259,7 @@ public final class WireMockServerManager {
                                 !methodDir.getName().startsWith("annotation_")) {
                                 String methodName = methodDir.getName();
                                 List<String> methodPatterns = com.stablemock.core.analysis.AnalysisResultStorage
-                                        .loadIgnorePatterns(testResourcesDir, testClassName, methodName);
+                                        .loadIgnorePatterns(testResourcesDir, testClassName, methodName, null, dontIgnoreSet);
                                 if (!methodPatterns.isEmpty()) {
                                     logger.info("Loaded {} ignore patterns for method {}: {}", 
                                             methodPatterns.size(), methodName, methodPatterns);
@@ -855,12 +857,12 @@ public final class WireMockServerManager {
 
     /**
      * Finds a stable attribute in the SOAP body root subtree to distinguish this request
-     * from others (e.g. RatePlanCode in OTA_HotelAvailRQ). Avoids mixing responses when
-     * multiple parameterized invocations are merged into one playback.
+     * from others (e.g. key attributes in a hotel availability SOAP request). Avoids mixing
+     * responses when multiple parameterized invocations are merged into one playback.
      */
     private static String extractSoapXPathDiscriminator(org.w3c.dom.Element bodyRoot, java.util.List<String> ignorePatterns) {
-        String[] elementNames = {"RatePlanCandidate", "RoomStayCandidate", "HotelRef"};
-        String[] discriminatorAttrs = {"RatePlanCode", "RatePlanID", "RoomTypeCode", "HotelCode"};
+        String[] elementNames = {"SamplePlanCandidate", "SampleStayCandidate", "SampleHotelRef"};
+        String[] discriminatorAttrs = {"SampleFieldA", "SampleFieldB", "SampleFieldC", "SampleFieldD"};
         java.util.Set<String> ignoredNames = extractIgnoredLocalNames(ignorePatterns);
         for (String eltName : elementNames) {
             java.util.List<org.w3c.dom.Node> found = findElementsByLocalName(bodyRoot, eltName);
@@ -1676,7 +1678,7 @@ public final class WireMockServerManager {
             int code = conn.getResponseCode();
             conn.disconnect();
             if (code >= 200 && code < 300) {
-                logger.debug("Set scenario {} state to {} on port {}", scenarioName, state, port);
+                logger.info("Set scenario {} state to {} on port {}", scenarioName, state, port);
             } else {
                 logger.warn("Failed to set scenario state: {} {} for scenario {}", code, conn.getResponseMessage(), scenarioName);
             }

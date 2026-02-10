@@ -43,6 +43,8 @@ public final class DynamicFieldAnalysisOrchestrator {
      * @param annotationInfos      List of annotation info for the test (nullable
      *                             for single annotation)
      * @param allServers           List of all WireMock servers (for multiple URLs/annotations)
+     * @param testClass            Optional test class for BaseStableMockTest.getProtectedDynamicFields() (null to use config only)
+     * @param annotationDontIgnore Optional paths from @U(dontIgnore) to merge into protected set when saving (null ok)
      */
     public static void analyzeAndPersist(
             WireMockServer server,
@@ -52,7 +54,9 @@ public final class DynamicFieldAnalysisOrchestrator {
             String testClassName,
             String testMethodName,
             List<WireMockServerManager.AnnotationInfo> annotationInfos,
-            List<WireMockServer> allServers) {
+            List<WireMockServer> allServers,
+            Class<?> testClass,
+            java.util.Set<String> annotationDontIgnore) {
 
         if (server == null) {
             logger.debug("Skipping dynamic field detection: server not available");
@@ -102,7 +106,7 @@ public final class DynamicFieldAnalysisOrchestrator {
                     }
                     
                     analyzeForAnnotation(annotationServeEvents, annotationExistingRequestCount, testResourcesDir,
-                            testClassName, testMethodName, annotationIndex);
+                            testClassName, testMethodName, annotationIndex, testClass, annotationDontIgnore);
                 } catch (Exception e) {
                     logger.error("Failed to analyze dynamic fields for {}.{} annotation {}: {}",
                             testClassName, testMethodName, annotationIndex, e.getMessage(), e);
@@ -112,7 +116,7 @@ public final class DynamicFieldAnalysisOrchestrator {
             // Single annotation or no annotation info - analyze all requests together
             try {
                 analyzeForAnnotation(allServeEvents, existingRequestCount, testResourcesDir,
-                        testClassName, testMethodName, null);
+                        testClassName, testMethodName, null, testClass, annotationDontIgnore);
             } catch (Exception e) {
                 logger.error("Failed to analyze dynamic fields for {}.{}: {}",
                         testClassName, testMethodName, e.getMessage(), e);
@@ -129,7 +133,9 @@ public final class DynamicFieldAnalysisOrchestrator {
             File testResourcesDir,
             String testClassName,
             String testMethodName,
-            Integer annotationIndex) {
+            Integer annotationIndex,
+            Class<?> testClass,
+            java.util.Set<String> annotationDontIgnore) {
 
         // Step 1: Track new requests
         trackNewRequests(allServeEvents, existingRequestCount, testResourcesDir,
@@ -153,7 +159,7 @@ public final class DynamicFieldAnalysisOrchestrator {
         // Step 4: Save results
         if (!result.getDynamicFields().isEmpty()) {
             AnalysisResultStorage.save(result, testResourcesDir,
-                    testClassName, testMethodName, annotationIndex);
+                    testClassName, testMethodName, annotationIndex, testClass, annotationDontIgnore);
 
             logger.info("✓ Detected {} dynamic field(s) in {}.{}",
                     result.getDynamicFields().size(), testClassName, testMethodName);

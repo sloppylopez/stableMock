@@ -260,3 +260,65 @@ In `applyIgnorePatternsToStubFilesPerMethod`, resolve the method name by matchin
 ### Affected Code
 
 - `WireMockServerManager.java`: `applyIgnorePatternsToStubFilesPerMethod` – method name extraction from merged mapping file name.
+
+---
+
+## Parameterized Tests: 404 or Wrong Response for One Invocation ([0] or [1])
+
+### Problem
+
+With a class-level server, parameterized invocations ([0], [1], …) share one WireMock and use **scenario state** so each invocation matches only its own stubs. If JUnit runs those invocations **in parallel**, each `beforeEach` sets the scenario state; the last write wins, so another invocation can see the wrong state and get 404 or the wrong stub.
+
+### Symptoms
+
+- One parameterized index fails (e.g. `[0]`) with 404 or wrong data; the other passes.
+- Stack points at availability, prereservation, or similar step.
+- Logs show different ForkJoinPool workers for [0] and [1].
+
+### Solution
+
+Run the parameterized test in a single thread so scenario state is not overwritten:
+
+```java
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+
+@ParameterizedTest
+@MethodSource("yourSource")
+@Execution(ExecutionMode.SAME_THREAD)  // required when using class-level server + scenario
+void should_make_a_full_flow_until_confirmation_using_flexible_payment(...) {
+```
+
+Add `@Execution(ExecutionMode.SAME_THREAD)` on the parameterized test method that uses the class-level StableMock server.
+
+---
+
+## SOAP / XML: Availability vs reservation code mismatch (checkData fails)
+
+### Problem
+
+Auto-detection adds varying SOAP fields (e.g. `RatePlanCode`, `RoomTypeCode`) to `ignore_patterns`. During playback, the **availability** request can then match a stub recorded for a **different** flow (e.g. `NHWEB` instead of `NHWEB_NHR`). The availability response has short codes, the **reservation** response has full codes, and application validation (e.g. `checkData(selectedRoom, reservationData)`) fails because `ratePriceGroupCode` / `ratePlanCode` or `roomCategoryCode` / `roomType` no longer match.
+
+### Symptoms
+
+- Test passes against real TMS but fails in playback with 500 or "DATA ERROR".
+- Logs show e.g. `checkRatePlan: false (NHWEB/NHWEB_NHR)` or `checkRoomType: false (STDDBL/SUPDBL)`.
+
+### Solution
+
+**Protect** those fields so they are never added to `ignore_patterns` and remain in the request matcher:
+
+1. **System property** (semicolon-separated paths, anonymized example):
+   ```bash
+   -Dstablemock.protectedDynamicFields=\"xml:...SamplePlanCandidate']/@*[local-name()='SampleFieldA'];xml:...SamplePlanCandidate']/@*[local-name()='SampleFieldB'];xml:...SampleStayCandidate']/@*[local-name()='SampleFieldC']\"
+   ```
+
+2. **Override in test class** (extend `BaseStableMockTest` and override `getProtectedDynamicFields()` with the full XPath-like paths from your `detected-fields.json` for your hotel availability request body / `SamplePlanCandidate` and `SampleStayCandidate`).
+
+Example anonymized paths (adjust namespaces/local-name to match your SOAP):
+
+- SampleFieldA: `.../*[local-name()='SamplePlanCandidates']/*[local-name()='SamplePlanCandidate']/@*[local-name()='SampleFieldA']`
+- SampleFieldB: same with `SampleFieldB`
+- SampleFieldC: `.../*[local-name()='SampleStayCandidates']/*[local-name()='SampleStayCandidate']/@*[local-name()='SampleFieldC']`
+
+See README "Protected dynamic fields" and `StableMockConfig.PROTECTED_DYNAMIC_FIELDS_PROPERTY`.

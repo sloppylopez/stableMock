@@ -4,9 +4,12 @@ import com.stablemock.WireMockContext;
 import com.stablemock.U;
 import org.springframework.test.context.DynamicPropertyRegistry;
 
+import com.stablemock.core.config.StableMockConfig;
+
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Base class for Spring Boot tests using StableMock.
@@ -30,6 +33,18 @@ import java.util.Properties;
  *                        StableMockExtension after WireMock starts.
  */
 public abstract class BaseStableMockTest {
+
+    /**
+     * Returns dynamic field paths that must not be added to ignore_patterns (protected fields).
+     * Override in subclasses to protect SOAP/XML fields (e.g. RatePlanCode, RoomTypeCode) so
+     * that different flows do not share the same stub. Uses same syntax as detected-fields.json
+     * (e.g. xml:...RatePlanCandidate']/@*[local-name()='RatePlanCode']).
+     * Default implementation returns values from system property stablemock.protectedDynamicFields
+     * (semicolon-separated).
+     */
+    protected static Set<String> getProtectedDynamicFields() {
+        return StableMockConfig.getProtectedDynamicFields();
+    }
 
     /**
      * Gets the ThreadLocal base URL from WireMockContext (for single URL tests).

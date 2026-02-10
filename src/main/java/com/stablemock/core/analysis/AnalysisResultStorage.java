@@ -8,9 +8,14 @@ import com.stablemock.core.util.AtomicFileWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.stablemock.core.config.StableMockConfig;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Stores dynamic field detection analysis results in the test resources folder.
@@ -37,23 +42,33 @@ public final class AnalysisResultStorage {
      */
     public static void save(DetectionResult result, File testResourcesDir,
             String testClassName, String testMethodName) {
-        save(result, testResourcesDir, testClassName, testMethodName, null);
+        save(result, testResourcesDir, testClassName, testMethodName, null, null, null);
+    }
+
+    /**
+     * Saves detection results with optional annotation index (no @U dontIgnore).
+     */
+    public static void save(DetectionResult result, File testResourcesDir,
+            String testClassName, String testMethodName,
+            Integer annotationIndex, Class<?> testClass) {
+        save(result, testResourcesDir, testClassName, testMethodName, annotationIndex, testClass, null);
     }
 
     /**
      * Saves detection results with optional annotation index for multiple
      * annotation support.
-     * 
+     *
      * @param result           Detection result to save
      * @param testResourcesDir Test resources directory
      * @param testClassName    Test class name
      * @param testMethodName   Test method name
-     * @param annotationIndex  Optional annotation index (null for single
-     *                         annotation)
+     * @param annotationIndex  Optional annotation index (null for single annotation)
+     * @param testClass        Optional test class for BaseStableMockTest.getProtectedDynamicFields() (null to use config only)
+     * @param annotationDontIgnore Optional paths from @U(dontIgnore) to merge into protected set (null ok)
      */
     public static void save(DetectionResult result, File testResourcesDir,
             String testClassName, String testMethodName,
-            Integer annotationIndex) {
+            Integer annotationIndex, Class<?> testClass, Set<String> annotationDontIgnore) {
         try {
             File outputFile = getOutputFile(testResourcesDir, testClassName,
                     testMethodName, annotationIndex);
@@ -94,9 +109,14 @@ public final class AnalysisResultStorage {
                 }
             }
 
-            // Add ignore patterns
+            // Add ignore patterns (excluding protected fields so they remain in matchers)
+            Set<String> protectedPaths = new LinkedHashSet<>(testClass != null ? getProtectedFieldsForTestClass(testClass) : getProtectedFieldsForTestClass(testClassName));
+            if (annotationDontIgnore != null && !annotationDontIgnore.isEmpty()) {
+                protectedPaths.addAll(annotationDontIgnore);
+            }
+            List<String> patternsToSave = filterOutProtectedPatterns(result.getIgnorePatterns(), protectedPaths);
             ArrayNode patternsArray = json.putArray("ignore_patterns");
-            for (String pattern : result.getIgnorePatterns()) {
+            for (String pattern : patternsToSave) {
                 patternsArray.add(pattern);
             }
 
@@ -104,8 +124,8 @@ public final class AnalysisResultStorage {
                     objectMapper.writeValue(tempPath.toFile(), json));
 
             logger.info("Saved detection results to: {}", outputFile.getAbsolutePath());
-            logger.info("Detected {} dynamic fields: {}",
-                    result.getDynamicFields().size(), result.getIgnorePatterns());
+            logger.info("Detected {} dynamic fields, {} ignore patterns ({} after protected filter)",
+                    result.getDynamicFields().size(), result.getIgnorePatterns().size(), patternsToSave.size());
 
         } catch (Exception e) {
             logger.error("Failed to save detection results: {}", e.getMessage(), e);
@@ -124,7 +144,7 @@ public final class AnalysisResultStorage {
     public static List<String> loadIgnorePatterns(File testResourcesDir,
             String testClassName,
             String testMethodName) {
-        return loadIgnorePatterns(testResourcesDir, testClassName, testMethodName, null);
+        return loadIgnorePatternsImpl(testResourcesDir, testClassName, testMethodName, null, null);
     }
 
     /**
@@ -134,33 +154,73 @@ public final class AnalysisResultStorage {
             String testClassName,
             String testMethodName,
             Integer annotationIndex) {
+        return loadIgnorePatternsImpl(testResourcesDir, testClassName, testMethodName, annotationIndex, null);
+    }
+
+    /**
+     * Loads detection results with optional annotation index and @U dontIgnore support.
+     * @param annotationDontIgnore paths from @U(dontIgnore) that must not be in ignore_patterns (merged with protected set)
+     */
+    public static List<String> loadIgnorePatterns(File testResourcesDir,
+            String testClassName,
+            String testMethodName,
+            Integer annotationIndex,
+            Set<String> annotationDontIgnore) {
+        return loadIgnorePatternsImpl(testResourcesDir, testClassName, testMethodName, annotationIndex, annotationDontIgnore);
+    }
+
+    private static List<String> loadIgnorePatternsImpl(File testResourcesDir,
+            String testClassName,
+            String testMethodName,
+            Integer annotationIndex,
+            Set<String> annotationDontIgnore) {
         try {
             File outputFile = getOutputFile(testResourcesDir, testClassName,
                     testMethodName, annotationIndex);
+            File methodOrAnnotationDir = outputFile.getParentFile();
 
-            if (!outputFile.exists()) {
-                logger.debug("Detection results file not found: {}", outputFile.getAbsolutePath());
+            List<String> patterns = new ArrayList<>();
+
+            if (outputFile.exists()) {
+                ObjectNode json = (ObjectNode) objectMapper.readTree(outputFile);
+                ArrayNode patternsArray = (ArrayNode) json.get("ignore_patterns");
+                if (patternsArray != null) {
+                    patternsArray.forEach(node -> patterns.add(node.asText()));
+                }
+            }
+
+            loadIgnorePatternsFromFile(methodOrAnnotationDir, "ignore-patterns.json", patterns);
+            File[] methodDirContents = methodOrAnnotationDir.listFiles();
+            if (methodDirContents != null) {
+                for (File f : methodDirContents) {
+                    if (f.isDirectory() && f.getName().startsWith("annotation_")) {
+                        loadIgnorePatternsFromFile(f, "ignore-patterns.json", patterns);
+                    }
+                }
+            }
+
+            if (patterns.isEmpty()) {
+                logger.debug("No ignore patterns found for {}.{}", testClassName, testMethodName);
                 return List.of();
             }
 
-            ObjectNode json = (ObjectNode) objectMapper.readTree(outputFile);
-            ArrayNode patternsArray = (ArrayNode) json.get("ignore_patterns");
-
-            if (patternsArray == null) {
-                logger.debug("No ignore_patterns array found in {}", outputFile.getAbsolutePath());
-                return List.of();
+            Set<String> protectedPaths = new LinkedHashSet<>(getProtectedFieldsForTestClass(testClassName));
+            if (annotationDontIgnore != null && !annotationDontIgnore.isEmpty()) {
+                protectedPaths.addAll(annotationDontIgnore);
             }
-
-            List<String> patterns = new java.util.ArrayList<>();
-            patternsArray.forEach(node -> patterns.add(node.asText()));
+            List<String> filtered = filterOutProtectedPatterns(patterns, protectedPaths);
+            if (filtered.size() < patterns.size()) {
+                logger.info("Filtered {} ignore patterns to {} (protected fields excluded) for {}",
+                        patterns.size(), filtered.size(), outputFile.getAbsolutePath());
+            }
 
             logger.info("Loaded {} auto-detected ignore patterns from {}",
-                    patterns.size(), outputFile.getAbsolutePath());
-            if (logger.isDebugEnabled() && !patterns.isEmpty()) {
-                logger.debug("Loaded patterns: {}", patterns);
+                    filtered.size(), outputFile.getAbsolutePath());
+            if (logger.isDebugEnabled() && !filtered.isEmpty()) {
+                logger.debug("Loaded patterns: {}", filtered);
             }
 
-            return patterns;
+            return filtered;
 
         } catch (Exception e) {
             logger.warn("Failed to load detection results from {}: {}", 
@@ -168,6 +228,91 @@ public final class AnalysisResultStorage {
                     e.getMessage());
             return List.of();
         }
+    }
+
+    private static void loadIgnorePatternsFromFile(File dir, String fileName, List<String> out) {
+        File file = new File(dir, fileName);
+        if (!file.exists()) return;
+        try {
+            com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(file);
+            if (node.isArray()) {
+                node.forEach(n -> {
+                    if (n.isTextual()) {
+                        String p = n.asText().trim();
+                        if (!p.isEmpty() && !out.contains(p)) out.add(p);
+                    }
+                });
+                logger.info("Loaded {} ignore pattern(s) from {}", node.size(), file.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to read {} from {}: {}", fileName, dir.getAbsolutePath(), e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the set of protected field paths (config only). Used at load time when we only have test class name.
+     */
+    static Set<String> getProtectedFieldsForTestClass(String testClassName) {
+        return new LinkedHashSet<>(StableMockConfig.getProtectedDynamicFields());
+    }
+
+    /**
+     * Returns the set of protected field paths for a test class (config + optional BaseStableMockTest override).
+     * Used at save time when we have the test Class.
+     */
+    static Set<String> getProtectedFieldsForTestClass(Class<?> testClass) {
+        Set<String> set = new LinkedHashSet<>(StableMockConfig.getProtectedDynamicFields());
+        if (testClass == null) {
+            return set;
+        }
+        if (com.stablemock.spring.BaseStableMockTest.class.isAssignableFrom(testClass)) {
+            try {
+                java.lang.reflect.Method m = testClass.getMethod("getProtectedDynamicFields");
+                if (m.getReturnType() == Set.class && java.lang.reflect.Modifier.isStatic(m.getModifiers())) {
+                    @SuppressWarnings("unchecked")
+                    Set<String> fromTest = (Set<String>) m.invoke(null);
+                    if (fromTest != null) {
+                        set.addAll(fromTest);
+                    }
+                }
+            } catch (Exception e) {
+                logger.debug("Could not get protected fields from test class {}: {}", testClass.getName(), e.getMessage());
+            }
+        }
+        return set;
+    }
+
+    /**
+     * Removes patterns that match any protected path (equals or prefix match, case-insensitive).
+     */
+    static List<String> filterOutProtectedPatterns(List<String> patterns, Set<String> protectedPaths) {
+        if (patterns == null || patterns.isEmpty()) {
+            return patterns == null ? List.of() : new ArrayList<>(patterns);
+        }
+        if (protectedPaths == null || protectedPaths.isEmpty()) {
+            return new ArrayList<>(patterns);
+        }
+        List<String> out = new ArrayList<>();
+        for (String p : patterns) {
+            if (p == null) continue;
+            if (isProtectedPattern(p, protectedPaths)) {
+                logger.debug("Excluding protected pattern from ignore_patterns: {}", p);
+                continue;
+            }
+            out.add(p);
+        }
+        return out;
+    }
+
+    private static boolean isProtectedPattern(String pattern, Set<String> protectedPaths) {
+        String pl = pattern.trim().toLowerCase();
+        for (String q : protectedPaths) {
+            if (q == null) continue;
+            String ql = q.trim().toLowerCase();
+            if (pl.equals(ql)) return true;
+            if (pl.startsWith(ql) || ql.startsWith(pl)) return true;
+        }
+        return false;
     }
 
     /**

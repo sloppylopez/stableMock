@@ -39,6 +39,14 @@ public @interface U {
     String[] ignore() default {};
 
     /**
+     * Request field paths that must NOT be auto-ignored (same syntax as ignore_patterns).
+     * Use when you have very similar requests that differ only by these fields (e.g. SOAP
+     * RatePlanCode, RoomTypeCode); listing them here keeps them in the matcher so the right
+     * stub is matched. Same syntax as in detected-fields.json / ignore().
+     */
+    String[] dontIgnore() default {};
+
+    /**
      * Enable scenario mode for sequential responses.
      * When true, multiple responses for the same endpoint will be returned sequentially
      * using WireMock scenarios. Useful for testing stateful behavior where the same

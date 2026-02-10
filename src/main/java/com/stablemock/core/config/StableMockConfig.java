@@ -17,7 +17,9 @@ public final class StableMockConfig {
     public static final int DEFAULT_PROXY_TIMEOUT_MS = 60000;
     public static final String STARTUP_EXTRA_SLEEP_MS_PROPERTY = "stablemock.wiremock.startupExtraSleepMs";
     public static final int DEFAULT_STARTUP_EXTRA_SLEEP_MS = 0;
-    
+    /** Semicolon-separated list of XPath-like field paths that must not be added to ignore_patterns. */
+    public static final String PROTECTED_DYNAMIC_FIELDS_PROPERTY = "stablemock.protectedDynamicFields";
+
     private StableMockConfig() {
         // utility class
     }
@@ -56,5 +58,26 @@ public final class StableMockConfig {
     public static int getStartupExtraSleepMs() {
         int value = Integer.getInteger(STARTUP_EXTRA_SLEEP_MS_PROPERTY, DEFAULT_STARTUP_EXTRA_SLEEP_MS);
         return value > 0 ? value : 0;
+    }
+
+    /**
+     * Returns the set of protected dynamic field paths that must not be added to ignore_patterns.
+     * These paths use the same syntax as dynamic_fields / ignore_patterns (e.g. xml:...local-name()...).
+     * Empty by default; set via system property {@value #PROTECTED_DYNAMIC_FIELDS_PROPERTY}
+     * (semicolon-separated).
+     */
+    public static java.util.Set<String> getProtectedDynamicFields() {
+        String raw = System.getProperty(PROTECTED_DYNAMIC_FIELDS_PROPERTY, "").trim();
+        if (raw.isEmpty()) {
+            return java.util.Collections.emptySet();
+        }
+        java.util.Set<String> set = new java.util.LinkedHashSet<>();
+        for (String s : raw.split(";")) {
+            String t = s.trim();
+            if (!t.isEmpty()) {
+                set.add(t);
+            }
+        }
+        return set;
     }
 }

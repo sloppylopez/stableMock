@@ -398,6 +398,21 @@ public class MyTest extends BaseStableMockTest {
 
 **Note:** Auto-detection and manual ignore patterns work together. Manual patterns are always applied, and auto-detected patterns are added automatically.
 
+**Optional file:** You can also pass ignore patterns via a file so they are applied at playback without re-recording. Place `ignore-patterns.json` (JSON array of pattern strings, same syntax as above) in the stablemock method directory or in `annotation_<i>/` for multi-annotation tests. Patterns from this file are merged with those from `detected-fields.json`. Example: `src/test/resources/stablemock/<YourTest>/<method>/ignore-patterns.json` or `.../<method>/annotation_0/ignore-patterns.json`.
+
+#### 3. Protected dynamic fields
+
+When auto-detection would ignore a field that you need for correct stub matching (e.g. SOAP `RatePlanCode` or `RoomTypeCode` that distinguish different flows), you can **protect** those fields so they are never added to `ignore_patterns`. Protected fields remain in the request matcher, so the right stub is matched during playback.
+
+**System property (semicolon-separated):**
+```bash
+-Dstablemock.protectedDynamicFields="xml:...SamplePlanCandidate']/@*[local-name()='SampleFieldA'];xml:...SamplePlanCandidate']/@*[local-name()='SampleFieldB']"
+```
+
+**Java (override in test class):** Extend `BaseStableMockTest` and override `getProtectedDynamicFields()` to return the same XPath-like paths as in `detected-fields.json`. Those paths are then excluded from `ignore_patterns` when saving and loading, so they remain in the WireMock body matcher.
+
+Use the same path syntax as in `detected-fields.json` / `ignore_patterns`. See `docs/PITFALLS.md` for the SOAP availability/reservation mismatch scenario and example paths for a hotel availability request (three discriminator fields analogous to rate plan and room type). 
+
 ### Complete Spring Boot Example
 
 ```java
@@ -529,6 +544,7 @@ StableMock sets the following system properties that you can use in your tests:
 ### Configuration Properties
 - `stablemock.mode` - Set to `RECORD` or `PLAYBACK` (automatically set by Gradle tasks)
 - `stablemock.showMatches` - Set to `true` to enable detailed request matching logs for debugging
+- `stablemock.protectedDynamicFields` - Semicolon-separated list of field paths that must not be added to `ignore_patterns` (e.g. SOAP RatePlanCode, RoomTypeCode). Same syntax as `ignore_patterns` in `detected-fields.json`.
 
 ## Debugging and Troubleshooting
 
