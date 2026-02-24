@@ -1,20 +1,20 @@
 {
   "testClass" : "MultiLevelInheritanceTest",
   "testMethod" : "testXmlWithDynamicFieldsInMultiLevelInheritance",
-  "detectedAt" : "2026-02-24T14:06:32.756869Z",
+  "detectedAt" : "2026-02-24T15:05:42.705588800Z",
   "analyzed_requests_count" : 4,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ApiRequest']/*[local-name()='DateRange']/*[local-name()='Start']",
     "sample_values" : [ "2026-01-22", "2026-01-22", "2026-01-22" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Header']/*[local-name()='RequestId']",
-    "sample_values" : [ "1771941952758", "1771941952527", "1771941992096" ]
+    "sample_values" : [ "1771945503893", "1771945503670", "1771945542142" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ApiRequest']/*[local-name()='Timestamp']",
-    "sample_values" : [ "2026-02-24T14:05:52.768271200Z", "2026-02-24T14:05:52.537500800Z", "2026-02-24T14:06:32.106279200Z" ]
+    "sample_values" : [ "2026-02-24T15:05:03.903549300Z", "2026-02-24T15:05:03.680277900Z", "2026-02-24T15:05:42.152002800Z" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Header']/*[local-name()='SessionToken']",
-    "sample_values" : [ "1771941952768", "1771941952537", "1771941992106" ]
+    "sample_values" : [ "1771945503903", "1771945503680", "1771945542152" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ApiRequest']/*[local-name()='DateRange']/*[local-name()='End']",
     "sample_values" : [ "2026-01-24", "2026-01-24", "2026-01-24" ]

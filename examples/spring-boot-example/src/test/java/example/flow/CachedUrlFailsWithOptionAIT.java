@@ -15,11 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies Option A playback with a non-Feign client that resolves the target URL
- * at request time instead of caching it at context initialization.
- *
- * Important: invoke the client directly from the test thread so the StableMock
- * per-invocation ThreadLocal base URL is visible to dynamic property resolution.
+ * Playback with a client that caches the base URL at context init (CachedBaseUrlClient).
+ * Verifies that parameterized playback works: the app gets the class-level WireMock URL
+ * via BaseStableMockTest's fallback (stablemock.baseUrl.<ClassName>) when ThreadLocal
+ * is null in the context-creation thread, so all invocations hit the class-level server
+ * with merged mappings.
  */
 @U(
     urls = { "https://postman-echo.com" },
