@@ -9,10 +9,12 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     
     private final ThirdPartyService thirdPartyService;
-    
+    private final CachedBaseUrlClient cachedBaseUrlClient;
+
     @Autowired
-    public UserController(ThirdPartyService thirdPartyService) {
+    public UserController(ThirdPartyService thirdPartyService, CachedBaseUrlClient cachedBaseUrlClient) {
         this.thirdPartyService = thirdPartyService;
+        this.cachedBaseUrlClient = cachedBaseUrlClient;
     }
     
     @GetMapping("/users/{id}")
@@ -34,6 +36,17 @@ public class UserController {
     public ResponseEntity<String> getUserFromPostmanEcho(@PathVariable int id) {
         String user = thirdPartyService.getUserFromPostmanEcho(id);
         return ResponseEntity.ok(user);
+    }
+
+    /**
+     * Uses a client that cached the base URL at context init.
+     * With Option A, all parameterized invocations hit the same port (the one resolved at startup).
+     * Used by CachedUrlFailsWithOptionAIT to demonstrate the bp-style 404 failure mode.
+     */
+    @GetMapping("/postmanecho/cached-users/{id}")
+    public ResponseEntity<String> getCachedUrlPostmanEcho(@PathVariable int id) {
+        String body = cachedBaseUrlClient.get(id);
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping(value = "/postmanecho/xml", consumes = "application/xml")

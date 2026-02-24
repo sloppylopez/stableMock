@@ -1,11 +1,11 @@
 [ {
-  "timestamp" : "2026-02-24T13:42:08.314800400Z",
+  "timestamp" : "2026-02-24T14:05:49.966237200Z",
   "url" : "/graphql",
   "method" : "POST",
   "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",
   "contentType" : "application/json"
 }, {
-  "timestamp" : "2026-02-24T13:42:45.910538200Z",
+  "timestamp" : "2026-02-24T14:06:30.531048500Z",
   "url" : "/graphql",
   "method" : "POST",
   "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",
