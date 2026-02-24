@@ -1,0 +1,13 @@
+[ {
+  "timestamp" : "2026-02-24T14:05:51.959350800Z",
+  "url" : "/get?id=1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2026-02-24T14:06:28.788998800Z",
+  "url" : "/get?id=1",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+} ]

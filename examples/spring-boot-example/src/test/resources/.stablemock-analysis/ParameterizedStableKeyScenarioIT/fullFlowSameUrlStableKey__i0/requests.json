@@ -1,0 +1,13 @@
+[ {
+  "timestamp" : "2026-02-24T14:05:51.994924Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<root><Scenario>Loyalty</Scenario></root>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-02-24T14:06:31.711431400Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<root><Scenario>Loyalty</Scenario></root>",
+  "contentType" : "application/xml"
+} ]
