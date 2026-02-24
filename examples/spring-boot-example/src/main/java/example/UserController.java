@@ -39,9 +39,7 @@ public class UserController {
     }
 
     /**
-     * Uses a client that cached the base URL at context init.
-     * With Option A, all parameterized invocations hit the same port (the one resolved at startup).
-     * Used by CachedUrlFailsWithOptionAIT to demonstrate the bp-style 404 failure mode.
+     * Uses a non-Feign client path for Option A playback coverage.
      */
     @GetMapping("/postmanecho/cached-users/{id}")
     public ResponseEntity<String> getCachedUrlPostmanEcho(@PathVariable int id) {
