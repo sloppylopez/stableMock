@@ -2,7 +2,10 @@ package example;
 
 import com.stablemock.U;
 import example.inheritance.BaseTestFeature;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -32,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @U(urls = { "https://postman-echo.com" },
    properties = { "app.postmanecho.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ParameterizedTestExample extends BaseTestFeature {
 
     @Autowired
@@ -51,6 +55,7 @@ public class ParameterizedTestExample extends BaseTestFeature {
         );
     }
 
+    @Order(2)
     @ParameterizedTest
     @MethodSource("hostTypeAvailabilityRequest")
     void testParameterizedRequests(int userId) {
@@ -120,6 +125,7 @@ public class ParameterizedTestExample extends BaseTestFeature {
         }
     }
 
+    @Order(1)
     @Test
     void testNonParameterizedRequest() {
         // Regular non-parameterized test for comparison

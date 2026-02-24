@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.common.FatalStartupException;
+import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.stablemock.core.config.PortFinder;
 import com.stablemock.core.config.StableMockConfig;
 import org.slf4j.Logger;
@@ -23,6 +24,8 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 /**
@@ -119,25 +122,18 @@ public final class WireMockServerManager {
                 }
                 return server;
             } catch (FatalStartupException e) {
-                // Check if it's a port binding issue
-                Throwable cause = e.getCause();
-                if (cause != null && (cause instanceof java.net.BindException || 
-                        cause.getMessage() != null && cause.getMessage().contains("Address already in use"))) {
-                    if (attempt < maxRetries - 1) {
-                        logger.warn("Port {} is already in use, trying a new port (attempt {}/{})", 
-                                currentPort, attempt + 1, maxRetries);
-                        currentPort = PortFinder.findFreePort();
-                        try {
-                            // Increased delay to allow ports to be fully released (especially in CI)
-                            Thread.sleep(200 + (attempt * 50)); // Progressive delay: 200ms, 250ms, 300ms...
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException("Interrupted while retrying server startup", ie);
-                        }
-                        continue;
+                if (isPortBindFailure(e) && attempt < maxRetries - 1) {
+                    logger.warn("Port {} is already in use, trying a new port (attempt {}/{})",
+                            currentPort, attempt + 1, maxRetries);
+                    currentPort = PortFinder.findFreePort();
+                    try {
+                        Thread.sleep(200 + (attempt * 50));
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("Interrupted while retrying server startup", ie);
                     }
+                    continue;
                 }
-                // Not a port binding issue or out of retries, rethrow
                 throw e;
             }
         }
@@ -324,29 +320,194 @@ public final class WireMockServerManager {
                 }
                 return server;
             } catch (FatalStartupException e) {
-                // Check if it's a port binding issue
-                Throwable cause = e.getCause();
-                if (cause != null && (cause instanceof java.net.BindException || 
-                        cause.getMessage() != null && cause.getMessage().contains("Address already in use"))) {
-                    if (attempt < maxRetries - 1) {
-                        logger.warn("Port {} is already in use, trying a new port (attempt {}/{})", 
-                                currentPort, attempt + 1, maxRetries);
-                        currentPort = PortFinder.findFreePort();
-                        try {
-                            // Increased delay to allow ports to be fully released (especially in CI)
-                            Thread.sleep(200 + (attempt * 50)); // Progressive delay: 200ms, 250ms, 300ms...
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException("Interrupted while retrying server startup", ie);
-                        }
-                        continue;
+                if (isPortBindFailure(e) && attempt < maxRetries - 1) {
+                    logger.warn("Port {} is already in use, trying a new port (attempt {}/{})",
+                            currentPort, attempt + 1, maxRetries);
+                    currentPort = PortFinder.findFreePort();
+                    try {
+                        Thread.sleep(200 + (attempt * 50));
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("Interrupted while retrying server startup", ie);
                     }
+                    continue;
                 }
-                // Not a port binding issue or out of retries, rethrow
                 throw e;
             }
         }
         throw new RuntimeException("Failed to start playback server after " + maxRetries + " attempts");
+    }
+
+    /**
+     * Hot-reloads stub mappings on an existing WireMock server from an invocation-specific directory.
+     * Resets server state and loads mappings without restarting the server or changing the port.
+     *
+     * @param server                      existing WireMock server (must be running)
+     * @param invocationMappingsDir      directory containing mappings/ and __files/ for this invocation
+     * @param serverRootDir               root directory the server was started with (for __files copy)
+     * @param testResourcesDir            test resources dir (for ignore patterns)
+     * @param testClassName              test class name
+     * @param testMethodIdentifier       test method identifier (for ignore patterns)
+     * @param annotationIgnorePatterns   ignore patterns from @U annotation
+     */
+    public static void reloadMappingsOnServer(WireMockServer server,
+            File invocationMappingsDir,
+            File serverRootDir,
+            File testResourcesDir,
+            String testClassName,
+            String testMethodIdentifier,
+            List<String> annotationIgnorePatterns) {
+        List<String> ignorePatterns = new java.util.ArrayList<>();
+        if (testResourcesDir != null && testClassName != null && testMethodIdentifier != null) {
+            ignorePatterns.addAll(com.stablemock.core.analysis.AnalysisResultStorage
+                    .loadIgnorePatterns(testResourcesDir, testClassName, testMethodIdentifier));
+            if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
+                ignorePatterns.removeAll(annotationIgnorePatterns);
+                ignorePatterns.addAll(annotationIgnorePatterns);
+            }
+        }
+        File sourceDir = invocationMappingsDir;
+        if (!ignorePatterns.isEmpty()) {
+            try {
+                java.nio.file.Path tempPath = java.nio.file.Files.createTempDirectory("stablemock-reload-");
+                File tempDir = tempPath.toFile();
+                try {
+                    copyDirectory(invocationMappingsDir.toPath(), tempPath);
+                    applyIgnorePatternsToStubFiles(tempDir, ignorePatterns, testMethodIdentifier);
+                    sourceDir = tempDir;
+                } finally {
+                    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                        try {
+                            try (java.util.stream.Stream<java.nio.file.Path> s = java.nio.file.Files.walk(tempPath)) {
+                                s.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                                    try { java.nio.file.Files.deleteIfExists(p); } catch (java.io.IOException ignored) { }
+                                });
+                            }
+                        } catch (java.io.IOException ignored) { }
+                    }, "stablemock-reload-cleanup"));
+                }
+            } catch (Exception e) {
+                logger.warn("Could not apply ignore patterns for reload, using raw mappings: {}", e.getMessage());
+            }
+        }
+        File serverFilesDir = new File(serverRootDir, "__files");
+        File sourceFilesDir = new File(sourceDir, "__files");
+        if (sourceFilesDir.exists() && sourceFilesDir.isDirectory()) {
+            if (!serverFilesDir.exists()) {
+                serverFilesDir.mkdirs();
+            }
+            File[] bodyFiles = sourceFilesDir.listFiles(File::isFile);
+            if (bodyFiles != null) {
+                for (File f : bodyFiles) {
+                    try {
+                        Files.copy(f.toPath(), new File(serverFilesDir, f.getName()).toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    } catch (Exception e) {
+                        logger.warn("Failed to copy body file {}: {}", f.getName(), e.getMessage());
+                    }
+                }
+            }
+        }
+        server.resetAll();
+        File mappingsSubDir = new File(sourceDir, "mappings");
+        int loadedCount = loadMappingsFromDir(server, sourceDir);
+        boolean usedFallback = false;
+        if (loadedCount == 0 && sourceDir.equals(invocationMappingsDir) && testResourcesDir != null && testClassName != null) {
+            File buildTestResources = resolveBuildTestResourcesDir(testResourcesDir);
+            if (buildTestResources != null) {
+                File fallbackInvocationDir = new File(buildTestResources, "stablemock/" + testClassName + "/" + invocationMappingsDir.getName());
+                logger.debug("Reload got 0 stubs from src; trying build dir fallback: {} (exists: {})",
+                        fallbackInvocationDir.getAbsolutePath(), fallbackInvocationDir.exists());
+                if (fallbackInvocationDir.exists() && fallbackInvocationDir.isDirectory()) {
+                    int fallbackCount = loadMappingsFromDir(server, fallbackInvocationDir);
+                    if (fallbackCount > 0) {
+                        loadedCount = fallbackCount;
+                        usedFallback = true;
+                        File fallbackFilesDir = new File(fallbackInvocationDir, "__files");
+                        if (fallbackFilesDir.exists() && fallbackFilesDir.isDirectory()) {
+                            if (!serverFilesDir.exists()) {
+                                serverFilesDir.mkdirs();
+                            }
+                            File[] bodyFiles = fallbackFilesDir.listFiles(File::isFile);
+                            if (bodyFiles != null) {
+                                for (File f : bodyFiles) {
+                                    try {
+                                        Files.copy(f.toPath(), new File(serverFilesDir, f.getName()).toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                    } catch (Exception e) {
+                                        logger.warn("Failed to copy body file {}: {}", f.getName(), e.getMessage());
+                                    }
+                                }
+                            }
+                        }
+                        logger.info("Reloaded {} stub(s) from build dir fallback: {}", loadedCount, fallbackInvocationDir.getAbsolutePath());
+                    }
+                } else {
+                    logger.warn("Reload fallback dir missing or not a directory: {}", fallbackInvocationDir.getAbsolutePath());
+                }
+            } else {
+                logger.warn("Reload: build/resources/test not found for project root (testResourcesDir: {})", testResourcesDir.getAbsolutePath());
+            }
+        }
+        if (loadedCount == 0) {
+            if (!mappingsSubDir.exists() || !mappingsSubDir.isDirectory()) {
+                logger.warn("Reload skipped: invocation dir has no mappings folder or does not exist: {}", invocationMappingsDir.getAbsolutePath());
+            }
+            logger.warn("Reload loaded 0 stubs from {} - all requests will return 404", invocationMappingsDir.getAbsolutePath());
+        } else if (!usedFallback) {
+            logger.info("Reloaded {} stub(s) on server from {}", loadedCount, invocationMappingsDir.getAbsolutePath());
+        }
+        server.stubFor(
+                WireMock.any(WireMock.anyUrl())
+                        .atPriority(1000)
+                        .willReturn(WireMock.aResponse()
+                                .withStatus(404)
+                                .withBody("No matching stub mapping found")));
+    }
+
+    private static int loadMappingsFromDir(WireMockServer server, File invocationDir) {
+        File mappingsSubDir = new File(invocationDir, "mappings");
+        int count = 0;
+        if (mappingsSubDir.exists() && mappingsSubDir.isDirectory()) {
+            File[] jsonFiles = mappingsSubDir.listFiles((d, n) -> n != null && n.toLowerCase().endsWith(".json"));
+            if (jsonFiles != null) {
+                java.util.Arrays.sort(jsonFiles, java.util.Comparator.comparing(File::getName));
+                for (File mappingFile : jsonFiles) {
+                    try {
+                        String json = new String(java.nio.file.Files.readAllBytes(mappingFile.toPath()));
+                        StubMapping mapping = StubMapping.buildFrom(json);
+                        server.addStubMapping(mapping);
+                        count++;
+                    } catch (Exception e) {
+                        logger.warn("Failed to load mapping {}: {}", mappingFile.getName(), e.getMessage());
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Resolves build/resources/test when testResourcesDir is src/test/resources and build exists (Gradle).
+     */
+    private static File resolveBuildTestResourcesDir(File testResourcesDir) {
+        if (testResourcesDir == null || !testResourcesDir.exists() || !testResourcesDir.isDirectory()) {
+            return null;
+        }
+        String path = testResourcesDir.getAbsolutePath();
+        if (!path.replace('\\', '/').contains("src/test/resources")) {
+            return null;
+        }
+        File projectRoot = testResourcesDir.getParentFile();
+        if (projectRoot != null) {
+            projectRoot = projectRoot.getParentFile();
+        }
+        if (projectRoot != null) {
+            projectRoot = projectRoot.getParentFile();
+        }
+        if (projectRoot == null || !projectRoot.exists()) {
+            return null;
+        }
+        File buildTestResources = new File(projectRoot, "build/resources/test");
+        return (buildTestResources.exists() && buildTestResources.isDirectory()) ? buildTestResources : null;
     }
     
     /**
@@ -1115,6 +1276,23 @@ public final class WireMockServerManager {
             return matcher.group(1);
         }
         return null;
+    }
+
+    /**
+     * Returns true if the throwable (or any cause in the chain) indicates a port bind failure,
+     * e.g. BindException or "Address already in use" / "Failed to bind".
+     */
+    private static boolean isPortBindFailure(Throwable t) {
+        for (Throwable c = t; c != null; c = c.getCause()) {
+            if (c instanceof java.net.BindException) {
+                return true;
+            }
+            String msg = c.getMessage();
+            if (msg != null && (msg.contains("Address already in use") || msg.contains("Failed to bind"))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static int findFreePort() {
