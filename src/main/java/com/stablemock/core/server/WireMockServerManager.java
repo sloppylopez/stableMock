@@ -534,14 +534,18 @@ public final class WireMockServerManager {
             if (mappingFiles == null) {
                 return;
             }
+            // When loading from an invocation dir, mapping files have no method prefix (e.g. sap_bc_...json).
+            // When loading from merged class-level dir, files are named methodName_originalName.json.
+            // Only filter by prefix if at least one file has it (merged case).
+            boolean filterByMethodPrefix = testMethodName != null && java.util.Arrays.stream(mappingFiles)
+                    .anyMatch(f -> f.getName().startsWith(testMethodName + "_"));
             
             com.fasterxml.jackson.databind.ObjectMapper objectMapper = 
                     new com.fasterxml.jackson.databind.ObjectMapper();
             
             for (File mappingFile : mappingFiles) {
                 try {
-                    // For method-level, only apply patterns to mappings from this method
-                    if (testMethodName != null && !mappingFile.getName().startsWith(testMethodName + "_")) {
+                    if (filterByMethodPrefix && !mappingFile.getName().startsWith(testMethodName + "_")) {
                         continue;
                     }
                     
