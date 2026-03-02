@@ -1,0 +1,1 @@
+{"args":{},"data":"<root><Scenario>Loyalty</Scenario></root>","files":{},"form":{},"headers":{"host":"postman-echo.com","content-length":"41","accept-encoding":"gzip, br","x-forwarded-proto":"https","content-type":"application/xml","accept":"*/*","user-agent":"Apache-HttpClient/5.3.1 (Java/17.0.14)"},"json":null,"url":"https://postman-echo.com/post"}
