@@ -132,7 +132,7 @@ public class StableMockExtension
         for (File d : dirs) {
             String name = d.getName();
             boolean oldStyle = name.contains(indexSuffixOld) && (name.startsWith(methodName) || name.startsWith(sanitizedMethodName));
-            boolean newStyle = name.equals(newStylePrefix) || name.startsWith(newStylePrefix + "__");
+            boolean newStyle = isNewStyleInvocationDirMatch(name, newStylePrefix);
             if (oldStyle || newStyle) {
                 matches.add(d);
             }
@@ -157,6 +157,27 @@ public class StableMockExtension
             logger.info("Using invocation dir {} (exact {} not found) for method {} index {}", chosen.getName(), testMethodIdentifier, methodName, index);
         }
         return chosen;
+    }
+
+    /**
+     * Matches new-style invocation directory names with strict invocation-index boundaries.
+     * Prevents accidental matches like method__i1 matching method__i10.
+     */
+    static boolean isNewStyleInvocationDirMatch(String directoryName, String expectedPrefix) {
+        if (directoryName == null || expectedPrefix == null) {
+            return false;
+        }
+        if (directoryName.equals(expectedPrefix)) {
+            return true;
+        }
+        if (!directoryName.startsWith(expectedPrefix)) {
+            return false;
+        }
+        int prefixLen = expectedPrefix.length();
+        if (directoryName.length() <= prefixLen) {
+            return false;
+        }
+        return directoryName.startsWith("__", prefixLen);
     }
 
     @Override
