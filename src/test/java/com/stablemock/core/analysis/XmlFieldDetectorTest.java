@@ -105,7 +105,7 @@ class XmlFieldDetectorTest {
         XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
         
         // Should detect id as changing between the two valid XML documents
-        assertTrue(result.getDynamicFields().size() >= 1);
+        assertFalse(result.getDynamicFields().isEmpty());
         boolean foundId = result.getDynamicFields().stream()
             .anyMatch(f -> f.fieldPath().contains("id"));
         assertTrue(foundId, "Should detect id field as changing");
@@ -166,21 +166,19 @@ class XmlFieldDetectorTest {
     @Test
     void testDetectDynamicFieldsInXml_HeuristicDetection_SameDateValues() {
         DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
-        
-        // Same date values (as would happen in a single test run)
+
         List<String> xmlBodies = List.of(
-            "<root><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></root>",
-            "<root><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></root>"
+            "<root><DateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></root>",
+            "<root><DateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></root>"
         );
-        
+
         XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
-        
-        // Should detect Start and End via heuristic even though values are same
+
         assertEquals(2, result.getDynamicFields().size());
         assertEquals(2, result.getIgnorePatterns().size());
-        
+
         var fieldPaths = result.getDynamicFields().stream()
-            .map(f -> f.fieldPath())
+            .map(DetectionResult.DynamicField::fieldPath)
             .toList();
         assertTrue(fieldPaths.stream().anyMatch(p -> p.contains("Start")),
             "Should detect Start attribute via heuristic. Found: " + fieldPaths);
@@ -202,7 +200,7 @@ class XmlFieldDetectorTest {
         // Should detect startDate and endDate via heuristic
         assertEquals(2, result.getDynamicFields().size());
         var fieldPaths = result.getDynamicFields().stream()
-            .map(f -> f.fieldPath())
+            .map(DetectionResult.DynamicField::fieldPath)
             .toList();
         assertTrue(fieldPaths.stream().anyMatch(p -> p.contains("startDate")),
             "Should detect startDate via heuristic. Found: " + fieldPaths);
@@ -244,21 +242,19 @@ class XmlFieldDetectorTest {
     }
 
     @Test
-    void testDetectDynamicFieldsInXml_HeuristicDetection_NestedStayDateRange() {
+    void testDetectDynamicFieldsInXml_HeuristicDetection_NestedDateRange() {
         DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
-        
-        // Simulating OTA HotelAvailRQ structure
+
         List<String> xmlBodies = List.of(
-            "<Envelope><Body><OTA_HotelAvailRQ><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></OTA_HotelAvailRQ></Body></Envelope>",
-            "<Envelope><Body><OTA_HotelAvailRQ><StayDateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></OTA_HotelAvailRQ></Body></Envelope>"
+            "<Envelope><Body><ScopedReq><DateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></ScopedReq></Body></Envelope>",
+            "<Envelope><Body><ScopedReq><DateRange Start=\"2025-02-23\" End=\"2025-02-24\"/></ScopedReq></Body></Envelope>"
         );
-        
+
         XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
-        
-        // Should detect Start and End attributes via heuristic
+
         assertEquals(2, result.getDynamicFields().size());
         var fieldPaths = result.getDynamicFields().stream()
-            .map(f -> f.fieldPath())
+            .map(DetectionResult.DynamicField::fieldPath)
             .toList();
         assertTrue(fieldPaths.stream().anyMatch(p -> p.contains("Start")),
             "Should detect Start attribute via heuristic. Found: " + fieldPaths);
@@ -269,17 +265,48 @@ class XmlFieldDetectorTest {
     @Test
     void testDetectDynamicFieldsInXml_HeuristicDetection_RequestId() {
         DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
-        
+
         List<String> xmlBodies = List.of(
             "<root><requestId>abc-123</requestId></root>",
             "<root><requestId>abc-123</requestId></root>"
         );
-        
+
         XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result);
-        
+
         // Should detect requestId via heuristic
         assertEquals(1, result.getDynamicFields().size());
         assertTrue(result.getDynamicFields().get(0).fieldPath().contains("requestId"));
+    }
+
+    /**
+     * Ensures caller ID and plan code are not added to ignore_patterns for scoped requests,
+     * so playback can distinguish different callers and plan types (avoids wrong stub match).
+     */
+    @Test
+    void testDetectDynamicFieldsInXml_ScopedReq_CallerId_and_PlanCode_notInIgnorePatterns() {
+        DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
+
+        List<String> xmlBodies = List.of(
+            "<Envelope><Body><ScopedReq><POS><Source><CallerId ID=\"id1\" Type=\"1\"/></Source></POS>"
+                + "<Segments><Segment><Criteria><Criterion>"
+                + "<PlanCandidates><PlanCandidate PlanCode=\"PLAN_A\" RPH=\"1\"/></PlanCandidates>"
+                + "</Criterion></Criteria></Segment></Segments></ScopedReq></Body></Envelope>",
+            "<Envelope><Body><ScopedReq><POS><Source><CallerId ID=\"id2\" Type=\"2\"/></Source></POS>"
+                + "<Segments><Segment><Criteria><Criterion>"
+                + "<PlanCandidates><PlanCandidate PlanCode=\"PLAN_B\" RPH=\"1\"/></PlanCandidates>"
+                + "</Criterion></Criteria></Segment></Segments></ScopedReq></Body></Envelope>"
+        );
+
+        XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result, IdentityFilterMarkers.forAnonymizedTest());
+
+        List<String> patterns = result.getIgnorePatterns();
+        for (String p : patterns) {
+            String lower = p.toLowerCase();
+            assertFalse(lower.contains("callerid") && lower.contains("'id']"),
+                "Caller ID must not be in ignore_patterns so different callers match correctly. Got: " + p);
+            assertFalse(lower.contains("plancandidates") && lower.contains("plancode']"),
+                "Plan code must not be in ignore_patterns so different plans match correctly. Got: " + p);
+        }
     }
 }
 

@@ -471,9 +471,8 @@ public final class WireMockServerManager {
     /**
      * Loads stub mappings from invocation dir and adds them with priority-by-specificity:
      * same (method, url) stubs are ordered by body pattern length descending, then by a
-     * tie-break so the most specific request (e.g. R_PLAVIP) is tried before less specific
-     * ones (e.g. NHWEB, or no RatePlanCode). Tie-break prefers body containing
-     * RatePlanCode="R_PLAVIP" then other RatePlanCode= then none (avoids dynamic-field order).
+     * tie-break so the most specific request body is tried before less specific ones.
+     * Tie-break prefers body containing a preferred plan marker, then any plan marker, then none.
      */
     private static int loadMappingsFromDir(WireMockServer server, File invocationDir) {
         File mappingsSubDir = new File(invocationDir, "mappings");
@@ -590,17 +589,17 @@ public final class WireMockServerManager {
     }
 
     /**
-     * Tie-break for same (method, url) stubs when body length is equal: prefer R_PLAVIP (VIP rates)
-     * over other RatePlanCode over no RatePlanCode so playback returns the correct rates for the role.
+     * Tie-break for same (method, url) stubs when body length is equal: prefer bodies that
+     * include a plan candidate section over those that don't, so more specific plans are tried
+     * before generic ones. Uses a generic marker that matches existing stub bodies but does not
+     * encode any consumer-specific plan codes.
      */
     private static int ratePlanTieBreakFromBody(String bodyContent) {
         if (bodyContent == null) {
             return 0;
         }
-        if (bodyContent.contains("RatePlanCode=\"R_PLAVIP\"") || bodyContent.contains("RatePlanCode='R_PLAVIP'")) {
-            return 2;
-        }
-        if (bodyContent.contains("RatePlanCode=")) {
+        // Generic marker: any occurrence of a plan candidate element is treated as \"more specific\"
+        if (bodyContent.contains("RatePlanCandidate")) {
             return 1;
         }
         return 0;
@@ -1315,23 +1314,6 @@ public final class WireMockServerManager {
                 String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
                 if (localName.equals(elementPath.get(0))) {
                     applyElementPathPlaceholder(element, elementPath, 1);
-                }
-            }
-        }
-    }
-    
-    /**
-     * Sets matching attributes to ${xmlunit.ignore}.
-     */
-    private static void setXmlAttributesToPlaceholder(Document doc, String elementName, String attrName) {
-        NodeList elements = doc.getElementsByTagName("*");
-        for (int i = 0; i < elements.getLength(); i++) {
-            Node node = elements.item(i);
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-                String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
-                if (localName.equals(elementName) && element.hasAttribute(attrName)) {
-                    element.setAttribute(attrName, "${xmlunit.ignore}");
                 }
             }
         }

@@ -24,31 +24,36 @@ public final class XmlFieldDetector {
      * @param result DetectionResult to populate with findings
      */
     public static void detectDynamicFieldsInXml(List<String> xmlBodies, DetectionResult result) {
+        detectDynamicFieldsInXml(xmlBodies, result, IdentityFilterMarkers.getDefault());
+    }
+
+    /**
+     * Like {@link #detectDynamicFieldsInXml(List, DetectionResult)} but with custom markers
+     * (e.g. {@link IdentityFilterMarkers#forAnonymizedTest()} for unit tests).
+     */
+    public static void detectDynamicFieldsInXml(List<String> xmlBodies, DetectionResult result,
+            IdentityFilterMarkers markers) {
         if (xmlBodies == null || xmlBodies.size() < 2) {
-            logger.debug("Not enough XML bodies to analyze (need at least 2, got {})", 
+            logger.debug("Not enough XML bodies to analyze (need at least 2, got {})",
                     xmlBodies != null ? xmlBodies.size() : 0);
             return;
         }
 
-        // Parse all XML bodies into element value maps
         List<Map<String, String>> elementValueMaps = XmlBodyParser.parseAllXmlBodies(xmlBodies);
-        
         if (elementValueMaps.size() < 2) {
             logger.debug("Failed to parse enough XML bodies for analysis");
             return;
         }
 
-        // Get all unique element paths across all documents
         Set<String> allPaths = new LinkedHashSet<>();
         for (Map<String, String> elementMap : elementValueMaps) {
             allPaths.addAll(elementMap.keySet());
         }
 
-        // Analyze each element path
+        IdentityFilterMarkers m = markers != null ? markers : IdentityFilterMarkers.getDefault();
+
         for (String path : allPaths) {
             List<String> values = new ArrayList<>();
-            
-            // Collect values for this path from all documents
             for (Map<String, String> elementMap : elementValueMaps) {
                 String value = elementMap.get(path);
                 if (value != null) {
@@ -56,9 +61,7 @@ public final class XmlFieldDetector {
                 }
             }
 
-            // Need at least 2 values to compare
             if (values.size() >= 2) {
-                // Check if values are all the same
                 boolean allSame = true;
                 String firstValue = values.get(0);
                 for (int i = 1; i < values.size(); i++) {
@@ -69,35 +72,26 @@ public final class XmlFieldDetector {
                 }
 
                 if (!allSame) {
-                    // This element has changing values - it's dynamic!
                     List<String> sampleValues = new ArrayList<>();
                     for (int i = 0; i < Math.min(3, values.size()); i++) {
                         sampleValues.add(values.get(i));
                     }
 
-                    // Generate XPath pattern for WireMock XML matching
-                    // Handle both elements and attributes
                     String xpathPattern;
                     if (path.contains("@")) {
-                        // Attribute: root/child@attr -> //root/child/@attr
                         String[] parts = path.split("@");
                         String elementPath = parts[0];
                         String attrName = parts[1];
-                        // Extract local name from attribute name (may have prefix)
                         String localAttrName = extractLocalName(attrName);
                         xpathPattern = buildElementPathXPath(elementPath)
                                 + "/@*[local-name()='" + localAttrName + "']";
                     } else {
-                        // Element: use full path to avoid over-broad matches
                         xpathPattern = buildElementPathXPath(path);
                     }
                     String xmlPath = "xml:" + xpathPattern;
 
-                    result.addDynamicField(new DetectionResult.DynamicField(
-                            xmlPath, sampleValues));
-                    // Do NOT ignore certain identity/rate fields for availability requests,
-                    // otherwise playback cannot distinguish VIP/non‑VIP or different rate plans.
-                    if (!shouldSkipIgnoreForPath(path)) {
+                    result.addDynamicField(new DetectionResult.DynamicField(xmlPath, sampleValues));
+                    if (!shouldSkipIgnoreForPath(path, m)) {
                         result.addIgnorePattern(xmlPath);
                     }
 
@@ -130,7 +124,7 @@ public final class XmlFieldDetector {
 
                     result.addDynamicField(new DetectionResult.DynamicField(
                             xmlPath, sampleValues));
-                    if (!shouldSkipIgnoreForPath(path)) {
+                    if (!shouldSkipIgnoreForPath(path, m)) {
                         result.addIgnorePattern(xmlPath);
                     }
 
@@ -201,35 +195,16 @@ public final class XmlFieldDetector {
     }
 
     /**
-     * Certain XML fields for availability requests must NEVER be ignored, even if they are
-     * dynamic across runs, because they encode user/role identity or rate plan identity:
-     * - POS/RequestorID/@ID, @ID_Context, @Type
-     * - RatePlanCandidates/RatePlanCandidate/@RatePlanCode
-     *
-     * If these are ignored the same stub is used for VIP and non‑VIP users, or different
-     * rate plans become indistinguishable, which breaks generic record-&-replay.
+     * Certain scoped-request fields must never be ignored (caller identity, plan selector)
+     * so playback can distinguish different callers and plan types. Uses markers for
+     * root/caller/plan path names (production default vs anonymized for tests).
      */
-    private static boolean shouldSkipIgnoreForPath(String path) {
-        if (path == null || path.isEmpty()) {
+    private static boolean shouldSkipIgnoreForPath(String path, IdentityFilterMarkers markers) {
+        if (path == null || path.isEmpty() || markers == null) {
             return false;
         }
         String lower = path.toLowerCase(Locale.ROOT);
-        // Only special‑case HotelAvail requests
-        if (!lower.contains("otahotelavailrq")) {
-            return false;
-        }
-        // Identity fields for caller / role
-        if (lower.contains("requestorid@id") ||
-                lower.contains("requestorid@id_context") ||
-                lower.contains("requestorid@type")) {
-            return true;
-        }
-        // Rate plan identity (VIP vs web vs other plans)
-        if (lower.contains("rateplancandidates") &&
-                lower.contains("@rateplancode")) {
-            return true;
-        }
-        return false;
+        return markers.isCallerIdentityPath(lower) || markers.isPlanSelectorPath(lower);
     }
 
     /**
@@ -237,7 +212,7 @@ public final class XmlFieldDetector {
      * This heuristic helps detect fields that are set from "now" or similar per-run values,
      * even when all requests in a single run have the same value.
      * 
-     * @param path The XML path (e.g., "root/child@Start" or "root/StayDateRange/Start")
+     * @param path The XML path (e.g., "root/child@Start" or "root/DateRange/Start")
      * @return true if the path name suggests it's a date/time field
      */
     private static boolean isLikelyDateOrTimeField(String path) {

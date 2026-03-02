@@ -1,0 +1,26 @@
+{
+  "id" : "f26382a9-1e99-47f8-a010-c56a0b1e0029",
+  "name" : "get",
+  "request" : {
+    "url" : "/get?id=6",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{\"args\":{\"id\":\"6\"},\"headers\":{\"host\":\"postman-echo.com\",\"user-agent\":\"Apache-HttpClient/5.3.1 (Java/17.0.14)\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"accept\":\"*/*\"},\"url\":\"https://postman-echo.com/get?id=6\"}",
+    "headers" : {
+      "x-envoy-upstream-service-time" : "5",
+      "Server" : "cloudflare",
+      "CF-RAY" : "9d625efdfa7128ef-MAD",
+      "vary" : "Accept-Encoding",
+      "Set-Cookie" : [ "sails.sid=s%3AeEqvw0g7f2L0YlthDDS6IFRz0si8_iLA.MlHM8Q4NqBErsCu2vFw4FNmulC%2BaYpwhQemolIpetXE; Path=/; HttpOnly", "__cf_bm=EEVhdMIAEqN3HoA5CPxAIEyq8nmV1qo9laA9PAGS4j4-1772475161-1.0.1.1-btdb02HZTldZCsxe.bmSEFShxmr8wMHGlSz6Q6TxIlL2v4Ctj9y9l9IZ2idMUwZIS.pQi8qUJN1hmh5TVuVHBBcXnhm9JLXV_Zj6NuJy.0M; path=/; expires=Mon, 02-Mar-26 18:42:41 GMT; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None", "_cfuvid=zCwo4hPM_2bsdqk_7FYeurTW2KzHdJ1HYGzdXGn_NQU-1772475161374-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None" ],
+      "etag" : "W/\"e1-mCvK2fACdjt+NfFWAeLzCyovbbs\"",
+      "cf-cache-status" : "DYNAMIC",
+      "Date" : "Mon, 02 Mar 2026 18:12:41 GMT",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "f26382a9-1e99-47f8-a010-c56a0b1e0029",
+  "persistent" : true,
+  "insertionIndex" : 0
+}

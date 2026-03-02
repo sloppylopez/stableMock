@@ -134,6 +134,18 @@ public final class AnalysisResultStorage {
             String testClassName,
             String testMethodName,
             Integer annotationIndex) {
+        return loadIgnorePatterns(testResourcesDir, testClassName, testMethodName, annotationIndex, null);
+    }
+
+    /**
+     * Loads detection results and optionally filters out scoped-request identity/plan patterns.
+     * When markers is null, production default markers are used (for real consumer payloads).
+     */
+    public static List<String> loadIgnorePatterns(File testResourcesDir,
+            String testClassName,
+            String testMethodName,
+            Integer annotationIndex,
+            IdentityFilterMarkers markers) {
         try {
             File outputFile = getOutputFile(testResourcesDir, testClassName,
                     testMethodName, annotationIndex);
@@ -151,12 +163,10 @@ public final class AnalysisResultStorage {
 
             List<String> raw = new java.util.ArrayList<>();
             patternsArray.forEach(node -> raw.add(node.asText()));
-            // Never apply availability-identity patterns at playback, even if they were
-            // saved by an older detector. This makes existing recordings work without re-record.
-            List<String> patterns = filterOutAvailabilityIdentityPatterns(raw);
+            List<String> patterns = filterOutAvailabilityIdentityPatterns(raw, markers);
             int filteredOut = raw.size() - patterns.size();
             if (filteredOut > 0) {
-                logger.info("Availability filter: {} pattern(s) removed (identity/rate for OTA_HotelAvailRQ), {} applied",
+                logger.info("Availability filter: {} pattern(s) removed (identity/plan for scoped request), {} applied",
                         filteredOut, patterns.size());
             }
             logger.debug("Loaded {} auto-detected ignore patterns from {}",
@@ -193,31 +203,30 @@ public final class AnalysisResultStorage {
     }
 
     /**
-     * Removes ignore patterns that target availability request identity/rate fields.
-     * These must never be applied at playback so VIP vs non-VIP and different rate plans
-     * stay distinguishable. Works for both newly recorded (detector no longer adds them)
-     * and old detected-fields.json that still list them.
+     * Removes ignore patterns that target scoped-request caller identity or plan selector.
+     * Those must never be applied at playback so different callers and plan types stay distinguishable.
+     * When markers is null, uses production default markers for real consumer payloads.
      */
-    private static List<String> filterOutAvailabilityIdentityPatterns(List<String> patterns) {
+    private static List<String> filterOutAvailabilityIdentityPatterns(List<String> patterns,
+            IdentityFilterMarkers markers) {
         if (patterns == null || patterns.isEmpty()) {
             return patterns;
         }
+        IdentityFilterMarkers m = markers != null ? markers : IdentityFilterMarkers.getDefault();
         List<String> out = new java.util.ArrayList<>();
         for (String p : patterns) {
             if (p == null) {
                 continue;
             }
             String lower = p.toLowerCase(java.util.Locale.ROOT);
-            // Pattern uses OTA_HotelAvailRQ (underscores) in local-name()
-            if (!lower.contains("ota_hotelavailrq")) {
+            if (!m.isScopedRequestPattern(lower)) {
                 out.add(p);
                 continue;
             }
-            boolean isIdentity = (lower.contains("requestorid") && (lower.contains("'id']") || lower.contains("'id_context']") || lower.contains("'type']")))
-                    || (lower.contains("rateplancandidates") && (lower.contains("rateplancode']") || lower.contains("rateplanid']")));
-            if (!isIdentity) {
-                out.add(p);
+            if (m.isCallerIdentityPattern(lower) || m.isPlanSelectorPattern(lower)) {
+                continue;
             }
+            out.add(p);
         }
         return out;
     }
