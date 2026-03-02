@@ -287,14 +287,14 @@ class XmlFieldDetectorTest {
         DetectionResult result = new DetectionResult("TestClass", "testMethod", 2);
 
         List<String> xmlBodies = List.of(
-            "<Envelope><Body><ScopedReq><POS><Source><CallerId ID=\"id1\" Type=\"1\"/></Source></POS>"
-                + "<Segments><Segment><Criteria><Criterion>"
-                + "<PlanCandidates><PlanCandidate PlanCode=\"PLAN_A\" RPH=\"1\"/></PlanCandidates>"
-                + "</Criterion></Criteria></Segment></Segments></ScopedReq></Body></Envelope>",
-            "<Envelope><Body><ScopedReq><POS><Source><CallerId ID=\"id2\" Type=\"2\"/></Source></POS>"
-                + "<Segments><Segment><Criteria><Criterion>"
-                + "<PlanCandidates><PlanCandidate PlanCode=\"PLAN_B\" RPH=\"1\"/></PlanCandidates>"
-                + "</Criterion></Criteria></Segment></Segments></ScopedReq></Body></Envelope>"
+            "<Envelope><Body><ScopedReq>"
+                + "<CallerId ID=\"id1\"/>"
+                + "<PlanCandidates><PlanCandidate PlanCode=\"PLAN_A\"/></PlanCandidates>"
+                + "</ScopedReq></Body></Envelope>",
+            "<Envelope><Body><ScopedReq>"
+                + "<CallerId ID=\"id2\"/>"
+                + "<PlanCandidates><PlanCandidate PlanCode=\"PLAN_B\"/></PlanCandidates>"
+                + "</ScopedReq></Body></Envelope>"
         );
 
         XmlFieldDetector.detectDynamicFieldsInXml(xmlBodies, result, IdentityFilterMarkers.forAnonymizedTest());

@@ -166,7 +166,7 @@ public final class AnalysisResultStorage {
             List<String> patterns = filterOutAvailabilityIdentityPatterns(raw, markers);
             int filteredOut = raw.size() - patterns.size();
             if (filteredOut > 0) {
-                logger.info("Availability filter: {} pattern(s) removed (identity/plan for scoped request), {} applied",
+                logger.debug("Availability filter: {} pattern(s) removed (identity/plan for scoped request), {} applied",
                         filteredOut, patterns.size());
             }
             logger.debug("Loaded {} auto-detected ignore patterns from {}",

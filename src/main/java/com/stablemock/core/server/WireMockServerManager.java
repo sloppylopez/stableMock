@@ -144,7 +144,7 @@ public final class WireMockServerManager {
         throw new RuntimeException("Failed to start recording server after " + maxRetries + " attempts");
     }
 
-    public record AnnotationInfo(int index, String[] urls) {
+    public record AnnotationInfo(int index, String[] urls, String[] ignoreResponseHeaders) {
     }
     
     public static WireMockServer startPlayback(int port, File mappingsDir, 

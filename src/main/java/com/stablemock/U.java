@@ -48,6 +48,15 @@ public @interface U {
     boolean scenario() default false;
 
     /**
+     * Response headers to drop from recorded stubs.
+     * - Header names are matched case-insensitively.
+     * - A special value "*" means drop all response headers.
+     * This only affects what is written into StableMock's recorded mappings; it does not
+     * change how the upstream service is called during recording.
+     */
+    String[] ignoreResponseHeaders() default {};
+
+    /**
      * Container annotation for repeatable @U annotations.
      */
     @Retention(RetentionPolicy.RUNTIME)
