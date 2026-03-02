@@ -149,9 +149,16 @@ public final class AnalysisResultStorage {
                 return List.of();
             }
 
-            List<String> patterns = new java.util.ArrayList<>();
-            patternsArray.forEach(node -> patterns.add(node.asText()));
-
+            List<String> raw = new java.util.ArrayList<>();
+            patternsArray.forEach(node -> raw.add(node.asText()));
+            // Never apply availability-identity patterns at playback, even if they were
+            // saved by an older detector. This makes existing recordings work without re-record.
+            List<String> patterns = filterOutAvailabilityIdentityPatterns(raw);
+            int filteredOut = raw.size() - patterns.size();
+            if (filteredOut > 0) {
+                logger.info("Availability filter: {} pattern(s) removed (identity/rate for OTA_HotelAvailRQ), {} applied",
+                        filteredOut, patterns.size());
+            }
             logger.debug("Loaded {} auto-detected ignore patterns from {}",
                     patterns.size(), outputFile.getAbsolutePath());
 
@@ -183,5 +190,35 @@ public final class AnalysisResultStorage {
         }
 
         return new File(resultsDir, "detected-fields.json");
+    }
+
+    /**
+     * Removes ignore patterns that target availability request identity/rate fields.
+     * These must never be applied at playback so VIP vs non-VIP and different rate plans
+     * stay distinguishable. Works for both newly recorded (detector no longer adds them)
+     * and old detected-fields.json that still list them.
+     */
+    private static List<String> filterOutAvailabilityIdentityPatterns(List<String> patterns) {
+        if (patterns == null || patterns.isEmpty()) {
+            return patterns;
+        }
+        List<String> out = new java.util.ArrayList<>();
+        for (String p : patterns) {
+            if (p == null) {
+                continue;
+            }
+            String lower = p.toLowerCase(java.util.Locale.ROOT);
+            // Pattern uses OTA_HotelAvailRQ (underscores) in local-name()
+            if (!lower.contains("ota_hotelavailrq")) {
+                out.add(p);
+                continue;
+            }
+            boolean isIdentity = (lower.contains("requestorid") && (lower.contains("'id']") || lower.contains("'id_context']") || lower.contains("'type']")))
+                    || (lower.contains("rateplancandidates") && (lower.contains("rateplancode']") || lower.contains("rateplanid']")));
+            if (!isIdentity) {
+                out.add(p);
+            }
+        }
+        return out;
     }
 }

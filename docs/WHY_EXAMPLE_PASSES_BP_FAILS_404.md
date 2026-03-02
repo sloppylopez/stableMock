@@ -56,8 +56,12 @@ So in bp there are **two** separate issues:
 1. **Where TMS URL is set**  
    Find where `tms4c.endpoint` / `tms4c.cloud.avail.endpoint` / `tms4c.cloud.booking.endpoint` / etc. are consumed (e.g. `ConnectivityManagerProvider`, `WebServiceTemplate`, or a config bean). If they are injected with `@Value` or equivalent **at construction**, they are fixed at context init. To work with Option A, the **endpoint used for each TMS call must be resolved when the call is made** (e.g. from `Environment.getProperty("tms4c.cloud.booking.endpoint")` or a small helper that reads from Environment/WireMockContext at request time).
 
-2. **Re-record with full ignore list**  
-   Run **stableMockRecord** for `FullFlowFlexibleIT` with a **full** `@U(ignore = { ... })` so that playback applies placeholders. Include at least: EchoToken, TimeStamp, TransactionIdentifier, UniqueID/@ID, ResID_Value, CorrelationID, **RequestorID/@ID**, **RequestorID/@ID_Context**, **RequestorID/@Type**, **RatePlanCandidate/@RatePlanCode**. Use the exact attribute form `@*[local-name()='ID']` (not `@ID`) so the placeholder logic can parse it. Then run **stableMockPlayback** again. Missing RequestorID or RatePlanCode ignore patterns cause SOAP body mismatch and WireMock can return **500** (or 404) when no stub matches.
+2. **Re-record with safe ignore list (after StableMock fix)**  
+   Run **stableMockRecord** for `FullFlowFlexibleIT` with `@U(ignore = { ... })` so that playback applies placeholders for truly dynamic fields (EchoToken, TimeStamp, TransactionIdentifier, UniqueID/@ID, ResID_Value, CorrelationID, stay dates, etc.).  
+   After the StableMock fix, the XML dynamic-field detector still reports identity/rate fields as dynamic for `OTA_HotelAvailRQ`, but it **never adds them to `ignore_patterns`**, specifically:
+   - `POS/Source/RequestorID/@ID`, `@ID_Context`, `@Type`  
+   - `RatePlanCandidates/RatePlanCandidate/@RatePlanCode`  
+   This ensures playback can still distinguish VIP vs non‑VIP users and different rate plans (e.g. `R_PLAVIP`, `NHWEB`, `NHWEB_NHR`) while remaining fully automatic — no manual edits to `detected-fields.json` are needed for record & replay to work with multiple parameterized examples.
 
 3. **Optional: disable Option A for this test**  
    If you cannot change the app to resolve TMS URL at request time, run playback **without** Option A (e.g. `-Dstablemock.parameterized.playback.reload=false` or the equivalent that uses a single class-level server and reloads mappings per invocation). Then the app keeps using the class-level port (63402) and you only need to ensure reload finds the right invocation dirs and that stubs use placeholders (re-record as above).
@@ -70,7 +74,7 @@ Copy the block below and use it when asking someone (or an agent) to fix the 404
 
 ```
 We use StableMock for playback of TMS4C SOAP in our Spring Boot app (nh-api-bp). 
-The test FullFlowFlexibleIT (parameterized, Option A per-invocation server) fails with 
+The test FullFlowFlexibleIT (parameterized, Option A per-invocation server) used to fail with 
 404 from WireMock. StableMock's own example (ParallelParameterizedPlaybackIT / 
 ParallelParameterizedIsolationIT) passes with the same pattern.
 
@@ -84,6 +88,10 @@ Findings:
 3. Our stubs use equalToXml with exact SOAP bodies; playback sends different EchoToken, 
    TimeStamp, etc., so body matching fails. We already have @U(ignore = { ... }) but mappings 
    may have been recorded before placeholders were applied.
+
+Final generic fix in StableMock:
+- Keep Option A but ensure the app resolves the TMS URL **at request time**, not only at context startup, so each parameterized invocation talks to its own WireMock server.
+- Change the XML dynamic-field detector so that for `OTA_HotelAvailRQ` it **never auto-ignores** `RequestorID` attributes or `RatePlanCode` in `ignore_patterns`. These fields are still reported as dynamic, but they remain part of the WireMock match key. This makes “record once, replay many (including multiple parameterized examples)” work without any manual tweaking of `detected-fields.json`, and ensures VIP vs non‑VIP and different rate plans always map to the correct recorded stubs.
 
 Tasks:
 - Locate where tms4c.endpoint / tms4c.cloud.*.endpoint are read (which beans, @Value or config). 

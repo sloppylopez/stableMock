@@ -365,6 +365,7 @@ public final class WireMockServerManager {
         if (testResourcesDir != null && testClassName != null && testMethodIdentifier != null) {
             ignorePatterns.addAll(com.stablemock.core.analysis.AnalysisResultStorage
                     .loadIgnorePatterns(testResourcesDir, testClassName, testMethodIdentifier));
+            logger.debug("Reload for {}: {} ignore pattern(s) (after availability filter)", testMethodIdentifier, ignorePatterns.size());
             if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
                 ignorePatterns.removeAll(annotationIgnorePatterns);
                 ignorePatterns.addAll(annotationIgnorePatterns);
@@ -391,7 +392,7 @@ public final class WireMockServerManager {
                     }, "stablemock-reload-cleanup"));
                 }
             } catch (Exception e) {
-                logger.warn("Could not apply ignore patterns for reload, using raw mappings: {}", e.getMessage());
+                logger.warn("Could not apply ignore patterns for reload, using raw mappings: {} (stubs will have literal values and may not match; check logs above for which pattern failed)", e.getMessage(), e);
             }
         }
         File serverFilesDir = new File(serverRootDir, "__files");
@@ -1038,7 +1039,12 @@ public final class WireMockServerManager {
             for (String pattern : ignorePatterns) {
                 if (pattern.startsWith("xml:")) {
                     String xpathPattern = pattern.substring(4);
-                    applyXmlIgnorePattern(doc, xpathPattern);
+                    try {
+                        applyXmlIgnorePattern(doc, xpathPattern);
+                    } catch (Exception e) {
+                        logger.warn("Failed to apply ignore pattern '{}': {} (annotation or detected-fields pattern may be invalid)", pattern, e.getMessage());
+                        throw e;
+                    }
                 }
             }
             
