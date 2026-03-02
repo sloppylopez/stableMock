@@ -95,7 +95,11 @@ public final class XmlFieldDetector {
 
                     result.addDynamicField(new DetectionResult.DynamicField(
                             xmlPath, sampleValues));
-                    result.addIgnorePattern(xmlPath);
+                    // Do NOT ignore certain identity/rate fields for availability requests,
+                    // otherwise playback cannot distinguish VIP/non‑VIP or different rate plans.
+                    if (!shouldSkipIgnoreForPath(path)) {
+                        result.addIgnorePattern(xmlPath);
+                    }
 
                     logger.info("Detected dynamic XML field: {} (samples: {})",
                             xmlPath, sampleValues.size());
@@ -126,7 +130,9 @@ public final class XmlFieldDetector {
 
                     result.addDynamicField(new DetectionResult.DynamicField(
                             xmlPath, sampleValues));
-                    result.addIgnorePattern(xmlPath);
+                    if (!shouldSkipIgnoreForPath(path)) {
+                        result.addIgnorePattern(xmlPath);
+                    }
 
                     logger.info("Detected likely date/time XML field (heuristic): {} (samples: {})",
                             xmlPath, sampleValues.size());
@@ -192,6 +198,38 @@ public final class XmlFieldDetector {
         }
         // No prefix, return as-is
         return qualifiedName;
+    }
+
+    /**
+     * Certain XML fields for availability requests must NEVER be ignored, even if they are
+     * dynamic across runs, because they encode user/role identity or rate plan identity:
+     * - POS/RequestorID/@ID, @ID_Context, @Type
+     * - RatePlanCandidates/RatePlanCandidate/@RatePlanCode
+     *
+     * If these are ignored the same stub is used for VIP and non‑VIP users, or different
+     * rate plans become indistinguishable, which breaks generic record-&-replay.
+     */
+    private static boolean shouldSkipIgnoreForPath(String path) {
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
+        String lower = path.toLowerCase(Locale.ROOT);
+        // Only special‑case HotelAvail requests
+        if (!lower.contains("otahotelavailrq")) {
+            return false;
+        }
+        // Identity fields for caller / role
+        if (lower.contains("requestorid@id") ||
+                lower.contains("requestorid@id_context") ||
+                lower.contains("requestorid@type")) {
+            return true;
+        }
+        // Rate plan identity (VIP vs web vs other plans)
+        if (lower.contains("rateplancandidates") &&
+                lower.contains("@rateplancode")) {
+            return true;
+        }
+        return false;
     }
 
     /**
