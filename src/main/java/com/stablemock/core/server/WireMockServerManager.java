@@ -26,7 +26,11 @@ import java.io.StringWriter;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Manages WireMock server lifecycle and configuration.
@@ -140,7 +144,7 @@ public final class WireMockServerManager {
         throw new RuntimeException("Failed to start recording server after " + maxRetries + " attempts");
     }
 
-    public record AnnotationInfo(int index, String[] urls) {
+    public record AnnotationInfo(int index, String[] urls, String[] ignoreResponseHeaders) {
     }
     
     public static WireMockServer startPlayback(int port, File mappingsDir, 
@@ -361,6 +365,7 @@ public final class WireMockServerManager {
         if (testResourcesDir != null && testClassName != null && testMethodIdentifier != null) {
             ignorePatterns.addAll(com.stablemock.core.analysis.AnalysisResultStorage
                     .loadIgnorePatterns(testResourcesDir, testClassName, testMethodIdentifier));
+            logger.debug("Reload for {}: {} ignore pattern(s) (after availability filter)", testMethodIdentifier, ignorePatterns.size());
             if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
                 ignorePatterns.removeAll(annotationIgnorePatterns);
                 ignorePatterns.addAll(annotationIgnorePatterns);
@@ -387,7 +392,7 @@ public final class WireMockServerManager {
                     }, "stablemock-reload-cleanup"));
                 }
             } catch (Exception e) {
-                logger.warn("Could not apply ignore patterns for reload, using raw mappings: {}", e.getMessage());
+                logger.warn("Could not apply ignore patterns for reload, using raw mappings: {} (stubs will have literal values and may not match; check logs above for which pattern failed)", e.getMessage(), e);
             }
         }
         File serverFilesDir = new File(serverRootDir, "__files");
@@ -463,26 +468,169 @@ public final class WireMockServerManager {
                                 .withBody("No matching stub mapping found")));
     }
 
+    /**
+     * Loads stub mappings from invocation dir and adds them with priority-by-specificity:
+     * same (method, url) stubs are ordered by body pattern length descending, then by a
+     * tie-break so the most specific request body is tried before less specific ones.
+     * Tie-break prefers body containing a preferred plan marker, then any plan marker, then none.
+     */
     private static int loadMappingsFromDir(WireMockServer server, File invocationDir) {
         File mappingsSubDir = new File(invocationDir, "mappings");
-        int count = 0;
-        if (mappingsSubDir.exists() && mappingsSubDir.isDirectory()) {
-            File[] jsonFiles = mappingsSubDir.listFiles((d, n) -> n != null && n.toLowerCase().endsWith(".json"));
-            if (jsonFiles != null) {
-                java.util.Arrays.sort(jsonFiles, java.util.Comparator.comparing(File::getName));
-                for (File mappingFile : jsonFiles) {
-                    try {
-                        String json = new String(java.nio.file.Files.readAllBytes(mappingFile.toPath()));
-                        StubMapping mapping = StubMapping.buildFrom(json);
-                        server.addStubMapping(mapping);
-                        count++;
-                    } catch (Exception e) {
-                        logger.warn("Failed to load mapping {}: {}", mappingFile.getName(), e.getMessage());
-                    }
+        if (!mappingsSubDir.exists() || !mappingsSubDir.isDirectory()) {
+            return 0;
+        }
+        File[] jsonFiles = mappingsSubDir.listFiles((d, n) -> n != null && n.toLowerCase().endsWith(".json"));
+        if (jsonFiles == null || jsonFiles.length == 0) {
+            return 0;
+        }
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        List<MappingEntry> entries = new ArrayList<>();
+        for (File mappingFile : jsonFiles) {
+            try {
+                String json = new String(Files.readAllBytes(mappingFile.toPath()));
+                com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(json);
+                String requestKey = requestKeyFromMapping(root);
+                int bodyLength = bodyPatternLengthFromMapping(root);
+                String bodyContent = bodyPatternContentFromMapping(root);
+                int ratePlanTieBreak = ratePlanTieBreakFromBody(bodyContent);
+                entries.add(new MappingEntry(json, requestKey, bodyLength, bodyContent, ratePlanTieBreak));
+            } catch (Exception e) {
+                logger.warn("Failed to read mapping {}: {}", mappingFile.getName(), e.getMessage());
+            }
+        }
+        Map<String, List<MappingEntry>> byKey = new LinkedHashMap<>();
+        for (MappingEntry e : entries) {
+            byKey.computeIfAbsent(e.requestKey, k -> new ArrayList<>()).add(e);
+        }
+        int priority = 0;
+        for (List<MappingEntry> group : byKey.values()) {
+            group.sort(Comparator.comparingInt(MappingEntry::bodyLength).reversed()
+                    .thenComparingInt(MappingEntry::ratePlanTieBreak).reversed()
+                    .thenComparing(MappingEntry::bodyContent));
+            for (MappingEntry e : group) {
+                try {
+                    StubMapping mapping = StubMapping.buildFrom(e.json);
+                    mapping.setPriority(priority++);
+                    server.addStubMapping(mapping);
+                } catch (Exception ex) {
+                    logger.warn("Failed to load mapping: {}", ex.getMessage());
                 }
             }
         }
-        return count;
+        return priority;
+    }
+
+    private static String requestKeyFromMapping(com.fasterxml.jackson.databind.JsonNode root) {
+        com.fasterxml.jackson.databind.JsonNode req = root != null ? root.get("request") : null;
+        if (req == null || !req.isObject()) {
+            return "GET /";
+        }
+        String method = req.has("method") ? req.get("method").asText("GET") : "GET";
+        String url = null;
+        if (req.has("url")) {
+            url = req.get("url").asText();
+        } else if (req.has("urlPathPattern")) {
+            url = req.get("urlPathPattern").asText();
+        } else if (req.has("urlPath")) {
+            url = req.get("urlPath").asText();
+        }
+        if (url == null) {
+            url = "/";
+        }
+        return method.toUpperCase() + " " + url;
+    }
+
+    private static int bodyPatternLengthFromMapping(com.fasterxml.jackson.databind.JsonNode root) {
+        com.fasterxml.jackson.databind.JsonNode req = root != null ? root.get("request") : null;
+        if (req == null) {
+            return 0;
+        }
+        com.fasterxml.jackson.databind.JsonNode bodyPatterns = req.get("bodyPatterns");
+        if (bodyPatterns == null || !bodyPatterns.isArray()) {
+            return 0;
+        }
+        int len = 0;
+        for (com.fasterxml.jackson.databind.JsonNode p : bodyPatterns) {
+            if (p.has("equalToXml")) {
+                len += p.get("equalToXml").asText().length();
+            }
+            if (p.has("equalToJson")) {
+                len += p.get("equalToJson").asText().length();
+            }
+            if (p.has("equalTo")) {
+                len += p.get("equalTo").asText().length();
+            }
+        }
+        return len;
+    }
+
+    private static String bodyPatternContentFromMapping(com.fasterxml.jackson.databind.JsonNode root) {
+        com.fasterxml.jackson.databind.JsonNode req = root != null ? root.get("request") : null;
+        if (req == null) {
+            return "";
+        }
+        com.fasterxml.jackson.databind.JsonNode bodyPatterns = req.get("bodyPatterns");
+        if (bodyPatterns == null || !bodyPatterns.isArray()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (com.fasterxml.jackson.databind.JsonNode p : bodyPatterns) {
+            if (p.has("equalToXml")) {
+                sb.append(p.get("equalToXml").asText());
+            }
+            if (p.has("equalToJson")) {
+                sb.append(p.get("equalToJson").asText());
+            }
+            if (p.has("equalTo")) {
+                sb.append(p.get("equalTo").asText());
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Tie-break for same (method, url) stubs when body length is equal: prefer bodies that
+     * include a plan candidate section over those that don't, so more specific plans are tried
+     * before generic ones. Uses a generic marker that matches existing stub bodies but does not
+     * encode any consumer-specific plan codes.
+     */
+    private static int ratePlanTieBreakFromBody(String bodyContent) {
+        if (bodyContent == null) {
+            return 0;
+        }
+        // Generic marker: any occurrence of a plan candidate element is treated as \"more specific\"
+        if (bodyContent.contains("RatePlanCandidate")) {
+            return 1;
+        }
+        return 0;
+    }
+
+    private static final class MappingEntry {
+        final String json;
+        final String requestKey;
+        final int bodyLength;
+        final String bodyContent;
+        final int ratePlanTieBreak;
+
+        MappingEntry(String json, String requestKey, int bodyLength, String bodyContent, int ratePlanTieBreak) {
+            this.json = json;
+            this.requestKey = requestKey;
+            this.bodyLength = bodyLength;
+            this.bodyContent = bodyContent;
+            this.ratePlanTieBreak = ratePlanTieBreak;
+        }
+
+        String bodyContent() {
+            return bodyContent;
+        }
+
+        int bodyLength() {
+            return bodyLength;
+        }
+
+        int ratePlanTieBreak() {
+            return ratePlanTieBreak;
+        }
     }
 
     /**
@@ -890,7 +1038,12 @@ public final class WireMockServerManager {
             for (String pattern : ignorePatterns) {
                 if (pattern.startsWith("xml:")) {
                     String xpathPattern = pattern.substring(4);
-                    applyXmlIgnorePattern(doc, xpathPattern);
+                    try {
+                        applyXmlIgnorePattern(doc, xpathPattern);
+                    } catch (Exception e) {
+                        logger.warn("Failed to apply ignore pattern '{}': {} (annotation or detected-fields pattern may be invalid)", pattern, e.getMessage());
+                        throw e;
+                    }
                 }
             }
             
@@ -1161,23 +1314,6 @@ public final class WireMockServerManager {
                 String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
                 if (localName.equals(elementPath.get(0))) {
                     applyElementPathPlaceholder(element, elementPath, 1);
-                }
-            }
-        }
-    }
-    
-    /**
-     * Sets matching attributes to ${xmlunit.ignore}.
-     */
-    private static void setXmlAttributesToPlaceholder(Document doc, String elementName, String attrName) {
-        NodeList elements = doc.getElementsByTagName("*");
-        for (int i = 0; i < elements.getLength(); i++) {
-            Node node = elements.item(i);
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-                String localName = element.getLocalName() != null ? element.getLocalName() : element.getNodeName();
-                if (localName.equals(elementName) && element.hasAttribute(attrName)) {
-                    element.setAttribute(attrName, "${xmlunit.ignore}");
                 }
             }
         }

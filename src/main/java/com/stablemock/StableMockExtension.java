@@ -132,7 +132,7 @@ public class StableMockExtension
         for (File d : dirs) {
             String name = d.getName();
             boolean oldStyle = name.contains(indexSuffixOld) && (name.startsWith(methodName) || name.startsWith(sanitizedMethodName));
-            boolean newStyle = name.equals(newStylePrefix) || name.startsWith(newStylePrefix + "__");
+            boolean newStyle = isNewStyleInvocationDirMatch(name, newStylePrefix);
             if (oldStyle || newStyle) {
                 matches.add(d);
             }
@@ -157,6 +157,29 @@ public class StableMockExtension
             logger.info("Using invocation dir {} (exact {} not found) for method {} index {}", chosen.getName(), testMethodIdentifier, methodName, index);
         }
         return chosen;
+    }
+
+    /**
+     * Matches new-style invocation directory names with strict invocation-index boundaries.
+     * Prevents accidental matches like method__i1 matching method__i10.
+     */
+    static boolean isNewStyleInvocationDirMatch(String directoryName, String expectedPrefix) {
+        if (directoryName == null || expectedPrefix == null) {
+            return false;
+        }
+        if (directoryName.equals(expectedPrefix)) {
+            return true;
+        }
+        if (!directoryName.startsWith(expectedPrefix)) {
+            return false;
+        }
+        int prefixLen = expectedPrefix.length();
+        // Require \"__\" plus at least one character after the boundary, so we don't match
+        // a bare \"prefix__\" without hash/suffix.
+        if (directoryName.length() <= prefixLen + 2) {
+            return false;
+        }
+        return directoryName.startsWith("__", prefixLen);
     }
 
     @Override
@@ -549,7 +572,7 @@ public class StableMockExtension
                 List<WireMockServerManager.AnnotationInfo> annotationInfos = new ArrayList<>();
                 for (int i = 0; i < allUrls.size(); i++) {
                     String url = allUrls.get(i);
-                    annotationInfos.add(new WireMockServerManager.AnnotationInfo(i, new String[] { url }));
+                    annotationInfos.add(new WireMockServerManager.AnnotationInfo(i, new String[] { url }, new String[0]));
                 }
                 methodStore.putAnnotationInfos(annotationInfos);
 
@@ -594,7 +617,7 @@ public class StableMockExtension
         if (annotations.length > 1 && StableMockConfig.isRecordMode()) {
             List<WireMockServerManager.AnnotationInfo> annotationInfos = new ArrayList<>();
             for (int i = 0; i < annotations.length; i++) {
-                annotationInfos.add(new WireMockServerManager.AnnotationInfo(i, annotations[i].urls()));
+                annotationInfos.add(new WireMockServerManager.AnnotationInfo(i, annotations[i].urls(), annotations[i].ignoreResponseHeaders()));
             }
 
             List<WireMockServer> servers = new java.util.ArrayList<>();
@@ -744,19 +767,26 @@ public class StableMockExtension
                             }
                         } else {
                             if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
-                                // Check if scenario mode is enabled
+                                // Check if scenario mode and header-ignores are enabled
                                 U[] annotations = TestContextResolver.findAllUAnnotations(context);
                                 boolean scenario = false;
+                                java.util.List<String> ignoreHeaderNames = new java.util.ArrayList<>();
                                 for (U annotation : annotations) {
                                     if (annotation.scenario()) {
                                         scenario = true;
-                                        break;
+                                    }
+                                    String[] hdrs = annotation.ignoreResponseHeaders();
+                                    if (hdrs != null && hdrs.length > 0) {
+                                        java.util.Collections.addAll(ignoreHeaderNames, hdrs);
                                     }
                                 }
                                 
                                 Long testMethodStartTime = methodStore.getTestMethodStartTime();
+                                String[] ignoreHeadersArray = ignoreHeaderNames.isEmpty()
+                                        ? new String[0]
+                                        : ignoreHeaderNames.toArray(new String[0]);
                                 MappingStorage.saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl,
-                                        existingRequestCount, scenario, testMethodStartTime);
+                                        existingRequestCount, scenario, testMethodStartTime, ignoreHeadersArray);
 
                                 // Track requests and run detection for single annotation
                                 performDynamicFieldDetection(context, server, existingRequestCount, null,

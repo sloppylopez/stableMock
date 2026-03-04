@@ -23,11 +23,10 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Mimics bp FullFlowFlexibleIT: @ParameterizedTest with stable-key (useStableKey=true),
- * same URL for both invocations, Spring Boot. Verifies scenario state is set before each
- * invocation so each gets the correct stub. Included in stableMockRecord and stableMockPlayback
- * (build.ps1); fails at playback if extension does not set scenario state in beforeEach
- * for methodName_8hex identifiers (regression test for the bp 404 fix).
+ * Parameterized Spring Boot test with stable key (useStableKey=true), same URL for both
+ * invocations. Verifies scenario state is set before each invocation so each gets the
+ * correct stub. Fails at playback if extension does not set scenario state in beforeEach
+ * for methodName_8hex identifiers (regression test for parameterized playback 404 fix).
  */
 @U(
     urls = { "https://postman-echo.com" },

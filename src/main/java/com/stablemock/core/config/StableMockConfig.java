@@ -42,7 +42,7 @@ public final class StableMockConfig {
     /**
      * Returns the WireMock proxy timeout in milliseconds.
      * Defaults to 60 seconds but can be overridden via system property.
-     * Values <= 0 are treated as invalid and the default is used instead.
+     * Values {@code <= 0} are treated as invalid and the default is used instead.
      */
     public static int getProxyTimeoutMs() {
         int value = Integer.getInteger(PROXY_TIMEOUT_MS_PROPERTY, DEFAULT_PROXY_TIMEOUT_MS);
@@ -56,7 +56,7 @@ public final class StableMockConfig {
      */
     public static int getStartupExtraSleepMs() {
         int value = Integer.getInteger(STARTUP_EXTRA_SLEEP_MS_PROPERTY, DEFAULT_STARTUP_EXTRA_SLEEP_MS);
-        return value > 0 ? value : 0;
+        return Math.max(value, 0);
     }
 
     /**

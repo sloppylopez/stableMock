@@ -134,6 +134,18 @@ public final class AnalysisResultStorage {
             String testClassName,
             String testMethodName,
             Integer annotationIndex) {
+        return loadIgnorePatterns(testResourcesDir, testClassName, testMethodName, annotationIndex, null);
+    }
+
+    /**
+     * Loads detection results and optionally filters out scoped-request identity/plan patterns.
+     * When markers is null, production default markers are used (for real consumer payloads).
+     */
+    public static List<String> loadIgnorePatterns(File testResourcesDir,
+            String testClassName,
+            String testMethodName,
+            Integer annotationIndex,
+            IdentityFilterMarkers markers) {
         try {
             File outputFile = getOutputFile(testResourcesDir, testClassName,
                     testMethodName, annotationIndex);
@@ -149,9 +161,14 @@ public final class AnalysisResultStorage {
                 return List.of();
             }
 
-            List<String> patterns = new java.util.ArrayList<>();
-            patternsArray.forEach(node -> patterns.add(node.asText()));
-
+            List<String> raw = new java.util.ArrayList<>();
+            patternsArray.forEach(node -> raw.add(node.asText()));
+            List<String> patterns = filterOutAvailabilityIdentityPatterns(raw, markers);
+            int filteredOut = raw.size() - patterns.size();
+            if (filteredOut > 0) {
+                logger.debug("Availability filter: {} pattern(s) removed (identity/plan for scoped request), {} applied",
+                        filteredOut, patterns.size());
+            }
             logger.debug("Loaded {} auto-detected ignore patterns from {}",
                     patterns.size(), outputFile.getAbsolutePath());
 
@@ -183,5 +200,34 @@ public final class AnalysisResultStorage {
         }
 
         return new File(resultsDir, "detected-fields.json");
+    }
+
+    /**
+     * Removes ignore patterns that target scoped-request caller identity or plan selector.
+     * Those must never be applied at playback so different callers and plan types stay distinguishable.
+     * When markers is null, uses production default markers for real consumer payloads.
+     */
+    private static List<String> filterOutAvailabilityIdentityPatterns(List<String> patterns,
+            IdentityFilterMarkers markers) {
+        if (patterns == null || patterns.isEmpty()) {
+            return patterns;
+        }
+        IdentityFilterMarkers m = markers != null ? markers : IdentityFilterMarkers.getDefault();
+        List<String> out = new java.util.ArrayList<>();
+        for (String p : patterns) {
+            if (p == null) {
+                continue;
+            }
+            String lower = p.toLowerCase(java.util.Locale.ROOT);
+            if (!m.isScopedRequestPattern(lower)) {
+                out.add(p);
+                continue;
+            }
+            if (m.isCallerIdentityPattern(lower) || m.isPlanSelectorPattern(lower)) {
+                continue;
+            }
+            out.add(p);
+        }
+        return out;
     }
 }
