@@ -23,7 +23,7 @@ public @interface U {
      * Mapping rules:
      * - If there is 1 URL and multiple properties, all properties map to that URL.
      *   Each entry may be "name" (base URL only) or "name=/path" (base URL + path). Example:
-     *   urls = {"https://api.com"}, properties = {"app.base.url", "app.avail.url=/api/v1/avail"}
+     *   urls = {"https://api.com"}, properties = {"app.base.url", "app.get.url=/api/v1/get"}
      * - If there are multiple URLs, properties map 1:1 (first property to first URL, etc.).
      *   Extra properties beyond URLs map to the last URL. Use plain names only.
      *   Example: urls = {"https://api1.com", "https://api2.com"}, properties = {"app.api1.url", "app.api2.url"}
@@ -59,7 +59,7 @@ public @interface U {
 
     /**
      * Optional path overrides for properties when using 1 URL with multiple properties.
-     * Format: "propertyName=/path" (e.g. "app.backend.avail.url=/api/v1/avail").
+     * Format: "propertyName=/path" (e.g. "app.backend.get.url=/api/v1/get").
      * Used so the library can preserve per-property paths without project-specific Java (e.g. KNOWN_PATHS).
      * If not set, path is resolved from system property, application.properties, or defaultUrl.
      */
