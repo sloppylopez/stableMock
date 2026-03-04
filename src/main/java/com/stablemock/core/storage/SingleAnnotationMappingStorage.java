@@ -35,8 +35,10 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
     /**
      * Applies response-header ignore rules to recorded mappings by rewriting their JSON and
      * rebuilding StubMapping instances. This avoids relying on mutable ResponseDefinition APIs.
+     *
+     * Package-private for testing.
      */
-    private static void applyIgnoreResponseHeaders(List<StubMapping> mappings, String[] ignoreResponseHeaders) {
+    static void applyIgnoreResponseHeaders(List<StubMapping> mappings, String[] ignoreResponseHeaders) {
         if (mappings == null || mappings.isEmpty() || ignoreResponseHeaders == null || ignoreResponseHeaders.length == 0) {
             return;
         }

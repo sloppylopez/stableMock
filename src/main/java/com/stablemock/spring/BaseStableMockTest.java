@@ -77,7 +77,18 @@ public abstract class BaseStableMockTest {
             String propertyName,
             String testClassName,
             String defaultUrl) {
-        final String pathToPreserve = extractPathFromProperty(propertyName, defaultUrl);
+        registerPropertyWithFallback(registry, propertyName, testClassName, defaultUrl, null);
+    }
+
+    protected static void registerPropertyWithFallback(
+            DynamicPropertyRegistry registry,
+            String propertyName,
+            String testClassName,
+            String defaultUrl,
+            String pathOverride) {
+        final String pathToPreserve = (pathOverride != null && !pathOverride.isEmpty())
+                ? pathOverride
+                : extractPathFromProperty(propertyName, defaultUrl);
         registry.add(propertyName, () -> {
             // Only override if StableMock is active (has ThreadLocal value)
             String baseUrl = getThreadLocalBaseUrl();
@@ -220,6 +231,29 @@ public abstract class BaseStableMockTest {
 
         String testClassName = testClass.getSimpleName();
 
+        // Path overrides from @U(paths = {"propertyName=/path", ...}) for single-URL multi-property case
+        java.util.Map<String, String> pathOverrides = new java.util.HashMap<>();
+        for (U annotation : annotations) {
+            String[] paths = annotation.paths();
+            if (paths != null) {
+                for (String entry : paths) {
+                    if (entry != null && !entry.isEmpty()) {
+                        int eq = entry.indexOf('=');
+                        if (eq > 0) {
+                            String key = entry.substring(0, eq).trim();
+                            String path = entry.substring(eq + 1).trim();
+                            if (!key.isEmpty() && !path.isEmpty()) {
+                                if (!path.startsWith("/")) {
+                                    path = "/" + path;
+                                }
+                                pathOverrides.put(key, path);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Collect all URLs and properties from all @U annotations
         java.util.List<String> allUrls = new java.util.ArrayList<>();
         java.util.List<java.util.List<String>> urlProperties = new java.util.ArrayList<>();
@@ -274,8 +308,9 @@ public abstract class BaseStableMockTest {
             for (String propertyName : propertiesForUrl) {
                 if (propertyName != null && !propertyName.isEmpty()) {
                     if (allUrls.size() == 1) {
-                        // Single URL - use single URL method
-                        registerPropertyWithFallback(registry, propertyName, testClassName, defaultUrl);
+                        // Single URL - use single URL method; optional path from @U(paths=...)
+                        String pathOverride = pathOverrides.get(propertyName);
+                        registerPropertyWithFallback(registry, propertyName, testClassName, defaultUrl, pathOverride);
                     } else {
                         // Multiple URLs - use indexed method
                         registerPropertyWithFallbackByIndex(registry, propertyName, testClassName, i, defaultUrl);
@@ -311,7 +346,7 @@ public abstract class BaseStableMockTest {
      * 
      * @param propertyName The property name to look up
      * @param defaultUrl   The default URL from @U annotation (fallback source)
-     * @return The path component (e.g., "/sap/bc/bsp/sap/zey_4ct_ng_w2av/start.htm") or null if no path found
+     * @return The path component (e.g., "/api/v1/endpoint") or null if no path found
      */
     private static String extractPathFromProperty(String propertyName, String defaultUrl) {
         // 1. Try system property

@@ -57,6 +57,14 @@ public @interface U {
     String[] ignoreResponseHeaders() default {};
 
     /**
+     * Optional path overrides for properties when using 1 URL with multiple properties.
+     * Format: "propertyName=/path" (e.g. "app.backend.avail.url=/api/v1/avail").
+     * Used so the library can preserve per-property paths without project-specific Java (e.g. KNOWN_PATHS).
+     * If not set, path is resolved from system property, application.properties, or defaultUrl.
+     */
+    String[] paths() default {};
+
+    /**
      * Container annotation for repeatable @U annotations.
      */
     @Retention(RetentionPolicy.RUNTIME)

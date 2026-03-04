@@ -3,7 +3,6 @@ package com.stablemock.core.storage;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +34,7 @@ class SingleAnnotationMappingStorageHeaderIgnoreTest {
         List<StubMapping> mappings = new ArrayList<>();
         mappings.add(mapping);
 
-        invokeApplyIgnoreResponseHeaders(mappings, new String[]{"Set-Cookie", "cf-ray"});
+        SingleAnnotationMappingStorage.applyIgnoreResponseHeaders(mappings, new String[]{"Set-Cookie", "cf-ray"});
 
         assertEquals(1, mappings.size());
         StubMapping rewritten = mappings.get(0);
@@ -67,7 +66,7 @@ class SingleAnnotationMappingStorageHeaderIgnoreTest {
         List<StubMapping> mappings = new ArrayList<>();
         mappings.add(mapping);
 
-        invokeApplyIgnoreResponseHeaders(mappings, new String[]{"*"});
+        SingleAnnotationMappingStorage.applyIgnoreResponseHeaders(mappings, new String[]{"*"});
 
         assertEquals(1, mappings.size());
         StubMapping rewritten = mappings.get(0);
@@ -77,13 +76,6 @@ class SingleAnnotationMappingStorageHeaderIgnoreTest {
         if (headers != null) {
             assertTrue(headers.all().isEmpty());
         }
-    }
-
-    private static void invokeApplyIgnoreResponseHeaders(List<StubMapping> mappings, String[] ignore) throws Exception {
-        Method m = SingleAnnotationMappingStorage.class
-                .getDeclaredMethod("applyIgnoreResponseHeaders", List.class, String[].class);
-        m.setAccessible(true);
-        m.invoke(null, mappings, ignore);
     }
 }
 
