@@ -2,7 +2,7 @@
 
 ## Before (custom base class)
 
-- **BaseOpenApiTestFeature** (nh-api-bp) had:
+- A project-specific base class had:
   - **KNOWN_PATHS**: map of property name → path (e.g. `app.backend.get.url` → `/api/v1/get`).
   - **Custom `autoRegisterProperties`**: for each property from `@U`, registered a supplier that did **`getThreadLocalBaseUrl() + pathFromKnownPaths`**.
 - **Test** used **one `@U`**: 1 URL (base only), 5 properties.
@@ -35,7 +35,7 @@
 - **Keep path preservation in the library** and make it robust:
   - **Per-property `defaultUrl`**: For multiple `@U`, the library already assigns each property the URL from its annotation, so `defaultUrl` has the path. No change needed if parsing is correct.
   - **Fallback when properties file has no path**: Prefer path from `defaultUrl` when the value read from classpath has no path (current logic already does this by only returning when `path != null`).
-- **Avoid project-specific path maps** (no KNOWN_PATHS in nh-api-bp):
+- **Avoid project-specific path maps** (no KNOWN_PATHS in the consumer project):
   - **Option A (current)**: Use **multiple `@U`** with **full URLs** so each property gets the right `defaultUrl` and path. Requires the extension to run (JUnit 5 / extension lifecycle) and to call `setBaseUrls` when there are multiple URLs.
   - **Option B (future)**: Support **one URL + multiple properties** with **path overrides** (e.g. optional `paths = {"app.backend.get.url=/api/v1/get"}` or a small DSL in `@U`) so a single WireMock server can still serve all endpoints with different paths without five separate `@U`.
 - **Ensure extension runs**: If the test is JUnit 4 only, WireMock and `setBaseUrl`/`setBaseUrls` are never set by StableMock. Then either migrate to JUnit 5 for these tests or provide a Spring/JUnit 4–friendly way to start the server and set the context (e.g. TestExecutionListener or static init that uses the same startup logic as the extension).
@@ -53,11 +53,11 @@ Path preservation **works** after the change **if** (1) each property’s `defau
 
 ---
 
-## Solution without manual config on project (bp) side
+## Solution without manual config in your project
 
 **Library:** `@U` supports optional `paths()` so one base URL + multiple properties get per-property paths without project-specific Java (no KNOWN_PATHS).
 
-**In bp:** Use **one** `@U` with base URL, all 5 properties, and `paths` with `"propertyName=/path"` entries. One WireMock server; paths only in the annotation.
+**In your project:** Use **one** `@U` with base URL and your properties (with optional `paths` or inline `"name=/path"`). One WireMock server; paths only in the annotation.
 
 Simplified form: use `properties = {"name", "name=/path", ...}` so path is in the same array (no separate `paths`):
 
