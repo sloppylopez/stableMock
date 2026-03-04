@@ -263,13 +263,29 @@ public abstract class BaseStableMockTest {
             String[] properties = annotation.properties();
 
             if (urls != null && urls.length > 0) {
-                if (urls.length == 1 && properties != null && properties.length > 1) {
-                    // Special case: 1 URL with multiple properties - all properties map to same URL
+                if (urls.length == 1 && properties != null && properties.length >= 1) {
+                    // Special case: 1 URL with multiple properties - all properties map to same URL.
+                    // Each property may be "name" (base URL only) or "name=/path" (base URL + path).
                     allUrls.add(urls[0]);
                     java.util.List<String> propsForUrl = new java.util.ArrayList<>();
                     for (String prop : properties) {
                         if (prop != null && !prop.isEmpty()) {
-                            propsForUrl.add(prop);
+                            int eq = prop.indexOf('=');
+                            if (eq > 0) {
+                                String name = prop.substring(0, eq).trim();
+                                String path = prop.substring(eq + 1).trim();
+                                if (!name.isEmpty()) {
+                                    propsForUrl.add(name);
+                                    if (!path.isEmpty()) {
+                                        if (!path.startsWith("/")) {
+                                            path = "/" + path;
+                                        }
+                                        pathOverrides.put(name, path);
+                                    }
+                                }
+                            } else {
+                                propsForUrl.add(prop.trim());
+                            }
                         }
                     }
                     urlProperties.add(propsForUrl);
