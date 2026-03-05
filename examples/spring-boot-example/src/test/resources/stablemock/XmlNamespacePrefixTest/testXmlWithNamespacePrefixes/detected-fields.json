@@ -1,11 +1,11 @@
 {
   "testClass" : "XmlNamespacePrefixTest",
   "testMethod" : "testXmlWithNamespacePrefixes",
-  "detectedAt" : "2026-03-05T14:00:26.964929800Z",
+  "detectedAt" : "2026-03-05T16:03:16.495240300Z",
   "analyzed_requests_count" : 4,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='SessionToken']",
-    "sample_values" : [ "1772719188924", "1772719188588", "1772719226224" ]
+    "sample_values" : [ "1772726555706", "1772726555190", "1772726595815" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/*[local-name()='DateRange']/*[local-name()='Start']",
     "sample_values" : [ "2026-01-22", "2026-01-22", "2026-01-22" ]
@@ -14,10 +14,10 @@
     "sample_values" : [ "2026-01-24", "2026-01-24", "2026-01-24" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='RequestId']",
-    "sample_values" : [ "1772719188914", "1772719188578", "1772719226214" ]
+    "sample_values" : [ "1772726555696", "1772726555180", "1772726595805" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='Timestamp']",
-    "sample_values" : [ "2026-03-05T13:59:48.924902300Z", "2026-03-05T13:59:48.588290400Z", "2026-03-05T14:00:26.224603500Z" ]
+    "sample_values" : [ "2026-03-05T16:02:35.706895600Z", "2026-03-05T16:02:35.190471500Z", "2026-03-05T16:03:15.815514600Z" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='SessionToken']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/*[local-name()='DateRange']/*[local-name()='Start']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/*[local-name()='DateRange']/*[local-name()='End']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='RequestId']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ServiceRequest']/@*[local-name()='Timestamp']" ]
 }

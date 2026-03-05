@@ -1251,8 +1251,9 @@ public final class WireMockServerManager {
      *   appears in a dontIgnore XPath (generic or specific).
      * - For JSON/GraphQL patterns, removes any ignore pattern whose JSON path ends with the same
      *   tail as a dontIgnore JSON/GraphQL pattern.
+     * Package-private for testing.
      */
-    private static List<String> applyDontIgnorePatterns(List<String> ignorePatterns, List<String> dontIgnorePatterns) {
+    static List<String> applyDontIgnorePatterns(List<String> ignorePatterns, List<String> dontIgnorePatterns) {
         if (ignorePatterns == null || ignorePatterns.isEmpty() || dontIgnorePatterns == null || dontIgnorePatterns.isEmpty()) {
             return ignorePatterns;
         }
