@@ -239,8 +239,9 @@ public class StableMockExtension
                     // In playback mode, merge all test methods' annotation_X mappings for this URL
                     // index
                     MappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, i);
-                    // Collect ignore patterns from all annotations (for class-level, we use all annotations)
+                    // Collect ignore / dont-ignore patterns from all annotations (for class-level, we use all annotations)
                     List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                    List<String> annotationDontIgnorePatterns = new java.util.ArrayList<>();
                     for (U annotation : annotations) {
                         String[] ignore = annotation.ignore();
                         if (ignore != null) {
@@ -250,9 +251,17 @@ public class StableMockExtension
                                 }
                             }
                         }
+                        String[] dontIgnore = annotation.dontIgnore();
+                        if (dontIgnore != null) {
+                            for (String pattern : dontIgnore) {
+                                if (pattern != null && !pattern.isEmpty()) {
+                                    annotationDontIgnorePatterns.add(pattern);
+                                }
+                            }
+                        }
                     }
                     server = WireMockServerManager.startPlayback(port, urlMappingsDir, 
-                            testResourcesDir, testClassName, null, annotationIgnorePatterns);
+                            testResourcesDir, testClassName, null, annotationIgnorePatterns, annotationDontIgnorePatterns);
                 }
 
                 servers.add(server);
@@ -324,8 +333,9 @@ public class StableMockExtension
                     throw new RuntimeException("Failed to merge test method mappings for " + testClassName, e);
                 }
                 
-                // Collect ignore patterns from all annotations (for class-level, we use all annotations)
+                // Collect ignore / dont-ignore patterns from all annotations (for class-level, we use all annotations)
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                List<String> annotationDontIgnorePatterns = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
                     String[] ignore = annotation.ignore();
                     if (ignore != null) {
@@ -335,9 +345,17 @@ public class StableMockExtension
                             }
                         }
                     }
+                    String[] dontIgnore = annotation.dontIgnore();
+                    if (dontIgnore != null) {
+                        for (String pattern : dontIgnore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationDontIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
                 }
                 server = WireMockServerManager.startPlayback(port, baseMappingsDir, 
-                        testResourcesDir, testClassName, null, annotationIgnorePatterns);
+                        testResourcesDir, testClassName, null, annotationIgnorePatterns, annotationDontIgnorePatterns);
             }
 
             classStore.putServer(server);
@@ -405,12 +423,21 @@ public class StableMockExtension
                 File resolvedMappingsDir = resolveInvocationMappingsDir(baseMappingsDir, testMethodIdentifier, context);
 
                 List<String> annotationIgnorePatterns = new ArrayList<>();
+                List<String> annotationDontIgnorePatterns = new ArrayList<>();
                 for (U annotation : annotations) {
                     String[] ignore = annotation.ignore();
                     if (ignore != null) {
                         for (String pattern : ignore) {
                             if (pattern != null && !pattern.isEmpty()) {
                                 annotationIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
+                    String[] dontIgnore = annotation.dontIgnore();
+                    if (dontIgnore != null) {
+                        for (String pattern : dontIgnore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationDontIgnorePatterns.add(pattern);
                             }
                         }
                     }
@@ -423,7 +450,7 @@ public class StableMockExtension
                         File invocationDir = new File(resolvedMappingsDir, "annotation_" + i);
                         int port = WireMockServerManager.findFreePort();
                         WireMockServer server = WireMockServerManager.startPlayback(port, invocationDir,
-                                testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns);
+                                testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnorePatterns);
                         servers.add(server);
                         ports.add(server.port());
                     }
@@ -452,7 +479,7 @@ public class StableMockExtension
                     File invocationDir = resolvedMappingsDir;
                     int port = WireMockServerManager.findFreePort();
                     WireMockServer server = WireMockServerManager.startPlayback(port, invocationDir,
-                            testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns);
+                            testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnorePatterns);
                     int actualPort = server.port();
                     methodStore.putServer(server);
                     methodStore.putPort(actualPort);
@@ -497,12 +524,21 @@ public class StableMockExtension
                 methodStore.putClassLock(lock);
                 File resolvedMappingsDir = resolveInvocationMappingsDir(baseMappingsDir, testMethodIdentifier, context);
                 List<String> annotationIgnorePatterns = new ArrayList<>();
+                List<String> annotationDontIgnorePatterns = new ArrayList<>();
                 for (U annotation : annotations) {
                     String[] ignore = annotation.ignore();
                     if (ignore != null) {
                         for (String pattern : ignore) {
                             if (pattern != null && !pattern.isEmpty()) {
                                 annotationIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
+                    String[] dontIgnore = annotation.dontIgnore();
+                    if (dontIgnore != null) {
+                        for (String pattern : dontIgnore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationDontIgnorePatterns.add(pattern);
                             }
                         }
                     }
@@ -515,13 +551,13 @@ public class StableMockExtension
                             File invocationDir = new File(resolvedMappingsDir, "annotation_" + i);
                             File serverRootDir = new File(baseMappingsDir, "url_" + i);
                             WireMockServerManager.reloadMappingsOnServer(server, invocationDir, serverRootDir,
-                                    testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns);
+                                    testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnorePatterns);
                         }
                     }
                 } else {
                     File serverRootDir = baseMappingsDir;
                     WireMockServerManager.reloadMappingsOnServer(classServer, resolvedMappingsDir, serverRootDir,
-                            testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns);
+                            testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnorePatterns);
                 }
             }
 
@@ -675,8 +711,9 @@ public class StableMockExtension
                 // mergePerTestMethodMappings expects class-level directory, not method-level
                 File classMappingsDir = mappingsDir.getParentFile();
                 MappingStorage.mergePerTestMethodMappings(classMappingsDir);
-                // Collect ignore patterns from all annotations (for method-level)
+                // Collect ignore / dont-ignore patterns from all annotations (for method-level)
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                List<String> annotationDontIgnorePatterns = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
                     String[] ignore = annotation.ignore();
                     if (ignore != null) {
@@ -686,10 +723,18 @@ public class StableMockExtension
                             }
                         }
                     }
+                    String[] dontIgnore = annotation.dontIgnore();
+                    if (dontIgnore != null) {
+                        for (String pattern : dontIgnore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationDontIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
                 }
                 // After merge, mappings are in class-level directory, so use that for playback
                 wireMockServer = WireMockServerManager.startPlayback(port, classMappingsDir, 
-                        testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns);
+                        testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnorePatterns);
             }
 
             methodStore.putServer(wireMockServer);
