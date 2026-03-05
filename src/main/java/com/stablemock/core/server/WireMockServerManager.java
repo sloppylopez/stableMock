@@ -149,7 +149,8 @@ public final class WireMockServerManager {
     
     public static WireMockServer startPlayback(int port, File mappingsDir, 
             File testResourcesDir, String testClassName, String testMethodName, 
-            List<String> annotationIgnorePatterns) {
+            List<String> annotationIgnorePatterns,
+            List<String> annotationDontIgnorePatterns) {
         logger.info("=== Starting WireMock playback on port {} ===", port);
         logger.info("Loading mappings from: {}", mappingsDir.getAbsolutePath());
         
@@ -236,7 +237,7 @@ public final class WireMockServerManager {
                 ignorePatterns.addAll(com.stablemock.core.analysis.AnalysisResultStorage
                         .loadIgnorePatterns(testResourcesDir, testClassName, testMethodName));
                 
-                // Merge with annotation patterns
+                // Merge with annotation patterns (explicit ignore has priority over auto-detected)
                 if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
                     int autoDetectedCount = ignorePatterns.size();
                     ignorePatterns.removeAll(annotationIgnorePatterns);
@@ -246,6 +247,8 @@ public final class WireMockServerManager {
                             ignorePatterns.size() - annotationIgnorePatterns.size(), 
                             annotationIgnorePatterns.size());
                 }
+                // Apply dontIgnore: remove any ignore pattern that targets a protected field
+                ignorePatterns = applyDontIgnorePatterns(ignorePatterns, annotationDontIgnorePatterns);
                 
                 if (!ignorePatterns.isEmpty()) {
                     logger.info("Applying {} ignore patterns to stub files for {}", 
@@ -269,16 +272,16 @@ public final class WireMockServerManager {
                                 String methodName = methodDir.getName();
                                 List<String> methodPatterns = com.stablemock.core.analysis.AnalysisResultStorage
                                         .loadIgnorePatterns(testResourcesDir, testClassName, methodName);
-                                if (!methodPatterns.isEmpty()) {
-                                    patternsByMethod.put(methodName, methodPatterns);
-                                }
+                        if (!methodPatterns.isEmpty()) {
+                            patternsByMethod.put(methodName, methodPatterns);
+                        }
                             }
                         }
                         
                         if (!patternsByMethod.isEmpty()) {
                             logger.info("Applying ignore patterns per test method for {}", testClassName);
                             File playbackMappingsDir = preparePlaybackMappings(mappingsDir);
-                            applyIgnorePatternsToStubFilesPerMethod(playbackMappingsDir, patternsByMethod, annotationIgnorePatterns);
+                            applyIgnorePatternsToStubFilesPerMethod(playbackMappingsDir, patternsByMethod, annotationIgnorePatterns, annotationDontIgnorePatterns);
                             mappingsDir = playbackMappingsDir;
                         }
                     }
@@ -353,6 +356,7 @@ public final class WireMockServerManager {
      * @param testClassName              test class name
      * @param testMethodIdentifier       test method identifier (for ignore patterns)
      * @param annotationIgnorePatterns   ignore patterns from @U annotation
+     * @param annotationDontIgnorePatterns dont-ignore patterns from @U annotation
      */
     public static void reloadMappingsOnServer(WireMockServer server,
             File invocationMappingsDir,
@@ -360,7 +364,8 @@ public final class WireMockServerManager {
             File testResourcesDir,
             String testClassName,
             String testMethodIdentifier,
-            List<String> annotationIgnorePatterns) {
+            List<String> annotationIgnorePatterns,
+            List<String> annotationDontIgnorePatterns) {
         List<String> ignorePatterns = new java.util.ArrayList<>();
         if (testResourcesDir != null && testClassName != null && testMethodIdentifier != null) {
             ignorePatterns.addAll(com.stablemock.core.analysis.AnalysisResultStorage
@@ -370,6 +375,7 @@ public final class WireMockServerManager {
                 ignorePatterns.removeAll(annotationIgnorePatterns);
                 ignorePatterns.addAll(annotationIgnorePatterns);
             }
+            ignorePatterns = applyDontIgnorePatterns(ignorePatterns, annotationDontIgnorePatterns);
         }
         File sourceDir = invocationMappingsDir;
         if (!ignorePatterns.isEmpty()) {
@@ -792,7 +798,8 @@ public final class WireMockServerManager {
      */
     private static void applyIgnorePatternsToStubFilesPerMethod(File mappingsDir, 
             java.util.Map<String, List<String>> patternsByMethod, 
-            List<String> annotationIgnorePatterns) {
+            List<String> annotationIgnorePatterns,
+            List<String> annotationDontIgnorePatterns) {
         try {
             File mappingsSubDir = new File(mappingsDir, "mappings");
             if (!mappingsSubDir.exists() || !mappingsSubDir.isDirectory()) {
@@ -827,11 +834,12 @@ public final class WireMockServerManager {
                     // Get patterns for this specific test method
                     List<String> ignorePatterns = new java.util.ArrayList<>(patternsByMethod.get(matchingMethod));
                     
-                    // Merge with annotation patterns
+                    // Merge with annotation patterns, then apply dontIgnore
                     if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
                         ignorePatterns.removeAll(annotationIgnorePatterns);
                         ignorePatterns.addAll(annotationIgnorePatterns);
                     }
+                    ignorePatterns = applyDontIgnorePatterns(ignorePatterns, annotationDontIgnorePatterns);
                     
                     if (ignorePatterns.isEmpty()) {
                         continue;
@@ -1234,6 +1242,87 @@ public final class WireMockServerManager {
             return "json:" + pattern.substring(8);
         }
         return pattern;
+    }
+
+    /**
+     * Applies dontIgnore semantics on top of an ignore pattern list.
+     * Keeps all existing behavior when dontIgnore is empty, but when present:
+     * - For XML patterns, removes any ignore pattern whose XPath targets a field whose local-name()
+     *   appears in a dontIgnore XPath (generic or specific).
+     * - For JSON/GraphQL patterns, removes any ignore pattern whose JSON path ends with the same
+     *   tail as a dontIgnore JSON/GraphQL pattern.
+     */
+    private static List<String> applyDontIgnorePatterns(List<String> ignorePatterns, List<String> dontIgnorePatterns) {
+        if (ignorePatterns == null || ignorePatterns.isEmpty() || dontIgnorePatterns == null || dontIgnorePatterns.isEmpty()) {
+            return ignorePatterns;
+        }
+        // Pre-normalize dontIgnore for json / gql patterns
+        List<String> normalizedDontIgnore = new java.util.ArrayList<>();
+        for (String p : dontIgnorePatterns) {
+            if (p == null) {
+                continue;
+            }
+            normalizedDontIgnore.add(normalizeGraphQlPattern(p));
+        }
+
+        List<String> result = new java.util.ArrayList<>();
+        for (String ignore : ignorePatterns) {
+            if (ignore == null) {
+                continue;
+            }
+            if (!shouldRemoveByDontIgnore(ignore, normalizedDontIgnore)) {
+                result.add(ignore);
+            }
+        }
+        return result;
+    }
+
+    private static boolean shouldRemoveByDontIgnore(String ignorePattern, List<String> dontIgnorePatterns) {
+        if (dontIgnorePatterns == null || dontIgnorePatterns.isEmpty() || ignorePattern == null) {
+            return false;
+        }
+        if (ignorePattern.startsWith("xml:")) {
+            String ignoreXPath = ignorePattern.substring(4);
+            java.util.Set<String> ignoreNames = new java.util.HashSet<>(extractElementPathFromXPath(ignoreXPath));
+            String ignoreAttr = extractAttributeNameFromXPath(ignoreXPath);
+            if (ignoreAttr != null) {
+                ignoreNames.add(ignoreAttr);
+            }
+            if (ignoreNames.isEmpty()) {
+                return false;
+            }
+            for (String d : dontIgnorePatterns) {
+                if (d == null || !d.startsWith("xml:")) {
+                    continue;
+                }
+                String dontXPath = d.substring(4);
+                java.util.Set<String> dontNames = new java.util.HashSet<>(extractElementPathFromXPath(dontXPath));
+                String dontAttr = extractAttributeNameFromXPath(dontXPath);
+                if (dontAttr != null) {
+                    dontNames.add(dontAttr);
+                }
+                if (!dontNames.isEmpty() && ignoreNames.containsAll(dontNames)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (ignorePattern.startsWith("json:")) {
+            String ignorePath = ignorePattern.substring(5);
+            for (String d : dontIgnorePatterns) {
+                if (d == null) {
+                    continue;
+                }
+                String normalized = normalizeGraphQlPattern(d);
+                if (normalized != null && normalized.startsWith("json:")) {
+                    String dontPath = normalized.substring(5);
+                    if (!dontPath.isEmpty() && (ignorePath.equals(dontPath) || ignorePath.endsWith("." + dontPath))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private static class JsonPathSegment {

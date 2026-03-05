@@ -1,0 +1,44 @@
+{
+  "id" : "5153fc5d-6656-4830-be9a-3d98d01aa4ef",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Manual Ignore Test\",\"body\":\"Testing manual ignore patterns\",\"userId\":1,\"timestamp\":\"2026-03-05T14:00:22.727647500Z\",\"requestId\":\"6c91fcdc-5159-4369-93c4-db4a2107a2a5\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d79a5882b33abaf-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1772719245",
+      "x-ratelimit-remaining" : "993",
+      "pragma" : "no-cache",
+      "Date" : "Thu, 05 Mar 2026 14:00:23 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=B5MLWqtqrd4U5BucgiHh8L3cWp6sQVv1hAjN4T3QADY%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1772719223\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=B5MLWqtqrd4U5BucgiHh8L3cWp6sQVv1hAjN4T3QADY%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1772719223\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "5153fc5d-6656-4830-be9a-3d98d01aa4ef",
+  "persistent" : true,
+  "insertionIndex" : 0
+}

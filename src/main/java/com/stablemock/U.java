@@ -40,6 +40,14 @@ public @interface U {
     String[] ignore() default {};
 
     /**
+     * Explicit protect list – these paths must not be ignored.
+     * Entries here override both auto-detected ignore patterns and {@link #ignore()}.
+     * Typical usage is to list identifying fields that should remain part of matching
+     * even if they look dynamic to the detector.
+     */
+    String[] dontIgnore() default {};
+
+    /**
      * Enable scenario mode for sequential responses.
      * When true, multiple responses for the same endpoint will be returned sequentially
      * using WireMock scenarios. Useful for testing stateful behavior where the same
