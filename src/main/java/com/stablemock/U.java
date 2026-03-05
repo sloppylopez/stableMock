@@ -44,6 +44,17 @@ public @interface U {
      * Entries here override both auto-detected ignore patterns and {@link #ignore()}.
      * Typical usage is to list identifying fields that should remain part of matching
      * even if they look dynamic to the detector.
+     *
+     * <p>Entries must use the same prefix/format conventions as {@link #ignore()}:
+     * <ul>
+     *   <li>JSON fields: {@code "json:fieldName"} or {@code "json:parent.child"}</li>
+     *   <li>GraphQL variables: {@code "gql:variables.cursor"} or {@code "graphql:variables.timestamp"}
+     *       (both are normalized to the equivalent {@code json:} path at runtime)</li>
+     *   <li>XML elements or attributes: {@code "xml://*[local-name()='fieldName']"}</li>
+     * </ul>
+     * Entries that do not follow these conventions will not match any auto-detected or
+     * explicit ignore pattern and will silently have no effect.
+     * Example: {@code {"json:requestId", "xml://*[local-name()='correlationId']"}}
      */
     String[] dontIgnore() default {};
 
