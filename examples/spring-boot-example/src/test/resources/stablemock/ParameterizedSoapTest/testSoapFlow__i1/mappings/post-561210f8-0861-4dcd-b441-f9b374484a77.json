@@ -1,0 +1,29 @@
+{
+  "id" : "561210f8-0861-4dcd-b441-f9b374484a77",
+  "name" : "post",
+  "request" : {
+    "url" : "/post",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalToXml" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><SearchAvailabilityRQ TimeStamp=\"2026-03-06T14:59:53.573162Z\" xmlns=\"http://example.com/service/2024/01\"><SearchSegments><SearchSegment><SearchCriteria><Criterion><DateRange Start=\"2026-03-16\" End=\"2026-03-17\"/></Criterion></SearchCriteria></SearchSegment></SearchSegments><UserType>TypeB</UserType></SearchAvailabilityRQ></soap:Body></soap:Envelope>"
+    } ]
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "post-1e7e572d-f104-47f7-81bd-3611b3297020.json",
+    "headers" : {
+      "x-envoy-upstream-service-time" : "5",
+      "Server" : "cloudflare",
+      "CF-RAY" : "9d823a18e88abaa2-MAD",
+      "vary" : "Accept-Encoding",
+      "Set-Cookie" : [ "sails.sid=s%3A7MJmwmQ0dp8WGXKCJxgNkpFn4zqZ0-3N.O0LUmsZ0%2FWTN8ZjPVz6OdU4vXgv9zLzL6ynBUxjGQiw; Path=/; HttpOnly", "__cf_bm=jg8x9lztrUmCDbrsJT7Q2y6oqYVkXqNsUmPgK4RSOR4-1772809194-1.0.1.1-8orzdkg2uxSawt4CtqBxHb6b0yFj3lpKcB72NU2BmY07dUfXfep5njKquI4_sp6Se8ADex4ZIu3G5.QPJ0Bh7AeDp9PySwZ7QKdq3z80UgM; path=/; expires=Fri, 06-Mar-26 15:29:54 GMT; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None", "_cfuvid=XwuRrkYYzkLHbSjzrUpwtQYVh0JTMY8CUT7TxAKc_l8-1772809194483-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None" ],
+      "etag" : "W/\"2f1-y8HutgSCDi3OtrYrCd7ZxV9O9Wc\"",
+      "cf-cache-status" : "DYNAMIC",
+      "Date" : "Fri, 06 Mar 2026 14:59:54 GMT",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "561210f8-0861-4dcd-b441-f9b374484a77",
+  "persistent" : true,
+  "insertionIndex" : 2
+}
