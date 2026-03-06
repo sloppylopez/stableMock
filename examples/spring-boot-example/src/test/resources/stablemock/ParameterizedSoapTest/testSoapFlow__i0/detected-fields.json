@@ -1,7 +1,7 @@
 {
   "testClass" : "ParameterizedSoapTest",
   "testMethod" : "testSoapFlow__i0",
-  "detectedAt" : "2026-03-06T14:59:53.548022700Z",
+  "detectedAt" : "2026-03-06T15:04:23.877710800Z",
   "analyzed_requests_count" : 6,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/*[local-name()='ConfirmationDetails']/*[local-name()='DateRange']/@*[local-name()='End']",
@@ -11,7 +11,7 @@
     "sample_values" : [ "2026-03-16", "2026-03-16" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/@*[local-name()='TimeStamp']",
-    "sample_values" : [ "2026-03-06T14:59:14.378638200Z", "2026-03-06T14:59:52.816985Z" ]
+    "sample_values" : [ "2026-03-06T15:03:45.465181400Z", "2026-03-06T15:04:23.159315Z" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/*[local-name()='ReservationDetails']/*[local-name()='DateRange']/@*[local-name()='End']",
     "sample_values" : [ "2026-03-17", "2026-03-17" ]
@@ -20,13 +20,13 @@
     "sample_values" : [ "2026-03-16", "2026-03-16" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/@*[local-name()='TimeStamp']",
-    "sample_values" : [ "2026-03-06T14:59:14.177153500Z", "2026-03-06T14:59:52.638450200Z" ]
+    "sample_values" : [ "2026-03-06T15:03:45.272187200Z", "2026-03-06T15:04:22.940787700Z" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/*[local-name()='SearchSegments']/*[local-name()='SearchSegment']/*[local-name()='SearchCriteria']/*[local-name()='Criterion']/*[local-name()='DateRange']/@*[local-name()='End']",
     "sample_values" : [ "2026-03-17", "2026-03-17" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/@*[local-name()='TimeStamp']",
-    "sample_values" : [ "2026-03-06T14:59:13.759530600Z", "2026-03-06T14:59:52.297618800Z" ]
+    "sample_values" : [ "2026-03-06T15:03:44.882470400Z", "2026-03-06T15:04:22.561693400Z" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/*[local-name()='SearchSegments']/*[local-name()='SearchSegment']/*[local-name()='SearchCriteria']/*[local-name()='Criterion']/*[local-name()='DateRange']/@*[local-name()='Start']",
     "sample_values" : [ "2026-03-16", "2026-03-16" ]

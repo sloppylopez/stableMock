@@ -71,7 +71,7 @@ public class ParameterizedSoapTest extends BaseTestFeature {
 
     static Stream<Arguments> soapTestCases() {
         return Stream.of(
-            Arguments.of("TypeA", "0000004003", "123412341234", "SILVER"),
+            Arguments.of("TypeA", "0000004003", "123412341234", "TierA"),
             Arguments.of("TypeB", null, null, null),
             Arguments.of("TypeC", null, null, null)
         );
