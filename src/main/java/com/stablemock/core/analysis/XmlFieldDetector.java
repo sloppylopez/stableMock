@@ -148,7 +148,7 @@ public final class XmlFieldDetector {
      */
     private static String buildElementPathXPath(String path) {
         if (path == null || path.isEmpty()) {
-            return "//*";
+            return "*";
         }
         String[] elementParts = path.split("/");
         StringBuilder xpath = new StringBuilder();
@@ -161,12 +161,14 @@ public final class XmlFieldDetector {
             // Example: "SOAP-ENV:Envelope" -> "Envelope"
             String localName = extractLocalName(part);
             if (xpath.length() == 0) {
-                xpath.append("//*[local-name()='").append(localName).append("']");
+                // First element: use absolute path from root (*[...]) not descendant (//*[...])
+                // This ensures patterns match from document root, not anywhere in the tree
+                xpath.append("*[local-name()='").append(localName).append("']");
             } else {
                 xpath.append("/*[local-name()='").append(localName).append("']");
             }
         }
-        return xpath.length() == 0 ? "//*" : xpath.toString();
+        return xpath.length() == 0 ? "*" : xpath.toString();
     }
 
     /**
