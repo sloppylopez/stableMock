@@ -31,6 +31,79 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
     private SingleAnnotationMappingStorage() {
         // utility class
     }
+
+    /**
+     * Applies response-header ignore rules to recorded mappings by rewriting their JSON and
+     * rebuilding StubMapping instances. This avoids relying on mutable ResponseDefinition APIs.
+     *
+     * Package-private for testing.
+     */
+    static void applyIgnoreResponseHeaders(List<StubMapping> mappings, String[] ignoreResponseHeaders) {
+        if (mappings == null || mappings.isEmpty() || ignoreResponseHeaders == null || ignoreResponseHeaders.length == 0) {
+            return;
+        }
+        boolean dropAll = false;
+        java.util.Set<String> ignore = new java.util.HashSet<>();
+        for (String h : ignoreResponseHeaders) {
+            if (h == null || h.isEmpty()) {
+                continue;
+            }
+            if ("*".equals(h)) {
+                dropAll = true;
+            } else {
+                ignore.add(h.toLowerCase(java.util.Locale.ROOT));
+            }
+        }
+        if (!dropAll && ignore.isEmpty()) {
+            return;
+        }
+        java.util.List<StubMapping> rewritten = new java.util.ArrayList<>(mappings.size());
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        for (StubMapping mapping : mappings) {
+            if (mapping == null) {
+                continue;
+            }
+            try {
+                String json = com.github.tomakehurst.wiremock.common.Json.write(mapping);
+                com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(json);
+                if (!(root instanceof com.fasterxml.jackson.databind.node.ObjectNode objectRoot)) {
+                    rewritten.add(mapping);
+                    continue;
+                }
+                com.fasterxml.jackson.databind.JsonNode responseNode = objectRoot.get("response");
+                if (!(responseNode instanceof com.fasterxml.jackson.databind.node.ObjectNode responseObj)) {
+                    rewritten.add(mapping);
+                    continue;
+                }
+                com.fasterxml.jackson.databind.JsonNode headersNode = responseObj.get("headers");
+                if (!(headersNode instanceof com.fasterxml.jackson.databind.node.ObjectNode headersObj)) {
+                    rewritten.add(mapping);
+                    continue;
+                }
+                if (dropAll) {
+                    responseObj.remove("headers");
+                } else {
+                    java.util.Iterator<String> fieldNames = headersObj.fieldNames();
+                    while (fieldNames.hasNext()) {
+                        String name = fieldNames.next();
+                        if (name != null && ignore.contains(name.toLowerCase(java.util.Locale.ROOT))) {
+                            fieldNames.remove();
+                        }
+                    }
+                    if (headersObj.isEmpty()) {
+                        responseObj.remove("headers");
+                    }
+                }
+                String modified = mapper.writeValueAsString(objectRoot);
+                rewritten.add(StubMapping.buildFrom(modified));
+            } catch (Exception e) {
+                // If anything goes wrong, keep the original mapping
+                rewritten.add(mapping);
+            }
+        }
+        mappings.clear();
+        mappings.addAll(rewritten);
+    }
     
     public static void saveMappings(WireMockServer wireMockServer, File mappingsDir, String targetUrl) throws IOException {
         File mappingsSubDir = new File(mappingsDir, "mappings");
@@ -109,7 +182,8 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
      * @throws IOException if an I/O error occurs while creating directories or saving mappings
      */
     public static void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
-            File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario, Long testMethodStartTime) throws IOException {
+            File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario, Long testMethodStartTime,
+            String[] ignoreResponseHeaders) throws IOException {
         File testMethodMappingsSubDir = new File(testMethodMappingsDir, "mappings");
         File testMethodFilesSubDir = new File(testMethodMappingsDir, "__files");
 
@@ -126,9 +200,6 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         // WireMock returns serve events in REVERSE chronological order (newest first)
         // So we need to get elements from the START of the list, not the end
-        // Count-based filtering: get the newest N events where N = total - existing count
-        // This works because each test method captures its request count at the start,
-        // so the difference gives us only the events from this test method
         int newEventsCount = allServeEvents.size() - existingRequestCount;
         List<com.github.tomakehurst.wiremock.stubbing.ServeEvent> candidateEvents = 
             newEventsCount > 0 ? allServeEvents.subList(0, newEventsCount) : new java.util.ArrayList<>();
@@ -315,6 +386,8 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 }
             }
         }
+
+        applyIgnoreResponseHeaders(testMethodMappings, ignoreResponseHeaders);
 
         logger.info("=== RECORDING: Matched {}/{} mapping(s) ===",
                 testMethodMappings.size(), testMethodServeEvents.size());

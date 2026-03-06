@@ -9,10 +9,12 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     
     private final ThirdPartyService thirdPartyService;
-    
+    private final CachedBaseUrlClient cachedBaseUrlClient;
+
     @Autowired
-    public UserController(ThirdPartyService thirdPartyService) {
+    public UserController(ThirdPartyService thirdPartyService, CachedBaseUrlClient cachedBaseUrlClient) {
         this.thirdPartyService = thirdPartyService;
+        this.cachedBaseUrlClient = cachedBaseUrlClient;
     }
     
     @GetMapping("/users/{id}")
@@ -36,19 +38,18 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    /**
+     * Uses a non-Feign client path for Option A playback coverage.
+     */
+    @GetMapping("/postmanecho/cached-users/{id}")
+    public ResponseEntity<String> getCachedUrlPostmanEcho(@PathVariable int id) {
+        String body = cachedBaseUrlClient.get(id);
+        return ResponseEntity.ok(body);
+    }
+
     @PostMapping(value = "/postmanecho/xml", consumes = "application/xml")
     public ResponseEntity<String> postXmlToPostmanEcho(@RequestBody String xmlBody) {
         String response = thirdPartyService.postXmlToPostmanEcho(xmlBody);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/postmanecho/get")
-    public ResponseEntity<String> getFromPostmanEcho(
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate,
-            @RequestParam(required = false) String test,
-            @RequestParam(required = false) String request) {
-        String response = thirdPartyService.getFromPostmanEchoWithParams(startDate, endDate, test, request);
         return ResponseEntity.ok(response);
     }
 

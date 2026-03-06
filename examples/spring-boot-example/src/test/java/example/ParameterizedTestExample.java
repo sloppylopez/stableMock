@@ -2,8 +2,10 @@ package example;
 
 import com.stablemock.U;
 import example.inheritance.BaseTestFeature;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -33,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @U(urls = { "https://postman-echo.com" },
    properties = { "app.postmanecho.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ParameterizedTestExample extends BaseTestFeature {
 
     @Autowired
@@ -52,6 +55,7 @@ public class ParameterizedTestExample extends BaseTestFeature {
         );
     }
 
+    @Order(2)
     @ParameterizedTest
     @MethodSource("hostTypeAvailabilityRequest")
     void testParameterizedRequests(int userId) {
@@ -121,6 +125,7 @@ public class ParameterizedTestExample extends BaseTestFeature {
         }
     }
 
+    @Order(1)
     @Test
     void testNonParameterizedRequest() {
         // Regular non-parameterized test for comparison
@@ -140,75 +145,5 @@ public class ParameterizedTestExample extends BaseTestFeature {
             assertTrue(mappingsDir.exists() || mappingsDir.getParentFile().exists(),
                 "Mappings directory should exist for playback: " + mappingsDir.getAbsolutePath());
         }
-    }
-
-    /**
-     * Test case that mimics the scenario where:
-     * 1. Dates are set dynamically in @BeforeEach (like FullFlowFlexibleIT)
-     * 2. Multiple requests are made per test method
-     * 3. Request bodies contain dynamic dates that change per test run
-     * 
-     * This helps debug issues with parameterized tests where:
-     * - Test [0] works but test [1] fails in playback
-     * - Auto-detected ignore patterns aren't being applied correctly
-     */
-    static Stream<Arguments> multipleRequestsWithDynamicDates() {
-        return Stream.of(
-            Arguments.of("test1"),
-            Arguments.of("test2")
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("multipleRequestsWithDynamicDates")
-    void testMultipleRequestsWithDynamicDates(String testName) {
-        // Simulate dynamic dates set in @BeforeEach (like FullFlowFlexibleIT)
-        // Dates change per test run, so they need to be auto-ignored
-        java.util.Date targetDay = new java.util.Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 10)); // 10 days from now
-        java.util.Date dayAfterTargetDay = new java.util.Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 11)); // 11 days from now
-        
-        // Format dates as strings (simulating XML/JSON date fields)
-        String startDate = new java.text.SimpleDateFormat("yyyy-MM-dd").format(targetDay);
-        String endDate = new java.text.SimpleDateFormat("yyyy-MM-dd").format(dayAfterTargetDay);
-        
-        // Make multiple requests with dynamic dates in query params (simulating request body dates)
-        // Request 1: Availability-like request
-        ResponseEntity<String> response1 = restTemplate.getForEntity(
-            "/api/postmanecho/get?startDate=" + startDate + "&endDate=" + endDate + "&test=" + testName + "&request=1", 
-            String.class);
-        
-        assertNotNull(response1, "Response 1 should not be null for " + testName);
-        String mode = System.getProperty("stablemock.mode", "PLAYBACK");
-        if ("RECORD".equalsIgnoreCase(mode)) {
-            // In RECORD mode, allow for transient failures but log the actual status
-            if (response1.getStatusCode().value() != 200) {
-                System.err.println("WARNING: Response 1 status " + response1.getStatusCode().value() + " for " + testName + " in RECORD mode");
-            }
-            // Don't fail the test in RECORD mode if status isn't 200 - might be network/proxy issue
-        } else {
-            assertEquals(200, response1.getStatusCode().value(), 
-                "Response 1 should be 200 OK for " + testName);
-        }
-        
-        // Request 2: Booking-like request (simulating second request in flow)
-        ResponseEntity<String> response2 = restTemplate.getForEntity(
-            "/api/postmanecho/get?startDate=" + startDate + "&endDate=" + endDate + "&test=" + testName + "&request=2", 
-            String.class);
-        
-        assertNotNull(response2, "Response 2 should not be null for " + testName);
-        if ("RECORD".equalsIgnoreCase(mode)) {
-            // In RECORD mode, allow for transient failures but log the actual status
-            if (response2.getStatusCode().value() != 200) {
-                System.err.println("WARNING: Response 2 status " + response2.getStatusCode().value() + " for " + testName + " in RECORD mode");
-            }
-            // Don't fail the test in RECORD mode if status isn't 200 - might be network/proxy issue
-        } else {
-            assertEquals(200, response2.getStatusCode().value(), 
-                "Response 2 should be 200 OK for " + testName);
-        }
-        
-        // Verify both requests succeeded
-        assertNotNull(response1.getBody(), "Response 1 body should not be null for " + testName);
-        assertNotNull(response2.getBody(), "Response 2 body should not be null for " + testName);
     }
 }

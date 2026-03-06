@@ -14,8 +14,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -27,6 +31,156 @@ public class StableMockExtension
         implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, AfterAllCallback, ParameterResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(StableMockExtension.class);
+
+    private static final Pattern FILESYSTEM_UNSAFE = Pattern.compile("[^a-zA-Z0-9._-]");
+
+    /**
+     * Extracts the parameterized invocation index from JUnit's uniqueId.
+     * Format: [engine:...]/[class:...]/[method:...]/[test-template:...]/[test-template-invocation:#N]
+     * @return 0-based invocation index, or -1 if not a parameterized invocation
+     */
+    static int getParameterizedInvocationIndex(ExtensionContext context) {
+        String uniqueId = context.getUniqueId();
+        String pattern = "test-template-invocation:";
+        int startIdx = uniqueId.indexOf(pattern);
+        if (startIdx < 0) {
+            return -1;
+        }
+        startIdx += pattern.length();
+        if (startIdx < uniqueId.length() && uniqueId.charAt(startIdx) == '#') {
+            startIdx++;
+        }
+        int endIdx = uniqueId.indexOf("]", startIdx);
+        if (endIdx <= startIdx) {
+            return -1;
+        }
+        try {
+            int oneBased = Integer.parseInt(uniqueId.substring(startIdx, endIdx).trim());
+            return Math.max(0, oneBased - 1);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    static boolean isParameterizedInvocation(ExtensionContext context) {
+        return getParameterizedInvocationIndex(context) >= 0;
+    }
+
+    /**
+     * Produces a deterministic, filesystem-safe identifier for the test method invocation.
+     * For parameterized tests (Option A): methodName__i&lt;index&gt; (e.g. testFoo__i0, testFoo__i1).
+     * Backward compatibility: resolveInvocationMappingsDir still finds old folders with hash suffix.
+     * For non-parameterized: method name only.
+     */
+    static String getStableTestMethodIdentifier(ExtensionContext context) {
+        String methodName = TestContextResolver.getTestMethodName(context);
+        int index = getParameterizedInvocationIndex(context);
+        if (index < 0) {
+            return methodName;
+        }
+        String base = sanitizeForFilesystem(methodName);
+        return base + "__i" + index;
+    }
+
+    private static String shortHash(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(8);
+            for (int i = 0; i < 4 && i < digest.length; i++) {
+                sb.append(String.format("%02x", digest[i] & 0xff));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            return Integer.toHexString((input.hashCode() & 0x7FFFFFFF));
+        }
+    }
+
+    private static String sanitizeForFilesystem(String s) {
+        if (s == null || s.isEmpty()) {
+            return s;
+        }
+        String out = FILESYSTEM_UNSAFE.matcher(s).replaceAll("_");
+        out = out.replaceAll("_{2,}", "_").replaceAll("^_|_$", "");
+        return out.isEmpty() ? "unknown" : out;
+    }
+
+    /**
+     * Resolves the invocation mappings directory for playback. Uses exact testMethodIdentifier first;
+     * if that directory does not exist (e.g. hash changed for old format, or different run), finds a directory
+     * under baseMappingsDir that matches method name and parameterized index.
+     * Supports: new format (methodName__i0) and old format (methodName__i0__hash or methodName_i0_hash).
+     */
+    static File resolveInvocationMappingsDir(File baseMappingsDir, String testMethodIdentifier, ExtensionContext context) {
+        File exact = new File(baseMappingsDir, testMethodIdentifier);
+        if (exact.exists() && exact.isDirectory()) {
+            return exact;
+        }
+        String methodName = TestContextResolver.getTestMethodName(context);
+        int index = getParameterizedInvocationIndex(context);
+        if (index < 0) {
+            return exact;
+        }
+        String sanitizedMethodName = sanitizeForFilesystem(methodName);
+        String indexSuffixOld = "_i" + index + "_";
+        String newStylePrefix = sanitizedMethodName + "__i" + index;
+        File[] dirs = baseMappingsDir.listFiles(File::isDirectory);
+        if (dirs == null) {
+            return exact;
+        }
+        List<File> matches = new ArrayList<>();
+        for (File d : dirs) {
+            String name = d.getName();
+            boolean oldStyle = name.contains(indexSuffixOld) && (name.startsWith(methodName) || name.startsWith(sanitizedMethodName));
+            boolean newStyle = isNewStyleInvocationDirMatch(name, newStylePrefix);
+            if (oldStyle || newStyle) {
+                matches.add(d);
+            }
+        }
+        if (matches.isEmpty()) {
+            logger.debug("No invocation dir matching method={} index={} in {}; using exact path (may not exist)", methodName, index, baseMappingsDir.getAbsolutePath());
+            return exact;
+        }
+        File chosen = matches.size() == 1 ? matches.get(0) : null;
+        if (chosen == null) {
+            for (File d : matches) {
+                if (d.getName().equals(testMethodIdentifier)) {
+                    chosen = d;
+                    break;
+                }
+            }
+            if (chosen == null) {
+                chosen = matches.get(0);
+            }
+        }
+        if (!chosen.equals(exact)) {
+            logger.info("Using invocation dir {} (exact {} not found) for method {} index {}", chosen.getName(), testMethodIdentifier, methodName, index);
+        }
+        return chosen;
+    }
+
+    /**
+     * Matches new-style invocation directory names with strict invocation-index boundaries.
+     * Prevents accidental matches like method__i1 matching method__i10.
+     */
+    static boolean isNewStyleInvocationDirMatch(String directoryName, String expectedPrefix) {
+        if (directoryName == null || expectedPrefix == null) {
+            return false;
+        }
+        if (directoryName.equals(expectedPrefix)) {
+            return true;
+        }
+        if (!directoryName.startsWith(expectedPrefix)) {
+            return false;
+        }
+        int prefixLen = expectedPrefix.length();
+        // Require \"__\" plus at least one character after the boundary, so we don't match
+        // a bare \"prefix__\" without hash/suffix.
+        if (directoryName.length() <= prefixLen + 2) {
+            return false;
+        }
+        return directoryName.startsWith("__", prefixLen);
+    }
 
     @Override
     public void beforeAll(ExtensionContext context) {
@@ -85,8 +239,9 @@ public class StableMockExtension
                     // In playback mode, merge all test methods' annotation_X mappings for this URL
                     // index
                     MappingStorage.mergeAnnotationMappingsForUrlIndex(baseMappingsDir, i);
-                    // Collect ignore patterns from all annotations (for class-level, we use all annotations)
+                    // Collect ignore / dont-ignore patterns from all annotations (for class-level, we use all annotations)
                     List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                    List<String> annotationDontIgnorePatterns = new java.util.ArrayList<>();
                     for (U annotation : annotations) {
                         String[] ignore = annotation.ignore();
                         if (ignore != null) {
@@ -96,9 +251,17 @@ public class StableMockExtension
                                 }
                             }
                         }
+                        String[] dontIgnore = annotation.dontIgnore();
+                        if (dontIgnore != null) {
+                            for (String pattern : dontIgnore) {
+                                if (pattern != null && !pattern.isEmpty()) {
+                                    annotationDontIgnorePatterns.add(pattern);
+                                }
+                            }
+                        }
                     }
                     server = WireMockServerManager.startPlayback(port, urlMappingsDir, 
-                            testResourcesDir, testClassName, null, annotationIgnorePatterns);
+                            testResourcesDir, testClassName, null, annotationIgnorePatterns, annotationDontIgnorePatterns);
                 }
 
                 servers.add(server);
@@ -130,12 +293,14 @@ public class StableMockExtension
             System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(ports.get(0)));
 
             for (int i = 0; i < ports.size(); i++) {
-                // Always set indexed properties (needed for tests with multiple @U annotations)
-                System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
-                System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
-                // Also class-scoped indexed properties for multi-URL tests
+                // Always set class-scoped indexed properties (parallel-safe)
                 System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
                 System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
+                // Only set global indexed properties when explicitly enabled
+                if (StableMockConfig.useGlobalProperties()) {
+                    System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
+                    System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i));
+                }
             }
 
             logger.info("Started {} WireMock server(s) for {} in {} mode", servers.size(), testClassName, mode);
@@ -168,8 +333,9 @@ public class StableMockExtension
                     throw new RuntimeException("Failed to merge test method mappings for " + testClassName, e);
                 }
                 
-                // Collect ignore patterns from all annotations (for class-level, we use all annotations)
+                // Collect ignore / dont-ignore patterns from all annotations (for class-level, we use all annotations)
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                List<String> annotationDontIgnorePatterns = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
                     String[] ignore = annotation.ignore();
                     if (ignore != null) {
@@ -179,9 +345,17 @@ public class StableMockExtension
                             }
                         }
                     }
+                    String[] dontIgnore = annotation.dontIgnore();
+                    if (dontIgnore != null) {
+                        for (String pattern : dontIgnore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationDontIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
                 }
                 server = WireMockServerManager.startPlayback(port, baseMappingsDir, 
-                        testResourcesDir, testClassName, null, annotationIgnorePatterns);
+                        testResourcesDir, testClassName, null, annotationIgnorePatterns, annotationDontIgnorePatterns);
             }
 
             classStore.putServer(server);
@@ -236,10 +410,155 @@ public class StableMockExtension
         ExtensionContextManager.MethodLevelStore methodStore = new ExtensionContextManager.MethodLevelStore(context);
 
         if (classServer != null) {
+            boolean usePerInvocationServer = StableMockConfig.isPlaybackMode()
+                    && isParameterizedInvocation(context)
+                    && StableMockConfig.isParameterizedPlaybackReloadEnabled();
+
+            if (usePerInvocationServer) {
+                String testClassName = TestContextResolver.getTestClassName(context);
+                String testMethodIdentifier = getStableTestMethodIdentifier(context);
+                int index = getParameterizedInvocationIndex(context);
+                File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
+                File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+                File resolvedMappingsDir = resolveInvocationMappingsDir(baseMappingsDir, testMethodIdentifier, context);
+
+                List<String> annotationIgnorePatterns = new ArrayList<>();
+                List<String> annotationDontIgnorePatterns = new ArrayList<>();
+                for (U annotation : annotations) {
+                    String[] ignore = annotation.ignore();
+                    if (ignore != null) {
+                        for (String pattern : ignore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
+                    String[] dontIgnore = annotation.dontIgnore();
+                    if (dontIgnore != null) {
+                        for (String pattern : dontIgnore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationDontIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
+                }
+
+                if (allUrls.size() > 1) {
+                    List<WireMockServer> servers = new ArrayList<>();
+                    List<Integer> ports = new ArrayList<>();
+                    for (int i = 0; i < allUrls.size(); i++) {
+                        File invocationDir = new File(resolvedMappingsDir, "annotation_" + i);
+                        int port = WireMockServerManager.findFreePort();
+                        WireMockServer server = WireMockServerManager.startPlayback(port, invocationDir,
+                                testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnorePatterns);
+                        servers.add(server);
+                        ports.add(server.port());
+                    }
+                    methodStore.putServer(servers.get(0));
+                    methodStore.putServers(servers);
+                    methodStore.putPort(ports.get(0));
+                    methodStore.putPorts(ports);
+
+                    String baseUrl = Constants.LOCALHOST_URL_PREFIX + ports.get(0);
+                    WireMockContext.setBaseUrl(baseUrl);
+                    WireMockContext.setPort(ports.get(0));
+                    String[] baseUrls = new String[ports.size()];
+                    for (int i = 0; i < ports.size(); i++) {
+                        baseUrls[i] = Constants.LOCALHOST_URL_PREFIX + ports.get(i);
+                    }
+                    WireMockContext.setBaseUrls(baseUrls);
+                    for (int i = 0; i < ports.size(); i++) {
+                        System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
+                        System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, Constants.LOCALHOST_URL_PREFIX + ports.get(i));
+                        if (StableMockConfig.useGlobalProperties()) {
+                            System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
+                            System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, Constants.LOCALHOST_URL_PREFIX + ports.get(i));
+                        }
+                    }
+                } else {
+                    File invocationDir = resolvedMappingsDir;
+                    int port = WireMockServerManager.findFreePort();
+                    WireMockServer server = WireMockServerManager.startPlayback(port, invocationDir,
+                            testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnorePatterns);
+                    int actualPort = server.port();
+                    methodStore.putServer(server);
+                    methodStore.putPort(actualPort);
+                    methodStore.putServers(Collections.singletonList(server));
+                    methodStore.putPorts(Collections.singletonList(actualPort));
+
+                    String baseUrl = Constants.LOCALHOST_URL_PREFIX + actualPort;
+                    WireMockContext.setBaseUrl(baseUrl);
+                    WireMockContext.setPort(actualPort);
+                    System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName, baseUrl);
+                    System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName, String.valueOf(actualPort));
+                    if (StableMockConfig.useGlobalProperties()) {
+                        System.setProperty(StableMockConfig.BASE_URL_PROPERTY, baseUrl);
+                        System.setProperty(StableMockConfig.PORT_PROPERTY, String.valueOf(actualPort));
+                    }
+                }
+
+                methodStore.putUseClassLevelServer(false);
+                methodStore.putMappingsDir(new File(baseMappingsDir, testMethodIdentifier));
+                methodStore.putMode(StableMockConfig.getMode());
+                methodStore.putTargetUrl(allUrls.get(0));
+                logger.info("StableMock using per-invocation WireMock server for {} (invocation index {})", testMethodIdentifier, index);
+                return;
+            }
+
             if (StableMockConfig.isRecordMode()) {
                 ReentrantLock lock = classStore.getOrCreateClassLock();
                 lock.lock();
                 methodStore.putClassLock(lock);
+            }
+
+            String testClassName = TestContextResolver.getTestClassName(context);
+            String testMethodIdentifier = getStableTestMethodIdentifier(context);
+            File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
+            File baseMappingsDir = new File(testResourcesDir, "stablemock/" + testClassName);
+            File mappingsDir = new File(baseMappingsDir, testMethodIdentifier);
+
+            if (StableMockConfig.isPlaybackMode() && isParameterizedInvocation(context)
+                    && StableMockConfig.isParameterizedPlaybackReloadEnabled()) {
+                ReentrantLock lock = classStore.getOrCreateClassLock();
+                lock.lock();
+                methodStore.putClassLock(lock);
+                File resolvedMappingsDir = resolveInvocationMappingsDir(baseMappingsDir, testMethodIdentifier, context);
+                List<String> annotationIgnorePatterns = new ArrayList<>();
+                List<String> annotationDontIgnorePatterns = new ArrayList<>();
+                for (U annotation : annotations) {
+                    String[] ignore = annotation.ignore();
+                    if (ignore != null) {
+                        for (String pattern : ignore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
+                    String[] dontIgnore = annotation.dontIgnore();
+                    if (dontIgnore != null) {
+                        for (String pattern : dontIgnore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationDontIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
+                }
+                List<WireMockServer> classServersList = classStore.getServers();
+                if (classServersList != null && !classServersList.isEmpty()) {
+                    for (int i = 0; i < classServersList.size(); i++) {
+                        WireMockServer server = classServersList.get(i);
+                        if (server != null) {
+                            File invocationDir = new File(resolvedMappingsDir, "annotation_" + i);
+                            File serverRootDir = new File(baseMappingsDir, "url_" + i);
+                            WireMockServerManager.reloadMappingsOnServer(server, invocationDir, serverRootDir,
+                                    testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnorePatterns);
+                        }
+                    }
+                } else {
+                    File serverRootDir = baseMappingsDir;
+                    WireMockServerManager.reloadMappingsOnServer(classServer, resolvedMappingsDir, serverRootDir,
+                            testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnorePatterns);
+                }
             }
 
             Integer port = classStore.getPort();
@@ -254,11 +573,6 @@ public class StableMockExtension
                 }
                 WireMockContext.setBaseUrls(baseUrls);
             }
-
-            String testClassName = TestContextResolver.getTestClassName(context);
-            String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
-            File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
-            File mappingsDir = new File(testResourcesDir, "stablemock/" + testClassName + "/" + testMethodIdentifier);
 
             // Capture timestamp before test method runs to ensure we only save events from this test
             long testMethodStartTime = System.currentTimeMillis();
@@ -294,7 +608,7 @@ public class StableMockExtension
                 List<WireMockServerManager.AnnotationInfo> annotationInfos = new ArrayList<>();
                 for (int i = 0; i < allUrls.size(); i++) {
                     String url = allUrls.get(i);
-                    annotationInfos.add(new WireMockServerManager.AnnotationInfo(i, new String[] { url }));
+                    annotationInfos.add(new WireMockServerManager.AnnotationInfo(i, new String[] { url }, new String[0]));
                 }
                 methodStore.putAnnotationInfos(annotationInfos);
 
@@ -313,15 +627,15 @@ public class StableMockExtension
 
                 if (ports != null && !ports.isEmpty()) {
                     for (int i = 0; i < ports.size(); i++) {
-                        String portProp = StableMockConfig.PORT_PROPERTY + "." + i;
-                        String urlProp = StableMockConfig.BASE_URL_PROPERTY + "." + i;
                         String urlValue = com.stablemock.core.config.Constants.LOCALHOST_URL_PREFIX + ports.get(i);
-                        // Always set indexed properties (needed for tests with multiple @U annotations)
-                        System.setProperty(portProp, String.valueOf(ports.get(i)));
-                        System.setProperty(urlProp, urlValue);
-                        // Also class-scoped indexed properties
+                        // Always set class-scoped indexed properties (parallel-safe)
                         System.setProperty(StableMockConfig.PORT_PROPERTY + "." + testClassName + "." + i, String.valueOf(ports.get(i)));
                         System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + i, urlValue);
+                        // Only set global indexed properties if explicitly enabled
+                        if (StableMockConfig.useGlobalProperties()) {
+                            System.setProperty(StableMockConfig.PORT_PROPERTY + "." + i, String.valueOf(ports.get(i)));
+                            System.setProperty(StableMockConfig.BASE_URL_PROPERTY + "." + i, urlValue);
+                        }
                     }
                 } else {
                     logger.warn("No ports found for multiple URLs in beforeEach");
@@ -332,14 +646,14 @@ public class StableMockExtension
 
         String mode = StableMockConfig.getMode();
         String testClassName = TestContextResolver.getTestClassName(context);
-        String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
+        String testMethodIdentifier = getStableTestMethodIdentifier(context);
         File testResourcesDir = TestContextResolver.findTestResourcesDirectory(context);
         File mappingsDir = new File(testResourcesDir, "stablemock/" + testClassName + "/" + testMethodIdentifier);
 
         if (annotations.length > 1 && StableMockConfig.isRecordMode()) {
             List<WireMockServerManager.AnnotationInfo> annotationInfos = new ArrayList<>();
             for (int i = 0; i < annotations.length; i++) {
-                annotationInfos.add(new WireMockServerManager.AnnotationInfo(i, annotations[i].urls()));
+                annotationInfos.add(new WireMockServerManager.AnnotationInfo(i, annotations[i].urls(), annotations[i].ignoreResponseHeaders()));
             }
 
             List<WireMockServer> servers = new java.util.ArrayList<>();
@@ -396,9 +710,10 @@ public class StableMockExtension
             } else {
                 // mergePerTestMethodMappings expects class-level directory, not method-level
                 File classMappingsDir = mappingsDir.getParentFile();
-                
-                // Collect annotation ignore patterns
+                MappingStorage.mergePerTestMethodMappings(classMappingsDir);
+                // Collect ignore / dont-ignore patterns from all annotations (for method-level)
                 List<String> annotationIgnorePatterns = new java.util.ArrayList<>();
+                List<String> annotationDontIgnorePatterns = new java.util.ArrayList<>();
                 for (U annotation : annotations) {
                     String[] ignore = annotation.ignore();
                     if (ignore != null) {
@@ -408,16 +723,18 @@ public class StableMockExtension
                             }
                         }
                     }
+                    String[] dontIgnore = annotation.dontIgnore();
+                    if (dontIgnore != null) {
+                        for (String pattern : dontIgnore) {
+                            if (pattern != null && !pattern.isEmpty()) {
+                                annotationDontIgnorePatterns.add(pattern);
+                            }
+                        }
+                    }
                 }
-                
-                // Merge first, then let startPlayback apply patterns from ALL test methods
-                // This ensures patterns from all parameterized test invocations are applied to all merged mappings
-                MappingStorage.mergePerTestMethodMappings(classMappingsDir);
-                
-                // After merge, start playback - startPlayback will load patterns from ALL test methods
-                // and apply them to all mappings (when testMethodName is null, it loads patterns from all methods)
+                // After merge, mappings are in class-level directory, so use that for playback
                 wireMockServer = WireMockServerManager.startPlayback(port, classMappingsDir, 
-                        testResourcesDir, testClassName, null, annotationIgnorePatterns);
+                        testResourcesDir, testClassName, testMethodIdentifier, annotationIgnorePatterns, annotationDontIgnorePatterns);
             }
 
             methodStore.putServer(wireMockServer);
@@ -441,25 +758,14 @@ public class StableMockExtension
 
     @Override
     public void afterEach(ExtensionContext context) throws Exception {
-        String testMethodName = TestContextResolver.getTestMethodIdentifier(context);
-        System.out.println("=== STABLEMOCK afterEach called for: " + testMethodName + " ===");
-        logger.info("=== afterEach called for: {} ===", testMethodName);
-        
         ExtensionContextManager.MethodLevelStore methodStore = new ExtensionContextManager.MethodLevelStore(context);
         Boolean useClassLevelServer = methodStore.getUseClassLevelServer();
         ReentrantLock classLock = methodStore.getClassLock();
-
-        System.out.println("=== STABLEMOCK afterEach: useClassLevelServer=" + useClassLevelServer + ", isRecordMode=" + StableMockConfig.isRecordMode() + " ===");
-        logger.info("=== afterEach: useClassLevelServer={}, isRecordMode={} ===", 
-                useClassLevelServer, StableMockConfig.isRecordMode());
 
         try {
             if (useClassLevelServer != null && useClassLevelServer) {
                 File mappingsDir = methodStore.getMappingsDir();
                 String targetUrl = methodStore.getTargetUrl();
-
-                logger.info("=== afterEach: mappingsDir={}, targetUrl={} ===", 
-                        mappingsDir != null ? mappingsDir.getAbsolutePath() : "null", targetUrl);
 
                 if (StableMockConfig.isRecordMode() && mappingsDir != null && targetUrl != null) {
                     ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(
@@ -505,31 +811,31 @@ public class StableMockExtension
                                         existingRequestCounts, testResourcesDir, testClassName, annotationInfos, allServers);
                             }
                         } else {
-                            logger.info("=== afterEach: serveEvents.size()={}, existingRequestCount={}, mappingsDir={} ===", 
-                                    serveEvents.size(), existingRequestCount, mappingsDir != null ? mappingsDir.getAbsolutePath() : "null");
                             if (!serveEvents.isEmpty() && serveEvents.size() > existingRequestCount) {
-                                // Check if scenario mode is enabled
+                                // Check if scenario mode and header-ignores are enabled
                                 U[] annotations = TestContextResolver.findAllUAnnotations(context);
                                 boolean scenario = false;
+                                java.util.List<String> ignoreHeaderNames = new java.util.ArrayList<>();
                                 for (U annotation : annotations) {
                                     if (annotation.scenario()) {
                                         scenario = true;
-                                        break;
+                                    }
+                                    String[] hdrs = annotation.ignoreResponseHeaders();
+                                    if (hdrs != null && hdrs.length > 0) {
+                                        java.util.Collections.addAll(ignoreHeaderNames, hdrs);
                                     }
                                 }
                                 
                                 Long testMethodStartTime = methodStore.getTestMethodStartTime();
-                                logger.info("=== Saving mappings: {} new event(s) for test method ===", 
-                                        serveEvents.size() - existingRequestCount);
+                                String[] ignoreHeadersArray = ignoreHeaderNames.isEmpty()
+                                        ? new String[0]
+                                        : ignoreHeaderNames.toArray(new String[0]);
                                 MappingStorage.saveMappingsForTestMethod(server, mappingsDir, baseMappingsDir, targetUrl,
-                                        existingRequestCount, scenario, testMethodStartTime);
+                                        existingRequestCount, scenario, testMethodStartTime, ignoreHeadersArray);
 
                                 // Track requests and run detection for single annotation
                                 performDynamicFieldDetection(context, server, existingRequestCount, null,
                                         testResourcesDir, testClassName, null);
-                            } else {
-                                logger.warn("=== NOT Saving mappings: serveEvents.size()={} <= existingRequestCount={} (no new events detected) ===", 
-                                        serveEvents.size(), existingRequestCount);
                             }
                         }
                     }
@@ -685,8 +991,8 @@ public class StableMockExtension
 
     /**
      * Waits for a port to be released after server stop.
-     * This is critical in parallel test execution where ports can conflict.
-     * 
+     * Used in afterAll when stopping class-level servers.
+     *
      * @param port The port to wait for release, or null if unknown
      */
     private void waitForPortRelease(Integer port) {
@@ -703,8 +1009,8 @@ public class StableMockExtension
         
         // Try to verify port is actually released by attempting to bind to it
         // Increased attempts and delay for WSL where port release can be slower
-        int maxAttempts = 30; // Increased from 10 for WSL (more conservative)
-        int delayMs = 150; // Increased from 50ms for WSL (more conservative)
+        int maxAttempts = 60;
+        int delayMs = 250;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             try (java.net.ServerSocket socket = new java.net.ServerSocket()) {
                 socket.setReuseAddress(false);
@@ -749,7 +1055,7 @@ public class StableMockExtension
             List<WireMockServerManager.AnnotationInfo> annotationInfos) {
 
         // Get test method identifier from context (includes invocation index for parameterized tests)
-        String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
+        String testMethodIdentifier = getStableTestMethodIdentifier(context);
 
         // Delegate to orchestrator - all logic moved there for better separation of
         // concerns. The orchestrator gets serve events directly from the server.
@@ -770,7 +1076,7 @@ public class StableMockExtension
             List<WireMockServer> allServers) {
 
         // Get test method identifier from context (includes invocation index for parameterized tests)
-        String testMethodIdentifier = TestContextResolver.getTestMethodIdentifier(context);
+        String testMethodIdentifier = getStableTestMethodIdentifier(context);
 
         // Delegate to orchestrator with all servers. The orchestrator gets serve events directly from the servers.
         DynamicFieldAnalysisOrchestrator.analyzeAndPersist(
@@ -805,22 +1111,17 @@ public class StableMockExtension
             throws ParameterResolutionException {
         Class<?> parameterType = parameterContext.getParameter().getType();
         if (parameterType == int.class || parameterType == Integer.class) {
-            // Port is stored in class-level store in beforeAll, so check there first
-            // Method-level store is populated in beforeEach (which runs after parameter resolution)
-            ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(
-                    extensionContext);
-            Integer port = classStore.getPort();
+            // Prefer method-level store first (per-invocation server in Option A playback)
+            ExtensionContextManager.MethodLevelStore methodStore = new ExtensionContextManager.MethodLevelStore(extensionContext);
+            Integer port = methodStore.getPort();
             if (port != null && port > 0) {
                 return port;
             }
-            // Fallback to method-level store (in case it was set earlier)
-            ExtensionContextManager.MethodLevelStore methodStore = new ExtensionContextManager.MethodLevelStore(
-                    extensionContext);
-            port = methodStore.getPort();
+            ExtensionContextManager.ClassLevelStore classStore = new ExtensionContextManager.ClassLevelStore(extensionContext);
+            port = classStore.getPort();
             if (port != null && port > 0) {
                 return port;
             }
-            // If port is still not available, throw a clear error
             throw new ParameterResolutionException(
                     "Port not available for injection. Make sure @U annotation is present on the test class " +
                     "and that beforeAll has completed. Current port value: " + port);

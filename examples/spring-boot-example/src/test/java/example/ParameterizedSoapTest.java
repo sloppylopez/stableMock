@@ -3,8 +3,9 @@ package example;
 import com.stablemock.U;
 import example.inheritance.BaseTestFeature;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -44,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @U(urls = { "https://postman-echo.com" },
    properties = { "app.postmanecho.url" })
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@Execution(ExecutionMode.SAME_THREAD)
 public class ParameterizedSoapTest extends BaseTestFeature {
 
     @Autowired
@@ -69,13 +71,13 @@ public class ParameterizedSoapTest extends BaseTestFeature {
 
     static Stream<Arguments> soapTestCases() {
         return Stream.of(
-            Arguments.of("TypeA", "0000004003", "123412341234", "SILVER"),
+            Arguments.of("TypeA", "0000004003", "123412341234", "TierA"),
             Arguments.of("TypeB", null, null, null),
             Arguments.of("TypeC", null, null, null)
         );
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("soapTestCases")
     void testSoapFlow(String userType, String customerCode, String cardNumber, String category) {
         // Request 1: Search availability SOAP request

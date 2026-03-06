@@ -17,6 +17,7 @@ public final class StableMockConfig {
     public static final int DEFAULT_PROXY_TIMEOUT_MS = 60000;
     public static final String STARTUP_EXTRA_SLEEP_MS_PROPERTY = "stablemock.wiremock.startupExtraSleepMs";
     public static final int DEFAULT_STARTUP_EXTRA_SLEEP_MS = 0;
+    public static final String PARAMETERIZED_PLAYBACK_RELOAD_PROPERTY = "stablemock.parameterized.playback.reload";
     
     private StableMockConfig() {
         // utility class
@@ -41,7 +42,7 @@ public final class StableMockConfig {
     /**
      * Returns the WireMock proxy timeout in milliseconds.
      * Defaults to 60 seconds but can be overridden via system property.
-     * Values &lt;= 0 are treated as invalid and the default is used instead.
+     * Values {@code <= 0} are treated as invalid and the default is used instead.
      */
     public static int getProxyTimeoutMs() {
         int value = Integer.getInteger(PROXY_TIMEOUT_MS_PROPERTY, DEFAULT_PROXY_TIMEOUT_MS);
@@ -55,6 +56,15 @@ public final class StableMockConfig {
      */
     public static int getStartupExtraSleepMs() {
         int value = Integer.getInteger(STARTUP_EXTRA_SLEEP_MS_PROPERTY, DEFAULT_STARTUP_EXTRA_SLEEP_MS);
-        return value > 0 ? value : 0;
+        return Math.max(value, 0);
+    }
+
+    /**
+     * When true (default), parameterized playback uses hot mapping reload on the existing server.
+     * When false, merged-mapping behavior is used (no per-invocation reload).
+     * Does not trigger server restart in either case.
+     */
+    public static boolean isParameterizedPlaybackReloadEnabled() {
+        return Boolean.parseBoolean(System.getProperty(PARAMETERIZED_PLAYBACK_RELOAD_PROPERTY, "true"));
     }
 }
