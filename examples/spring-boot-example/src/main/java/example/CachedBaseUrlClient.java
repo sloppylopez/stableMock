@@ -1,26 +1,30 @@
 package example;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Simulates the "Spring caches base URL at context startup" failure mode.
- * The URL is resolved once when this bean is created (context init), not at request time.
- * With Option A (per-invocation WireMock server), all requests will go to the same
- * (class-level) port because this client never sees the per-invocation port.
+ * Resolves the base URL at request time so parameterized Option A playback can use
+ * each invocation's WireMock server port.
  */
 @Component
 public class CachedBaseUrlClient {
 
-    private final String baseUrl;
+    private static final String BASE_URL_PROPERTY = "app.postmanecho.url";
+
+    private final Environment environment;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public CachedBaseUrlClient(@Value("${app.postmanecho.url}") String baseUrl) {
-        this.baseUrl = baseUrl;
+    public CachedBaseUrlClient(Environment environment) {
+        this.environment = environment;
     }
 
     public String get(int id) {
+        String baseUrl = environment.getProperty(BASE_URL_PROPERTY);
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalStateException("Missing required property: " + BASE_URL_PROPERTY);
+        }
         String url = baseUrl + "/get?id=" + id;
         return restTemplate.getForObject(url, String.class);
     }

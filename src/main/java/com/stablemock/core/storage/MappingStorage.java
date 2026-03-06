@@ -40,9 +40,10 @@ public final class MappingStorage {
      * @throws IOException if an I/O error occurs while saving mappings
      */
     public static void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
-            File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario, Long testMethodStartTime) throws IOException {
+            File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario, Long testMethodStartTime,
+            String[] ignoreResponseHeaders) throws IOException {
         SingleAnnotationMappingStorage.saveMappingsForTestMethod(wireMockServer, testMethodMappingsDir, 
-                baseMappingsDir, targetUrl, existingRequestCount, scenario, testMethodStartTime);
+                baseMappingsDir, targetUrl, existingRequestCount, scenario, testMethodStartTime, ignoreResponseHeaders);
     }
     
     /**
