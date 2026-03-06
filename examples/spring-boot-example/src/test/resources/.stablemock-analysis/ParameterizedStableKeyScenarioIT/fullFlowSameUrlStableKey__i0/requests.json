@@ -1,13 +1,13 @@
 [ {
-  "timestamp" : "2026-03-05T16:02:31.170609500Z",
+  "timestamp" : "2026-03-06T12:40:32.683718400Z",
   "url" : "/post",
   "method" : "POST",
-  "body" : "<root><Scenario>Loyalty</Scenario></root>",
+  "body" : "<root><Scenario>ScenarioA</Scenario></root>",
   "contentType" : "application/xml"
 }, {
-  "timestamp" : "2026-03-05T16:03:16.429470700Z",
+  "timestamp" : "2026-03-06T12:41:11.075653500Z",
   "url" : "/post",
   "method" : "POST",
-  "body" : "<root><Scenario>Loyalty</Scenario></root>",
+  "body" : "<root><Scenario>ScenarioA</Scenario></root>",
   "contentType" : "application/xml"
 } ]

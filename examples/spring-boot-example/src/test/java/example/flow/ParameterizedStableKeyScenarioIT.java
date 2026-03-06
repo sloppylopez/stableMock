@@ -46,8 +46,8 @@ public class ParameterizedStableKeyScenarioIT extends BaseTestFeature {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-            Arguments.of("Loyalty"),
-            Arguments.of("PlatinumNoLoyalty")
+            Arguments.of("ScenarioA"),
+            Arguments.of("ScenarioB")
         );
     }
 
