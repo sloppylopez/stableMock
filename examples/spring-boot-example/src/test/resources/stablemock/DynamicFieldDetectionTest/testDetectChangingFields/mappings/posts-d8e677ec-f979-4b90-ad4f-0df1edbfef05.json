@@ -1,0 +1,44 @@
+{
+  "id" : "d8e677ec-f979-4b90-ad4f-0df1edbfef05",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2026-03-06T15:04:19.845898500Z\",\"requestId\":\"a2b294ac-444d-4264-a1e6-2c78af7761c1\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d824098afca4e3f-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1772809508",
+      "x-ratelimit-remaining" : "997",
+      "pragma" : "no-cache",
+      "Date" : "Fri, 06 Mar 2026 15:04:20 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=JBFq6ZHt1CuOZHjK5%2BFvF%2B4CyLzkd41HbbDJl%2B9xUFc%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1772809460\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=JBFq6ZHt1CuOZHjK5%2BFvF%2B4CyLzkd41HbbDJl%2B9xUFc%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1772809460\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "d8e677ec-f979-4b90-ad4f-0df1edbfef05",
+  "persistent" : true,
+  "insertionIndex" : 0
+}
