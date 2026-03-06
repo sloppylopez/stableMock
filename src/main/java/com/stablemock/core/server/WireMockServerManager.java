@@ -380,6 +380,7 @@ public final class WireMockServerManager {
         File sourceDir = invocationMappingsDir;
         if (!ignorePatterns.isEmpty()) {
             try {
+                //logger.info("Applying {} ignore pattern(s) for reload on {}", ignorePatterns.size(), testMethodIdentifier);
                 java.nio.file.Path tempPath = java.nio.file.Files.createTempDirectory("stablemock-reload-");
                 File tempDir = tempPath.toFile();
                 try {
@@ -1055,12 +1056,13 @@ public final class WireMockServerManager {
                 }
             }
             
-            // Convert back to string
+            // Convert back to string (explicit UTF-8 to avoid invalid character issues)
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
             transformer.setOutputProperty(OutputKeys.INDENT, "no");
-            
+            transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+
             StringWriter writer = new StringWriter();
             transformer.transform(new DOMSource(doc), new StreamResult(writer));
             return writer.toString();
@@ -1338,8 +1340,13 @@ public final class WireMockServerManager {
     
     /**
      * Sets ignored elements/attributes to ${xmlunit.ignore} placeholder.
+     * Auto-detected patterns from XmlFieldDetector use root-relative form "*[local-name()='X']/...";
+     * normalize to "//*[local-name()='X']/..." so the same matching logic applies.
      */
     private static void applyXmlIgnorePattern(Document doc, String xpathPattern) {
+        if (!xpathPattern.startsWith("//") && xpathPattern.startsWith("*[local-name()=")) {
+            xpathPattern = "//" + xpathPattern;
+        }
         if (xpathPattern.startsWith("//")) {
             if (xpathPattern.contains("@")) {
                 // Attribute pattern: //*[local-name()='element']/@*[local-name()='attr']

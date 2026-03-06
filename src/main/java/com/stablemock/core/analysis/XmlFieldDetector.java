@@ -91,7 +91,7 @@ public final class XmlFieldDetector {
                     String xmlPath = "xml:" + xpathPattern;
 
                     result.addDynamicField(new DetectionResult.DynamicField(xmlPath, sampleValues));
-                    if (!shouldSkipIgnoreForPath(path, m)) {
+                    if (shouldSkipIgnoreForPath(path, m)) {
                         result.addIgnorePattern(xmlPath);
                     }
 
@@ -124,7 +124,7 @@ public final class XmlFieldDetector {
 
                     result.addDynamicField(new DetectionResult.DynamicField(
                             xmlPath, sampleValues));
-                    if (!shouldSkipIgnoreForPath(path, m)) {
+                    if (shouldSkipIgnoreForPath(path, m)) {
                         result.addIgnorePattern(xmlPath);
                     }
 
@@ -148,7 +148,7 @@ public final class XmlFieldDetector {
      */
     private static String buildElementPathXPath(String path) {
         if (path == null || path.isEmpty()) {
-            return "*";
+            return "//*";
         }
         String[] elementParts = path.split("/");
         StringBuilder xpath = new StringBuilder();
@@ -160,15 +160,13 @@ public final class XmlFieldDetector {
             // Example: "ns4:RequestElement" -> "RequestElement"
             // Example: "SOAP-ENV:Envelope" -> "Envelope"
             String localName = extractLocalName(part);
-            if (xpath.length() == 0) {
-                // First element: use absolute path from root (*[...]) not descendant (//*[...])
-                // This ensures patterns match from document root, not anywhere in the tree
-                xpath.append("*[local-name()='").append(localName).append("']");
+            if (xpath.isEmpty()) {
+                xpath.append("//*[local-name()='").append(localName).append("']");
             } else {
                 xpath.append("/*[local-name()='").append(localName).append("']");
             }
         }
-        return xpath.length() == 0 ? "*" : xpath.toString();
+        return xpath.isEmpty() ? "//*" : xpath.toString();
     }
 
     /**
@@ -203,10 +201,10 @@ public final class XmlFieldDetector {
      */
     private static boolean shouldSkipIgnoreForPath(String path, IdentityFilterMarkers markers) {
         if (path == null || path.isEmpty() || markers == null) {
-            return false;
+            return true;
         }
         String lower = path.toLowerCase(Locale.ROOT);
-        return markers.isCallerIdentityPath(lower) || markers.isPlanSelectorPath(lower);
+        return !markers.isCallerIdentityPath(lower) && !markers.isPlanSelectorPath(lower);
     }
 
     /**

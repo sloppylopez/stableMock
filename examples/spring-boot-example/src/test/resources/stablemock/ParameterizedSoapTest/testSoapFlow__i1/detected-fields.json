@@ -1,0 +1,35 @@
+{
+  "testClass" : "ParameterizedSoapTest",
+  "testMethod" : "testSoapFlow__i1",
+  "detectedAt" : "2026-03-06T14:59:54.930753400Z",
+  "analyzed_requests_count" : 6,
+  "dynamic_fields" : [ {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/*[local-name()='ConfirmationDetails']/*[local-name()='DateRange']/@*[local-name()='End']",
+    "sample_values" : [ "2026-03-17", "2026-03-17" ]
+  }, {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/*[local-name()='ConfirmationDetails']/*[local-name()='DateRange']/@*[local-name()='Start']",
+    "sample_values" : [ "2026-03-16", "2026-03-16" ]
+  }, {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/@*[local-name()='TimeStamp']",
+    "sample_values" : [ "2026-03-06T14:59:15.607709100Z", "2026-03-06T14:59:54.081105400Z" ]
+  }, {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/*[local-name()='ReservationDetails']/*[local-name()='DateRange']/@*[local-name()='End']",
+    "sample_values" : [ "2026-03-17", "2026-03-17" ]
+  }, {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/*[local-name()='ReservationDetails']/*[local-name()='DateRange']/@*[local-name()='Start']",
+    "sample_values" : [ "2026-03-16", "2026-03-16" ]
+  }, {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/@*[local-name()='TimeStamp']",
+    "sample_values" : [ "2026-03-06T14:59:15.367525600Z", "2026-03-06T14:59:53.801737500Z" ]
+  }, {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/*[local-name()='SearchSegments']/*[local-name()='SearchSegment']/*[local-name()='SearchCriteria']/*[local-name()='Criterion']/*[local-name()='DateRange']/@*[local-name()='End']",
+    "sample_values" : [ "2026-03-17", "2026-03-17" ]
+  }, {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/@*[local-name()='TimeStamp']",
+    "sample_values" : [ "2026-03-06T14:59:15.122934300Z", "2026-03-06T14:59:53.573162Z" ]
+  }, {
+    "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/*[local-name()='SearchSegments']/*[local-name()='SearchSegment']/*[local-name()='SearchCriteria']/*[local-name()='Criterion']/*[local-name()='DateRange']/@*[local-name()='Start']",
+    "sample_values" : [ "2026-03-16", "2026-03-16" ]
+  } ],
+  "ignore_patterns" : [ "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/*[local-name()='ConfirmationDetails']/*[local-name()='DateRange']/@*[local-name()='End']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/*[local-name()='ConfirmationDetails']/*[local-name()='DateRange']/@*[local-name()='Start']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/@*[local-name()='TimeStamp']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/*[local-name()='ReservationDetails']/*[local-name()='DateRange']/@*[local-name()='End']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/*[local-name()='ReservationDetails']/*[local-name()='DateRange']/@*[local-name()='Start']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/@*[local-name()='TimeStamp']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/*[local-name()='SearchSegments']/*[local-name()='SearchSegment']/*[local-name()='SearchCriteria']/*[local-name()='Criterion']/*[local-name()='DateRange']/@*[local-name()='End']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/@*[local-name()='TimeStamp']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/*[local-name()='SearchSegments']/*[local-name()='SearchSegment']/*[local-name()='SearchCriteria']/*[local-name()='Criterion']/*[local-name()='DateRange']/@*[local-name()='Start']" ]
+}

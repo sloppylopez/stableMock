@@ -22,8 +22,7 @@ class XmlFieldDetectorTest {
         assertEquals(1, result.getDynamicFields().size());
         assertTrue(result.getDynamicFields().get(0).fieldPath().contains("timestamp"));
         assertEquals(1, result.getIgnorePatterns().size());
-        assertTrue(result.getIgnorePatterns().get(0).startsWith("xml:"), 
-            "Pattern should start with 'xml:', got: " + result.getIgnorePatterns().get(0));
+        assertTrue(result.getIgnorePatterns().get(0).startsWith("xml://"));
     }
 
     @Test
@@ -144,9 +143,9 @@ class XmlFieldDetectorTest {
         
         assertEquals(1, result.getIgnorePatterns().size());
         String pattern = result.getIgnorePatterns().get(0);
-        assertTrue(pattern.startsWith("xml:"), "Pattern should start with 'xml:', got: " + pattern);
-        assertTrue(pattern.contains("local-name()"), "Pattern should contain 'local-name()', got: " + pattern);
-        assertTrue(pattern.contains("timestamp"), "Pattern should contain 'timestamp', got: " + pattern);
+        assertTrue(pattern.startsWith("xml://"));
+        assertTrue(pattern.contains("local-name()"));
+        assertTrue(pattern.contains("timestamp"));
     }
 
     @Test
