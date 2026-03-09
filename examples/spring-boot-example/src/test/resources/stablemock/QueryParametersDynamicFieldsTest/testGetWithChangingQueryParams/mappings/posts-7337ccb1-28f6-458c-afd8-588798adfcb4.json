@@ -1,0 +1,69 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams/mappings/posts-3dde1390-91b3-4339-a5d8-fe2b3987894c.json
+  "id" : "3dde1390-91b3-4339-a5d8-fe2b3987894c",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts?page=2&limit=10&timestamp=1772809461098&correlationId=4df91555-fc9f-4fe5-8c2f-6dfacce8be4e",
+========
+  "id" : "7337ccb1-28f6-458c-afd8-588798adfcb4",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts?page=2&limit=10&timestamp=1773074967959&correlationId=2f32cbd7-848b-4d67-9866-10e8f6a38600",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams/mappings/posts-7337ccb1-28f6-458c-afd8-588798adfcb4.json
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams/mappings/posts-3dde1390-91b3-4339-a5d8-fe2b3987894c.json
+    "bodyFileName" : "posts-6ce0dcd1-16f4-47fa-9593-2405406c502a.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d8240a65bb6e074-MAD",
+========
+    "bodyFileName" : "posts-31e456bd-537d-484e-a90a-5bb46909c309.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d9b92b538b3ec92-MAD",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams/mappings/posts-7337ccb1-28f6-458c-afd8-588798adfcb4.json
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, Accept-Encoding",
+      "cf-cache-status" : "MISS",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams/mappings/posts-3dde1390-91b3-4339-a5d8-fe2b3987894c.json
+      "x-ratelimit-reset" : "1772809508",
+      "x-ratelimit-remaining" : "992",
+      "pragma" : "no-cache",
+      "Date" : "Fri, 06 Mar 2026 15:04:23 GMT",
+      "via" : "2.0 heroku-router",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=8xN8ikN4aE%2B6TAtO9t7F%2BxfiKP7HYoA77s3h%2B%2F6MZ4s%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1772809463\"",
+========
+      "x-ratelimit-reset" : "1773075012",
+      "x-ratelimit-remaining" : "998",
+      "pragma" : "no-cache",
+      "Date" : "Mon, 09 Mar 2026 16:49:28 GMT",
+      "via" : "2.0 heroku-router",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=nD8mc6k7eDHVInYX0I%2FpugLTgdgVPWskhr67ljvBdnU%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1773074968\"",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams/mappings/posts-7337ccb1-28f6-458c-afd8-588798adfcb4.json
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "max-age=43200",
+      "x-powered-by" : "Express",
+      "etag" : "W/\"6b80-Ybsq/K6GwwqrYkAsFxqDXGC7DoM\"",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams/mappings/posts-3dde1390-91b3-4339-a5d8-fe2b3987894c.json
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=8xN8ikN4aE%2B6TAtO9t7F%2BxfiKP7HYoA77s3h%2B%2F6MZ4s%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1772809463\"}],\"max_age\":3600}",
+========
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=nD8mc6k7eDHVInYX0I%2FpugLTgdgVPWskhr67ljvBdnU%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1773074968\"}],\"max_age\":3600}",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams/mappings/posts-7337ccb1-28f6-458c-afd8-588798adfcb4.json
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams/mappings/posts-3dde1390-91b3-4339-a5d8-fe2b3987894c.json
+  "uuid" : "3dde1390-91b3-4339-a5d8-fe2b3987894c",
+========
+  "uuid" : "7337ccb1-28f6-458c-afd8-588798adfcb4",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/QueryParametersDynamicFieldsTest/testGetWithChangingQueryParams/mappings/posts-7337ccb1-28f6-458c-afd8-588798adfcb4.json
+  "persistent" : true,
+  "insertionIndex" : 0
+}

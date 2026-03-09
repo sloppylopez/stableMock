@@ -1,0 +1,65 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQuery/mappings/graphql-391d5294-676f-4ca9-829e-27f4c2bd1b3c.json
+  "id" : "391d5294-676f-4ca9-829e-27f4c2bd1b3c",
+========
+  "id" : "c8352e67-7d97-4fb2-a5f0-35fd9b6f9b6b",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQuery/mappings/graphql-c8352e67-7d97-4fb2-a5f0-35fd9b6f9b6b.json
+  "name" : "graphql",
+  "request" : {
+    "url" : "/graphql",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\n  \"query\": \"{ countries { code name } }\"\n}\n",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 200,
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQuery/mappings/graphql-391d5294-676f-4ca9-829e-27f4c2bd1b3c.json
+    "bodyFileName" : "graphql-f7ae17de-41d1-494a-b37f-48514aec2b33.json",
+========
+    "bodyFileName" : "graphql-9747f47b-979c-4078-9f7e-7cf50965ccf3.json",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQuery/mappings/graphql-c8352e67-7d97-4fb2-a5f0-35fd9b6f9b6b.json
+    "headers" : {
+      "date" : "Fri, 06 Mar 2026 13:45:38 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=45;refill=21",
+      "vary" : "accept-encoding",
+      "stellate-rate-limit-decision" : "pass",
+      "access-control-allow-headers" : "*",
+      "gcdn-cache" : "HIT",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQuery/mappings/graphql-391d5294-676f-4ca9-829e-27f4c2bd1b3c.json
+      "x-served-by" : "cache-muc13952-MUC",
+      "stellate-rate-limit-budget-required" : "6",
+      "x-cache-hits" : "7",
+========
+      "x-served-by" : "cache-mad2200144-MAD",
+      "stellate-rate-limit-budget-required" : "6",
+      "x-cache-hits" : "125",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQuery/mappings/graphql-c8352e67-7d97-4fb2-a5f0-35fd9b6f9b6b.json
+      "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
+      "access-control-expose-headers" : "*",
+      "access-control-allow-origin" : "*",
+      "access-control-allow-credentials" : "true",
+      "stellate-rate-limit-budget-remaining" : "45",
+      "access-control-max-age" : "600",
+      "x-powered-by" : "Stellate",
+      "content-type" : "application/json; charset=utf-8",
+      "x-cache" : "HIT",
+      "cache-control" : "public, s-maxage=2628000, stale-while-revalidate=2628000",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "accept-ranges" : "bytes",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQuery/mappings/graphql-391d5294-676f-4ca9-829e-27f4c2bd1b3c.json
+      "age" : "4725"
+    }
+  },
+  "uuid" : "391d5294-676f-4ca9-829e-27f4c2bd1b3c",
+========
+      "age" : "1043558"
+    }
+  },
+  "uuid" : "c8352e67-7d97-4fb2-a5f0-35fd9b6f9b6b",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQuery/mappings/graphql-c8352e67-7d97-4fb2-a5f0-35fd9b6f9b6b.json
+  "persistent" : true,
+  "insertionIndex" : 0
+}

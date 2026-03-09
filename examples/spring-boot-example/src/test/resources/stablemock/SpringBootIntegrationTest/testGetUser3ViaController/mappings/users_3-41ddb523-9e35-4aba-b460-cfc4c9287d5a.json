@@ -1,0 +1,63 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUser3ViaController/mappings/users_3-87b9c5f2-fc18-4800-9fe8-a5a953781293.json
+  "id" : "87b9c5f2-fc18-4800-9fe8-a5a953781293",
+========
+  "id" : "41ddb523-9e35-4aba-b460-cfc4c9287d5a",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUser3ViaController/mappings/users_3-41ddb523-9e35-4aba-b460-cfc4c9287d5a.json
+  "name" : "users_3",
+  "request" : {
+    "url" : "/users/3",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUser3ViaController/mappings/users_3-87b9c5f2-fc18-4800-9fe8-a5a953781293.json
+    "bodyFileName" : "users_3-f1e641c3-6b09-495f-82f5-321cf893f84d.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d8240c649dac6df-MAD",
+========
+    "bodyFileName" : "users_3-fa318d25-4a4c-417d-aa41-ccfd0de17c10.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d9b92d6c8ee0284-MAD",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUser3ViaController/mappings/users_3-41ddb523-9e35-4aba-b460-cfc4c9287d5a.json
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, Accept-Encoding",
+      "cf-cache-status" : "HIT",
+      "x-ratelimit-reset" : "1771934671",
+      "x-ratelimit-remaining" : "992",
+      "pragma" : "no-cache",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUser3ViaController/mappings/users_3-87b9c5f2-fc18-4800-9fe8-a5a953781293.json
+      "Date" : "Fri, 06 Mar 2026 15:04:27 GMT",
+========
+      "Date" : "Mon, 09 Mar 2026 16:49:33 GMT",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUser3ViaController/mappings/users_3-41ddb523-9e35-4aba-b460-cfc4c9287d5a.json
+      "via" : "2.0 heroku-router",
+      "Accept-Ranges" : "bytes",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=AgM1%2B3G9TppJ5G7otR7iMhXRM6G%2BgZkJS9zfJKzRwl8%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1771934664\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "max-age=43200",
+      "x-powered-by" : "Express",
+      "etag" : "W/\"208-uuwhfwQMzFzbJr9Pg6DKXae0SXA\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=AgM1%2B3G9TppJ5G7otR7iMhXRM6G%2BgZkJS9zfJKzRwl8%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1771934664\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUser3ViaController/mappings/users_3-87b9c5f2-fc18-4800-9fe8-a5a953781293.json
+      "Age" : "14700",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "87b9c5f2-fc18-4800-9fe8-a5a953781293",
+========
+      "Age" : "4480",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "41ddb523-9e35-4aba-b460-cfc4c9287d5a",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/SpringBootIntegrationTest/testGetUser3ViaController/mappings/users_3-41ddb523-9e35-4aba-b460-cfc4c9287d5a.json
+  "persistent" : true,
+  "insertionIndex" : 0
+}

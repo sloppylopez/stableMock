@@ -1,0 +1,43 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/ParallelParameterizedIsolationIT/verifyEachInvocationUsesDistinctPort__i0/mappings/get-db058e40-d93b-4c94-b8f9-c7bb86fa51e3.json
+  "id" : "db058e40-d93b-4c94-b8f9-c7bb86fa51e3",
+========
+  "id" : "99ca92b7-fd5f-490d-b716-72c659d954a1",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/RepeatableUAnnotationsTest/testRepeatableAnnotationsWork/annotation_1/mappings/get-99ca92b7-fd5f-490d-b716-72c659d954a1.json
+  "name" : "get",
+  "request" : {
+    "url" : "/get?id=1",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{\"args\":{\"id\":\"1\"},\"headers\":{\"host\":\"postman-echo.com\",\"user-agent\":\"Apache-HttpClient/5.3.1 (Java/17.0.14)\",\"accept-encoding\":\"gzip, br\",\"x-forwarded-proto\":\"https\",\"accept\":\"*/*\"},\"url\":\"https://postman-echo.com/get?id=1\"}",
+    "headers" : {
+      "x-envoy-upstream-service-time" : "5",
+      "Server" : "cloudflare",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/ParallelParameterizedIsolationIT/verifyEachInvocationUsesDistinctPort__i0/mappings/get-db058e40-d93b-4c94-b8f9-c7bb86fa51e3.json
+      "CF-RAY" : "9d8240b9ec420642-MAD",
+      "vary" : "Accept-Encoding",
+      "Set-Cookie" : [ "sails.sid=s%3AnZmOKzUEYeK7ou34zy_K1ZW3O0iTNbxS.e0lx8GB1ISwkTe1ypQ3wQ%2BAS6TC4eyvjNBrMxYPWmj8; Path=/; HttpOnly", "__cf_bm=dJ.gp1tzE4J.6XWARQvsZEu0Zbp77Pl1nbtwcjIAiTo-1772809465-1.0.1.1-TcVDiGHiOUnYWM8uo3dWQ7KZ4k693ZkL2enlcSln4Ln59BWdpA1c020XiMhPWHrmS98cw_uglqvXahXPpeGaXxLOq.2ILz.rNml709WJKJE; path=/; expires=Fri, 06-Mar-26 15:34:25 GMT; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None", "_cfuvid=r0dlz1LsXrmCpoSLGHwZDDa5swv0uPVBQipoLQbAWxQ-1772809465995-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None" ],
+      "etag" : "W/\"e1-h4J2xaVgC0JFa7GX3dFfz9RgNsQ\"",
+      "cf-cache-status" : "DYNAMIC",
+      "Date" : "Fri, 06 Mar 2026 15:04:25 GMT",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "db058e40-d93b-4c94-b8f9-c7bb86fa51e3",
+========
+      "CF-RAY" : "9d9b92bc0d190270-MAD",
+      "vary" : "Accept-Encoding",
+      "Set-Cookie" : [ "sails.sid=s%3ACpPnCJ8bwELLUS3UTFA5ItSI39qljk2R.uoJdLNrYRK24K1ffzfRUg1oe54nXWToRBNZTb2hGp%2BQ; Path=/; HttpOnly", "__cf_bm=glVARnMyuJtZ2et9m9A9EmCiPaoLst9tGUsG160cAXg-1773074969-1.0.1.1-EtsBHO1j.0qJZFvCpqfIpnzbJXj_jkD9eDoZUj2gdJBJKWmpdiSFyYYNrOLwTEaKFWEjW8BF_viNuXgGwSpLEsII5Hioh9Ag7j7ZrngmC44; path=/; expires=Mon, 09-Mar-26 17:19:29 GMT; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None", "_cfuvid=fEtheO9.18.LxDtJyK5M92fRvJRkyySAvF6IP1iHpZE-1773074969071-0.0.1.1-604800000; path=/; domain=.postman-echo.com; HttpOnly; Secure; SameSite=None" ],
+      "etag" : "W/\"e1-h4J2xaVgC0JFa7GX3dFfz9RgNsQ\"",
+      "cf-cache-status" : "DYNAMIC",
+      "Date" : "Mon, 09 Mar 2026 16:49:29 GMT",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "99ca92b7-fd5f-490d-b716-72c659d954a1",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/RepeatableUAnnotationsTest/testRepeatableAnnotationsWork/annotation_1/mappings/get-99ca92b7-fd5f-490d-b716-72c659d954a1.json
+  "persistent" : true,
+  "insertionIndex" : 1
+}

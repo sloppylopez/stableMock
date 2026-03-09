@@ -1,0 +1,66 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithVariables/mappings/graphql-6cfd8624-7cbb-417c-a42b-acfe4a26d601.json
+  "id" : "6cfd8624-7cbb-417c-a42b-acfe4a26d601",
+========
+  "id" : "cbf2505e-2962-453a-92e3-3702c44db2c7",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithVariables/mappings/graphql-cbf2505e-2962-453a-92e3-3702c44db2c7.json
+  "name" : "graphql",
+  "request" : {
+    "url" : "/graphql",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalToJson" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital } }\",\n  \"variables\": {\n    \"code\": \"US\"\n  }\n}\n",
+      "ignoreArrayOrder" : true,
+      "ignoreExtraElements" : true
+    } ]
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{\"data\":{\"country\":{\"capital\":\"Washington D.C.\",\"name\":\"United States\"}}}",
+    "headers" : {
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithVariables/mappings/graphql-6cfd8624-7cbb-417c-a42b-acfe4a26d601.json
+      "date" : "Fri, 06 Mar 2026 13:45:40 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=44;refill=20",
+========
+      "date" : "Thu, 05 Mar 2026 12:51:05 GMT",
+      "stellate-rate-limit-rules" : "\"IP limit\";type=\"RequestCount\";budget=50;limited=?0;remaining=44;refill=22",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithVariables/mappings/graphql-cbf2505e-2962-453a-92e3-3702c44db2c7.json
+      "vary" : "accept-encoding",
+      "stellate-rate-limit-decision" : "pass",
+      "access-control-allow-headers" : "*",
+      "gcdn-cache" : "HIT",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithVariables/mappings/graphql-6cfd8624-7cbb-417c-a42b-acfe4a26d601.json
+      "x-served-by" : "cache-muc13953-MUC",
+      "stellate-rate-limit-budget-required" : "6",
+      "x-cache-hits" : "6",
+========
+      "x-served-by" : "cache-mad2200100-MAD",
+      "stellate-rate-limit-budget-required" : "6",
+      "x-cache-hits" : "49",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithVariables/mappings/graphql-cbf2505e-2962-453a-92e3-3702c44db2c7.json
+      "access-control-allow-methods" : "POST, GET, HEAD, OPTIONS",
+      "access-control-expose-headers" : "*",
+      "access-control-allow-origin" : "*",
+      "access-control-allow-credentials" : "true",
+      "stellate-rate-limit-budget-remaining" : "44",
+      "access-control-max-age" : "600",
+      "x-powered-by" : "Stellate",
+      "content-type" : "application/json; charset=utf-8",
+      "x-cache" : "HIT",
+      "cache-control" : "public, s-maxage=2628000, stale-while-revalidate=2628000",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "accept-ranges" : "bytes",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithVariables/mappings/graphql-6cfd8624-7cbb-417c-a42b-acfe4a26d601.json
+      "age" : "4724"
+    }
+  },
+  "uuid" : "6cfd8624-7cbb-417c-a42b-acfe4a26d601",
+========
+      "age" : "359903"
+    }
+  },
+  "uuid" : "cbf2505e-2962-453a-92e3-3702c44db2c7",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/GraphQLTest/testGraphQLQueryWithVariables/mappings/graphql-cbf2505e-2962-453a-92e3-3702c44db2c7.json
+  "persistent" : true,
+  "insertionIndex" : 0
+}
