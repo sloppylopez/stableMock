@@ -1,0 +1,65 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock/mappings/users_1-8b4006cc-78ff-479d-8bde-8c00abefe76f.json
+  "id" : "8b4006cc-78ff-479d-8bde-8c00abefe76f",
+========
+  "id" : "fcba4089-f779-4744-bf23-396f8c7e6815",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock/mappings/users_1-fcba4089-f779-4744-bf23-396f8c7e6815.json
+  "name" : "users_1",
+  "request" : {
+    "url" : "/users/1",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock/mappings/users_1-8b4006cc-78ff-479d-8bde-8c00abefe76f.json
+    "bodyFileName" : "users_1-893e9ba3-272e-4abe-9620-39ba7a64a8f4.json",
+========
+    "bodyFileName" : "users_1-fcba4089-f779-4744-bf23-396f8c7e6815.json",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock/mappings/users_1-fcba4089-f779-4744-bf23-396f8c7e6815.json
+    "headers" : {
+      "expires" : "-1",
+      "Server" : "cloudflare",
+      "vary" : "Origin, Accept-Encoding",
+      "x-ratelimit-remaining" : "779",
+      "via" : "2.0 heroku-router",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=9jdTNMb%2Fobsz1l5ANO0s4yKA5eOH7y6AQkDN4XMEZjM%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1771574077\"",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "x-powered-by" : "Express",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock/mappings/users_1-8b4006cc-78ff-479d-8bde-8c00abefe76f.json
+      "server-timing" : "cfL4;desc=\"?proto=TCP&rtt=8157&min_rtt=6071&rtt_var=3767&sent=5&recv=7&lost=0&retrans=0&sent_bytes=3115&recv_bytes=835&delivery_rate=717509&cwnd=53&unsent_bytes=0&cid=2b768eca2d0b338b&ts=56&x=0\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=9jdTNMb%2Fobsz1l5ANO0s4yKA5eOH7y6AQkDN4XMEZjM%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1771574077\"}],\"max_age\":3600}",
+      "Age" : "5352",
+      "Content-Type" : "application/json; charset=utf-8",
+      "CF-RAY" : "9d823f85d9630329-MAD",
+========
+      "server-timing" : "cfL4;desc=\"?proto=TCP&rtt=8260&min_rtt=7719&rtt_var=3976&sent=5&recv=7&lost=0&retrans=0&sent_bytes=3115&recv_bytes=835&delivery_rate=361583&cwnd=53&unsent_bytes=0&cid=ff779e6a8e68487b&ts=75&x=0\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=9jdTNMb%2Fobsz1l5ANO0s4yKA5eOH7y6AQkDN4XMEZjM%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1771574077\"}],\"max_age\":3600}",
+      "Age" : "11165",
+      "Content-Type" : "application/json; charset=utf-8",
+      "CF-RAY" : "9d9b927ebf11a613-MAD",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock/mappings/users_1-fcba4089-f779-4744-bf23-396f8c7e6815.json
+      "x-ratelimit-limit" : "1000",
+      "cf-cache-status" : "HIT",
+      "x-ratelimit-reset" : "1771574088",
+      "pragma" : "no-cache",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock/mappings/users_1-8b4006cc-78ff-479d-8bde-8c00abefe76f.json
+      "Date" : "Fri, 06 Mar 2026 15:03:36 GMT",
+========
+      "Date" : "Mon, 09 Mar 2026 16:49:19 GMT",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock/mappings/users_1-fcba4089-f779-4744-bf23-396f8c7e6815.json
+      "Accept-Ranges" : "bytes",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "Cache-Control" : "max-age=43200",
+      "etag" : "W/\"1fd-+2Y3G3w049iSZtw5t1mzSnunngE\"",
+      "alt-svc" : "h3=\":443\"; ma=86400"
+    }
+  },
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock/mappings/users_1-8b4006cc-78ff-479d-8bde-8c00abefe76f.json
+  "uuid" : "8b4006cc-78ff-479d-8bde-8c00abefe76f",
+========
+  "uuid" : "fcba4089-f779-4744-bf23-396f8c7e6815",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/PureJUnitTest/testPureJUnitWithStableMock/mappings/users_1-fcba4089-f779-4744-bf23-396f8c7e6815.json
+  "persistent" : true,
+  "insertionIndex" : 2
+}

@@ -1,0 +1,63 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationXmlTest/testMultipleAnnotationsWorkWithXml/annotation_0/mappings/users_1-b5d20999-d1ce-424e-9e9e-e91a4f198105.json
+  "id" : "b5d20999-d1ce-424e-9e9e-e91a4f198105",
+========
+  "id" : "d2e1e8b0-7efd-4d28-9a82-6e6549c05e4d",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationXmlTest/testMultipleAnnotationsWorkWithXml/annotation_0/mappings/users_1-d2e1e8b0-7efd-4d28-9a82-6e6549c05e4d.json
+  "name" : "users_1",
+  "request" : {
+    "url" : "/users/1",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationXmlTest/testMultipleAnnotationsWorkWithXml/annotation_0/mappings/users_1-b5d20999-d1ce-424e-9e9e-e91a4f198105.json
+    "bodyFileName" : "users_1-55387040-ab69-4d94-be92-aa868ffb77c6.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d824098ad3af777-MAD",
+========
+    "bodyFileName" : "users_1-6758ea44-6a9e-4191-a7ad-c7a7bdb68459.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d9b92bc1bba0383-MAD",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationXmlTest/testMultipleAnnotationsWorkWithXml/annotation_0/mappings/users_1-d2e1e8b0-7efd-4d28-9a82-6e6549c05e4d.json
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, Accept-Encoding",
+      "cf-cache-status" : "HIT",
+      "x-ratelimit-reset" : "1771574088",
+      "x-ratelimit-remaining" : "779",
+      "pragma" : "no-cache",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationXmlTest/testMultipleAnnotationsWorkWithXml/annotation_0/mappings/users_1-b5d20999-d1ce-424e-9e9e-e91a4f198105.json
+      "Date" : "Fri, 06 Mar 2026 15:04:20 GMT",
+========
+      "Date" : "Mon, 09 Mar 2026 16:49:28 GMT",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationXmlTest/testMultipleAnnotationsWorkWithXml/annotation_0/mappings/users_1-d2e1e8b0-7efd-4d28-9a82-6e6549c05e4d.json
+      "via" : "2.0 heroku-router",
+      "Accept-Ranges" : "bytes",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=9jdTNMb%2Fobsz1l5ANO0s4yKA5eOH7y6AQkDN4XMEZjM%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1771574077\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "max-age=43200",
+      "x-powered-by" : "Express",
+      "etag" : "W/\"1fd-+2Y3G3w049iSZtw5t1mzSnunngE\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=9jdTNMb%2Fobsz1l5ANO0s4yKA5eOH7y6AQkDN4XMEZjM%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1771574077\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationXmlTest/testMultipleAnnotationsWorkWithXml/annotation_0/mappings/users_1-b5d20999-d1ce-424e-9e9e-e91a4f198105.json
+      "Age" : "5396",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "b5d20999-d1ce-424e-9e9e-e91a4f198105",
+========
+      "Age" : "11175",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "d2e1e8b0-7efd-4d28-9a82-6e6549c05e4d",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/MultipleAnnotationXmlTest/testMultipleAnnotationsWorkWithXml/annotation_0/mappings/users_1-d2e1e8b0-7efd-4d28-9a82-6e6549c05e4d.json
+  "persistent" : true,
+  "insertionIndex" : 1
+}

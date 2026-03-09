@@ -1,0 +1,65 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/PaginationTest/testPagination/mappings/posts-8f22ba8a-78c4-495e-9eda-6a9f193a4428.json
+  "id" : "8f22ba8a-78c4-495e-9eda-6a9f193a4428",
+========
+  "id" : "adea225d-f9a0-4f5c-9d7c-90a352959c86",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/PaginationTest/testPagination/mappings/posts-adea225d-f9a0-4f5c-9d7c-90a352959c86.json
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/PaginationTest/testPagination/mappings/posts-8f22ba8a-78c4-495e-9eda-6a9f193a4428.json
+    "bodyFileName" : "posts-c3c145d0-4cba-4a52-92e8-765d819be675.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d824097a903ecaf-MAD",
+========
+    "bodyFileName" : "posts-cad2537a-d8ff-4b0b-b448-f5b0a4d8a0c7.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d9b92afc8d7041c-MAD",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/PaginationTest/testPagination/mappings/posts-adea225d-f9a0-4f5c-9d7c-90a352959c86.json
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, Accept-Encoding",
+      "cf-cache-status" : "HIT",
+      "x-ratelimit-reset" : "1771458591",
+      "x-ratelimit-remaining" : "999",
+      "pragma" : "no-cache",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/PaginationTest/testPagination/mappings/posts-8f22ba8a-78c4-495e-9eda-6a9f193a4428.json
+      "Date" : "Fri, 06 Mar 2026 15:04:20 GMT",
+========
+      "Date" : "Mon, 09 Mar 2026 16:49:27 GMT",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/PaginationTest/testPagination/mappings/posts-adea225d-f9a0-4f5c-9d7c-90a352959c86.json
+      "via" : "2.0 heroku-router",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=5v%2ByXjWy7zPec1xEPcVn%2F8BaKQcCSxBnVZwaC9wjEws%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1771458576\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "max-age=43200",
+      "x-powered-by" : "Express",
+      "etag" : "W/\"6b80-Ybsq/K6GwwqrYkAsFxqDXGC7DoM\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=5v%2ByXjWy7zPec1xEPcVn%2F8BaKQcCSxBnVZwaC9wjEws%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1771458576\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/PaginationTest/testPagination/mappings/posts-8f22ba8a-78c4-495e-9eda-6a9f193a4428.json
+      "Age" : "25733",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "8f22ba8a-78c4-495e-9eda-6a9f193a4428",
+========
+      "Age" : "3209",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "adea225d-f9a0-4f5c-9d7c-90a352959c86",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/PaginationTest/testPagination/mappings/posts-adea225d-f9a0-4f5c-9d7c-90a352959c86.json
+  "persistent" : true,
+  "scenarioName" : "scenario-168-posts",
+  "requiredScenarioState" : "scenario-168-posts-2",
+  "newScenarioState" : "scenario-168-posts-3",
+  "insertionIndex" : 3
+}

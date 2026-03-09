@@ -1,0 +1,74 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-4efec3e4-6511-43ec-9ca2-c199ea187c33.json
+  "id" : "4efec3e4-6511-43ec-9ca2-c199ea187c33",
+========
+  "id" : "10084ff7-dcae-4790-a6da-713e88a8769c",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-10084ff7-dcae-4790-a6da-713e88a8769c.json
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-4efec3e4-6511-43ec-9ca2-c199ea187c33.json
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2026-03-06T15:04:19.502873700Z\",\"requestId\":\"9241c745-8fa7-4eb7-8e35-02a5ba5df274\"}",
+========
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2026-03-09T16:49:28.830174500Z\",\"requestId\":\"adfc6b42-67d8-41fc-842d-f4dcfc29338f\"}",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-10084ff7-dcae-4790-a6da-713e88a8769c.json
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-4efec3e4-6511-43ec-9ca2-c199ea187c33.json
+      "CF-RAY" : "9d8240971b041bfe-MAD",
+========
+      "CF-RAY" : "9d9b92b71a5303c9-MAD",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-10084ff7-dcae-4790-a6da-713e88a8769c.json
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-4efec3e4-6511-43ec-9ca2-c199ea187c33.json
+      "x-ratelimit-reset" : "1772809508",
+      "x-ratelimit-remaining" : "999",
+      "pragma" : "no-cache",
+      "Date" : "Fri, 06 Mar 2026 15:04:20 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=JBFq6ZHt1CuOZHjK5%2BFvF%2B4CyLzkd41HbbDJl%2B9xUFc%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1772809460\"",
+========
+      "x-ratelimit-reset" : "1773075012",
+      "x-ratelimit-remaining" : "997",
+      "pragma" : "no-cache",
+      "Date" : "Mon, 09 Mar 2026 16:49:28 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=nD8mc6k7eDHVInYX0I%2FpugLTgdgVPWskhr67ljvBdnU%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1773074968\"",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-10084ff7-dcae-4790-a6da-713e88a8769c.json
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-4efec3e4-6511-43ec-9ca2-c199ea187c33.json
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=JBFq6ZHt1CuOZHjK5%2BFvF%2B4CyLzkd41HbbDJl%2B9xUFc%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1772809460\"}],\"max_age\":3600}",
+========
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=nD8mc6k7eDHVInYX0I%2FpugLTgdgVPWskhr67ljvBdnU%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1773074968\"}],\"max_age\":3600}",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-10084ff7-dcae-4790-a6da-713e88a8769c.json
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-4efec3e4-6511-43ec-9ca2-c199ea187c33.json
+  "uuid" : "4efec3e4-6511-43ec-9ca2-c199ea187c33",
+========
+  "uuid" : "10084ff7-dcae-4790-a6da-713e88a8769c",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/DynamicFieldDetectionTest/testDetectChangingFields/mappings/posts-10084ff7-dcae-4790-a6da-713e88a8769c.json
+  "persistent" : true,
+  "insertionIndex" : 1
+}

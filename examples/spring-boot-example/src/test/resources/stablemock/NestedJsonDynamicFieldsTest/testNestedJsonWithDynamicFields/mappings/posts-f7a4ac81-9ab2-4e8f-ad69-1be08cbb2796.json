@@ -1,0 +1,74 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-91d40d9a-293c-414d-a013-fc91a4726db3.json
+  "id" : "91d40d9a-293c-414d-a013-fc91a4726db3",
+========
+  "id" : "f7a4ac81-9ab2-4e8f-ad69-1be08cbb2796",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-f7a4ac81-9ab2-4e8f-ad69-1be08cbb2796.json
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-91d40d9a-293c-414d-a013-fc91a4726db3.json
+      "equalTo" : "{\n  \"order\": {\n    \"id\": \"order-123\",\n    \"items\": [\n      {\n        \"productId\": \"prod-1\",\n        \"quantity\": 2,\n        \"metadata\": {\n          \"timestamp\": \"2026-03-06T15:04:19.401912700Z\",\n          \"sessionId\": \"e543a5e8-025d-4df1-8de2-5dacdde9b23b\"\n        }\n      }\n    ],\n    \"payment\": {\n      \"transactionId\": \"67f355fa-7b5f-4579-b9e8-b580be0e034a\",\n      \"timestamp\": \"2026-03-06T15:04:19.401912700Z\"\n    }\n  },\n  \"requestId\": \"26b8a86f-fc1c-430b-be8e-ba19bf630e61\"\n}\n",
+========
+      "equalTo" : "{\n  \"order\": {\n    \"id\": \"order-123\",\n    \"items\": [\n      {\n        \"productId\": \"prod-1\",\n        \"quantity\": 2,\n        \"metadata\": {\n          \"timestamp\": \"2026-03-09T16:49:29.713080300Z\",\n          \"sessionId\": \"2f0f82ec-acc1-4638-9db5-c54688fd6a08\"\n        }\n      }\n    ],\n    \"payment\": {\n      \"transactionId\": \"e49212e3-0ace-4864-a8aa-00b1df4af3f3\",\n      \"timestamp\": \"2026-03-09T16:49:29.713080300Z\"\n    }\n  },\n  \"requestId\": \"cd4f6311-bb1d-4566-a5fd-1de18b719510\"\n}\n",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-f7a4ac81-9ab2-4e8f-ad69-1be08cbb2796.json
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-91d40d9a-293c-414d-a013-fc91a4726db3.json
+      "CF-RAY" : "9d8240973b2e0326-MAD",
+========
+      "CF-RAY" : "9d9b92bc0fe5cbd0-MAD",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-f7a4ac81-9ab2-4e8f-ad69-1be08cbb2796.json
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-91d40d9a-293c-414d-a013-fc91a4726db3.json
+      "x-ratelimit-reset" : "1772809508",
+      "x-ratelimit-remaining" : "998",
+      "pragma" : "no-cache",
+      "Date" : "Fri, 06 Mar 2026 15:04:20 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=JBFq6ZHt1CuOZHjK5%2BFvF%2B4CyLzkd41HbbDJl%2B9xUFc%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1772809460\"",
+========
+      "x-ratelimit-reset" : "1773075012",
+      "x-ratelimit-remaining" : "992",
+      "pragma" : "no-cache",
+      "Date" : "Mon, 09 Mar 2026 16:49:29 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=u5kQ3vegIwvkfh1CRlUe4gNfnLDWBpj2DaD6uJAPp%2Bs%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1773074969\"",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-f7a4ac81-9ab2-4e8f-ad69-1be08cbb2796.json
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-91d40d9a-293c-414d-a013-fc91a4726db3.json
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=JBFq6ZHt1CuOZHjK5%2BFvF%2B4CyLzkd41HbbDJl%2B9xUFc%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1772809460\"}],\"max_age\":3600}",
+========
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=u5kQ3vegIwvkfh1CRlUe4gNfnLDWBpj2DaD6uJAPp%2Bs%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1773074969\"}],\"max_age\":3600}",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-f7a4ac81-9ab2-4e8f-ad69-1be08cbb2796.json
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-91d40d9a-293c-414d-a013-fc91a4726db3.json
+  "uuid" : "91d40d9a-293c-414d-a013-fc91a4726db3",
+========
+  "uuid" : "f7a4ac81-9ab2-4e8f-ad69-1be08cbb2796",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/NestedJsonDynamicFieldsTest/testNestedJsonWithDynamicFields/mappings/posts-f7a4ac81-9ab2-4e8f-ad69-1be08cbb2796.json
+  "persistent" : true,
+  "insertionIndex" : 0
+}

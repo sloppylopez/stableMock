@@ -1,0 +1,63 @@
+{
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/ShowMatchesTest/testShowMatchesWithMismatch/mappings/users_3-9a1ef60b-3b04-48d7-957a-60c14fe1bc96.json
+  "id" : "9a1ef60b-3b04-48d7-957a-60c14fe1bc96",
+========
+  "id" : "4f6c67ee-93a9-47fd-b322-38229551798c",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/ShowMatchesTest/testShowMatchesWithMismatch/mappings/users_3-4f6c67ee-93a9-47fd-b322-38229551798c.json
+  "name" : "users_3",
+  "request" : {
+    "url" : "/users/3",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/ShowMatchesTest/testShowMatchesWithMismatch/mappings/users_3-9a1ef60b-3b04-48d7-957a-60c14fe1bc96.json
+    "bodyFileName" : "users_3-669541d3-1168-4051-80eb-3c3730ef0922.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d8240a29df7785d-MAD",
+========
+    "bodyFileName" : "users_3-72dedbf8-9014-412f-be00-473f0215bb13.json",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "9d9b92c06d242171-MAD",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/ShowMatchesTest/testShowMatchesWithMismatch/mappings/users_3-4f6c67ee-93a9-47fd-b322-38229551798c.json
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, Accept-Encoding",
+      "cf-cache-status" : "HIT",
+      "x-ratelimit-reset" : "1771934671",
+      "x-ratelimit-remaining" : "992",
+      "pragma" : "no-cache",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/ShowMatchesTest/testShowMatchesWithMismatch/mappings/users_3-9a1ef60b-3b04-48d7-957a-60c14fe1bc96.json
+      "Date" : "Fri, 06 Mar 2026 15:04:22 GMT",
+========
+      "Date" : "Mon, 09 Mar 2026 16:49:29 GMT",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/ShowMatchesTest/testShowMatchesWithMismatch/mappings/users_3-4f6c67ee-93a9-47fd-b322-38229551798c.json
+      "via" : "2.0 heroku-router",
+      "Accept-Ranges" : "bytes",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=AgM1%2B3G9TppJ5G7otR7iMhXRM6G%2BgZkJS9zfJKzRwl8%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1771934664\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "max-age=43200",
+      "x-powered-by" : "Express",
+      "etag" : "W/\"208-uuwhfwQMzFzbJr9Pg6DKXae0SXA\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=AgM1%2B3G9TppJ5G7otR7iMhXRM6G%2BgZkJS9zfJKzRwl8%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1771934664\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+<<<<<<<< HEAD:examples/spring-boot-example/src/test/resources/stablemock/ShowMatchesTest/testShowMatchesWithMismatch/mappings/users_3-9a1ef60b-3b04-48d7-957a-60c14fe1bc96.json
+      "Age" : "14694",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "9a1ef60b-3b04-48d7-957a-60c14fe1bc96",
+========
+      "Age" : "4477",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "4f6c67ee-93a9-47fd-b322-38229551798c",
+>>>>>>>> 4024993f (Code broken due to  wrong merge):examples/spring-boot-example/src/test/resources/stablemock/ShowMatchesTest/testShowMatchesWithMismatch/mappings/users_3-4f6c67ee-93a9-47fd-b322-38229551798c.json
+  "persistent" : true,
+  "insertionIndex" : 0
+}
