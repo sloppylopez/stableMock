@@ -38,7 +38,28 @@ import java.util.Map;
 public final class WireMockServerManager {
     
     private static final Logger logger = LoggerFactory.getLogger(WireMockServerManager.class);
-    
+
+    // Directory names used for stub storage
+    private static final String DIR_MAPPINGS = "mappings";
+    private static final String DIR_FILES = "__files";
+    private static final String JSON_EXT = ".json";
+    private static final String PREFIX_ANNOTATION = "annotation_";
+
+    // JSON keys for request matching
+    private static final String REQ_KEY_REQUEST = "request";
+    private static final String REQ_KEY_METHOD = "method";
+    private static final String REQ_KEY_URLPATH = "urlPath";
+
+    // JSON keys for body patterns
+    private static final String BODY_PATTERNS_KEY = "bodyPatterns";
+    private static final String EQUAL_TO_XML_KEY = "equalToXml";
+    private static final String EQUAL_TO_JSON_KEY = "equalToJson";
+    private static final String EQUAL_TO_KEY = "equalTo";
+
+    // Ignore pattern prefix & placeholder
+    private static final String PREFIX_JSON_IGNORE = "json:";
+    private static final String PLACEHOLDER_IGNORE = "${json-unit.ignore}";
+
     private WireMockServerManager() {
         // utility class
     }
@@ -63,8 +84,8 @@ public final class WireMockServerManager {
             throw new RuntimeException("Failed to create mappings directory: " + mappingsDir.getAbsolutePath(), e);
         }
 
-        File mappingsSubDir = new File(mappingsDir, "mappings");
-        File filesSubDir = new File(mappingsDir, "__files");
+        File mappingsSubDir = new File(mappingsDir, DIR_MAPPINGS);
+        File filesSubDir = new File(mappingsDir, DIR_FILES);
         try {
             java.nio.file.Files.createDirectories(mappingsSubDir.toPath());
         } catch (java.nio.file.FileAlreadyExistsException e) {
@@ -101,6 +122,20 @@ public final class WireMockServerManager {
                         .notifier(new com.github.tomakehurst.wiremock.common.ConsoleNotifier(false))
                         .usingFilesUnderDirectory(mappingsDir.getAbsolutePath())
                         .proxyTimeout(proxyTimeoutMs); // Configurable proxy timeout (default 60s, important for WSL)
+
+                // WireMock 3.7+ supports preserveUserAgentProxyHeader; older WireMock versions
+                // will throw NoSuchMethodError if we call it directly. Use reflection for
+                // compatibility across WireMock versions on the classpath.
+                try {
+                    java.lang.reflect.Method m = config.getClass()
+                            .getMethod("preserveUserAgentProxyHeader", boolean.class);
+                    config = (WireMockConfiguration) m.invoke(config, true);
+                } catch (NoSuchMethodException ignored) {
+                    // Method not available in this WireMock version; continue without UA preservation.
+                } catch (Exception e) {
+                    logger.warn("Failed to enable preserveUserAgentProxyHeader on this WireMock version: {}",
+                            e.toString());
+                }
 
                 WireMockServer server = new WireMockServer(config);
                 server.start();
@@ -167,9 +202,9 @@ public final class WireMockServerManager {
         }
         
         if (mappingsDir.exists() && mappingsDir.isDirectory()) {
-            File mappingsSubDir = new File(mappingsDir, "mappings");
+            File mappingsSubDir = new File(mappingsDir, DIR_MAPPINGS);
             if (mappingsSubDir.exists()) {
-                File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(JSON_EXT));
                 if (mappingFiles != null) {
                     logger.info("Found {} mapping file(s) in {}", mappingFiles.length, mappingsSubDir.getAbsolutePath());
                     int postCount = 0;
@@ -181,14 +216,14 @@ public final class WireMockServerManager {
                         try {
                             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                             com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(mappingFile);
-                            com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
+                            com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get(REQ_KEY_REQUEST);
                             if (requestNode != null) {
-                                String method = requestNode.has("method") ? requestNode.get("method").asText() : "UNKNOWN";
+                                String method = requestNode.has(REQ_KEY_METHOD) ? requestNode.get(REQ_KEY_METHOD).asText() : "UNKNOWN";
                                 String url = "UNKNOWN";
                                 if (requestNode.has("url")) {
                                     url = requestNode.get("url").asText();
-                                } else if (requestNode.has("urlPath")) {
-                                    url = requestNode.get("urlPath").asText();
+                                } else if (requestNode.has(REQ_KEY_URLPATH)) {
+                                    url = requestNode.get(REQ_KEY_URLPATH).asText();
                                 }
                                 String mappingName = mappingJson.has("name") ? mappingJson.get("name").asText() : "unnamed";
                                 logger.info("  Loaded: {} {} (name: {}, file: {})", method, url, mappingName, mappingFile.getName());
@@ -265,13 +300,28 @@ public final class WireMockServerManager {
                     if (methodDirs != null) {
                         java.util.Map<String, List<String>> patternsByMethod = new java.util.HashMap<>();
                         for (File methodDir : methodDirs) {
-                            if (!methodDir.getName().equals("mappings") && 
-                                !methodDir.getName().equals("__files") &&
+                            if (!methodDir.getName().equals(DIR_MAPPINGS) && 
+                                !methodDir.getName().equals(DIR_FILES) &&
                                 !methodDir.getName().startsWith("url_") &&
-                                !methodDir.getName().startsWith("annotation_")) {
+                                !methodDir.getName().startsWith(PREFIX_ANNOTATION)) {
                                 String methodName = methodDir.getName();
-                                List<String> methodPatterns = com.stablemock.core.analysis.AnalysisResultStorage
+                                // First try single-annotation path: <method>/detected-fields.json
+                                List<String> singlePatterns = com.stablemock.core.analysis.AnalysisResultStorage
                                         .loadIgnorePatterns(testResourcesDir, testClassName, methodName);
+                                // Collect into a mutable list
+                                List<String> methodPatterns = new java.util.ArrayList<>(singlePatterns);
+                                // For multi-@U tests, also scan annotation_X subdirs
+                                if (methodPatterns.isEmpty()) {
+                                    File[] annotDirs = methodDir.listFiles((d, name) -> name.startsWith(PREFIX_ANNOTATION));
+                                    if (annotDirs != null) {
+                                        for (File annotDir : annotDirs) {
+                                            Integer idx = Integer.parseInt(annotDir.getName().substring(PREFIX_ANNOTATION.length()));
+                                            List<String> annotPatterns = com.stablemock.core.analysis.AnalysisResultStorage
+                                                    .loadIgnorePatterns(testResourcesDir, testClassName, methodName, idx);
+                                            methodPatterns.addAll(annotPatterns);
+                                        }
+                                    }
+                                }
                         if (!methodPatterns.isEmpty()) {
                             patternsByMethod.put(methodName, methodPatterns);
                         }
@@ -357,6 +407,7 @@ public final class WireMockServerManager {
      * @param testMethodIdentifier       test method identifier (for ignore patterns)
      * @param annotationIgnorePatterns   ignore patterns from @U annotation
      * @param annotationDontIgnorePatterns dont-ignore patterns from @U annotation
+     * @param annotationIndex            optional annotation index for multi-@U tests (enables per-annotation detected-fields.json lookup)
      */
     public static void reloadMappingsOnServer(WireMockServer server,
             File invocationMappingsDir,
@@ -365,12 +416,13 @@ public final class WireMockServerManager {
             String testClassName,
             String testMethodIdentifier,
             List<String> annotationIgnorePatterns,
-            List<String> annotationDontIgnorePatterns) {
+            List<String> annotationDontIgnorePatterns,
+            Integer annotationIndex) {
         List<String> ignorePatterns = new java.util.ArrayList<>();
         if (testResourcesDir != null && testClassName != null && testMethodIdentifier != null) {
             ignorePatterns.addAll(com.stablemock.core.analysis.AnalysisResultStorage
-                    .loadIgnorePatterns(testResourcesDir, testClassName, testMethodIdentifier));
-            logger.debug("Reload for {}: {} ignore pattern(s) (after availability filter)", testMethodIdentifier, ignorePatterns.size());
+                    .loadIgnorePatterns(testResourcesDir, testClassName, testMethodIdentifier, annotationIndex));
+            logger.debug("Reload for {} (annotationIndex={}): {} auto-detected ignore pattern(s)", testMethodIdentifier, annotationIndex, ignorePatterns.size());
             if (annotationIgnorePatterns != null && !annotationIgnorePatterns.isEmpty()) {
                 ignorePatterns.removeAll(annotationIgnorePatterns);
                 ignorePatterns.addAll(annotationIgnorePatterns);
@@ -378,6 +430,7 @@ public final class WireMockServerManager {
             ignorePatterns = applyDontIgnorePatterns(ignorePatterns, annotationDontIgnorePatterns);
         }
         File sourceDir = invocationMappingsDir;
+        java.nio.file.Path tempPathUsed = null;
         if (!ignorePatterns.isEmpty()) {
             try {
                 //logger.info("Applying {} ignore pattern(s) for reload on {}", ignorePatterns.size(), testMethodIdentifier);
@@ -387,23 +440,25 @@ public final class WireMockServerManager {
                     copyDirectory(invocationMappingsDir.toPath(), tempPath);
                     applyIgnorePatternsToStubFiles(tempDir, ignorePatterns, testMethodIdentifier);
                     sourceDir = tempDir;
-                } finally {
-                    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                        try {
-                            try (java.util.stream.Stream<java.nio.file.Path> s = java.nio.file.Files.walk(tempPath)) {
-                                s.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
-                                    try { java.nio.file.Files.deleteIfExists(p); } catch (java.io.IOException ignored) { }
-                                });
-                            }
-                        } catch (java.io.IOException ignored) { }
-                    }, "stablemock-reload-cleanup"));
+                    tempPathUsed = tempPath; // track for eager cleanup later
+                } catch (Exception e) {
+                    logger.debug("Failed to copy or transform temp dir for reload: {}", e.getMessage());
                 }
             } catch (Exception e) {
                 logger.warn("Could not apply ignore patterns for reload, using raw mappings: {} (stubs will have literal values and may not match; check logs above for which pattern failed)", e.getMessage(), e);
             }
         }
-        File serverFilesDir = new File(serverRootDir, "__files");
-        File sourceFilesDir = new File(sourceDir, "__files");
+        // Clean up old __files before copying new ones to avoid stale body files
+        File serverFilesDir = new File(serverRootDir, DIR_FILES);
+        File sourceFilesDir = new File(sourceDir, DIR_FILES);
+        if (serverFilesDir.exists() && serverFilesDir.isDirectory()) {
+            File[] existing = serverFilesDir.listFiles(File::isFile);
+            if (existing != null) {
+                for (File f : existing) {
+                    try { Files.delete(f.toPath()); } catch (Exception ignored) {}
+                }
+            }
+        }
         if (sourceFilesDir.exists() && sourceFilesDir.isDirectory()) {
             if (!serverFilesDir.exists()) {
                 serverFilesDir.mkdirs();
@@ -420,8 +475,11 @@ public final class WireMockServerManager {
             }
         }
         server.resetAll();
-        File mappingsSubDir = new File(sourceDir, "mappings");
+        File mappingsSubDir = new File(sourceDir, DIR_MAPPINGS);
         int loadedCount = loadMappingsFromDir(server, sourceDir);
+        // If ignore patterns were applied via temp dir, loadedCount > 0 means success.
+        // But if we loaded from a temp dir that happened to copy both src and build dirs,
+        // reset again before fallback to avoid duplicates.
         boolean usedFallback = false;
         if (loadedCount == 0 && sourceDir.equals(invocationMappingsDir) && testResourcesDir != null && testClassName != null) {
             File buildTestResources = resolveBuildTestResourcesDir(testResourcesDir);
@@ -434,7 +492,7 @@ public final class WireMockServerManager {
                     if (fallbackCount > 0) {
                         loadedCount = fallbackCount;
                         usedFallback = true;
-                        File fallbackFilesDir = new File(fallbackInvocationDir, "__files");
+                        File fallbackFilesDir = new File(fallbackInvocationDir, DIR_FILES);
                         if (fallbackFilesDir.exists() && fallbackFilesDir.isDirectory()) {
                             if (!serverFilesDir.exists()) {
                                 serverFilesDir.mkdirs();
@@ -467,6 +525,15 @@ public final class WireMockServerManager {
         } else if (!usedFallback) {
             logger.info("Reloaded {} stub(s) on server from {}", loadedCount, invocationMappingsDir.getAbsolutePath());
         }
+        // Eagerly clean up temp dir used for ignore-pattern transformation (avoids shutdown hook leak)
+        if (tempPathUsed != null) {
+            try {
+                java.nio.file.Files.walk(tempPathUsed).sorted(java.util.Comparator.reverseOrder())
+                        .forEach(p -> {
+                            try { java.nio.file.Files.deleteIfExists(p); } catch (java.io.IOException ignored) { }
+                        });
+            } catch (java.io.IOException ignored) { }
+        }
         server.stubFor(
                 WireMock.any(WireMock.anyUrl())
                         .atPriority(1000)
@@ -482,11 +549,11 @@ public final class WireMockServerManager {
      * Tie-break prefers body containing a preferred plan marker, then any plan marker, then none.
      */
     private static int loadMappingsFromDir(WireMockServer server, File invocationDir) {
-        File mappingsSubDir = new File(invocationDir, "mappings");
+        File mappingsSubDir = new File(invocationDir, DIR_MAPPINGS);
         if (!mappingsSubDir.exists() || !mappingsSubDir.isDirectory()) {
             return 0;
         }
-        File[] jsonFiles = mappingsSubDir.listFiles((d, n) -> n != null && n.toLowerCase().endsWith(".json"));
+        File[] jsonFiles = mappingsSubDir.listFiles((d, n) -> n != null && n.toLowerCase().endsWith(JSON_EXT));
         if (jsonFiles == null || jsonFiles.length == 0) {
             return 0;
         }
@@ -494,6 +561,7 @@ public final class WireMockServerManager {
         List<MappingEntry> entries = new ArrayList<>();
         for (File mappingFile : jsonFiles) {
             try {
+
                 String json = new String(Files.readAllBytes(mappingFile.toPath()));
                 com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(json);
                 String requestKey = requestKeyFromMapping(root);
@@ -514,11 +582,27 @@ public final class WireMockServerManager {
             group.sort(Comparator.comparingInt(MappingEntry::bodyLength).reversed()
                     .thenComparingInt(MappingEntry::ratePlanTieBreak).reversed()
                     .thenComparing(MappingEntry::bodyContent));
-            for (MappingEntry e : group) {
+            for (MappingEntry entry : group) {
                 try {
-                    StubMapping mapping = StubMapping.buildFrom(e.json);
-                    mapping.setPriority(priority++);
-                    server.addStubMapping(mapping);
+                    StubMapping mapping = StubMapping.buildFrom(entry.json);
+                    // Auto-fix duplicate IDs to prevent silent failures
+                    try {
+                        mapping.setPriority(priority);
+                        server.addStubMapping(mapping);
+                    } catch (Exception firstEx) {
+                        // Try regenerating ID on conflict
+                        try {
+                            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(entry.json);
+                            if (root.has("id")) {
+                                ((com.fasterxml.jackson.databind.node.ObjectNode)root).put("id", java.util.UUID.randomUUID().toString());
+                                String fixedJson = root.toString();
+                                mapping = StubMapping.buildFrom(fixedJson);
+                                mapping.setPriority(priority);
+                                server.addStubMapping(mapping);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                    priority++;
                 } catch (Exception ex) {
                     logger.warn("Failed to load mapping: {}", ex.getMessage());
                 }
@@ -528,18 +612,18 @@ public final class WireMockServerManager {
     }
 
     private static String requestKeyFromMapping(com.fasterxml.jackson.databind.JsonNode root) {
-        com.fasterxml.jackson.databind.JsonNode req = root != null ? root.get("request") : null;
+        com.fasterxml.jackson.databind.JsonNode req = root != null ? root.get(REQ_KEY_REQUEST) : null;
         if (req == null || !req.isObject()) {
             return "GET /";
         }
-        String method = req.has("method") ? req.get("method").asText("GET") : "GET";
+        String method = req.has(REQ_KEY_METHOD) ? req.get(REQ_KEY_METHOD).asText("GET") : "GET";
         String url = null;
         if (req.has("url")) {
             url = req.get("url").asText();
         } else if (req.has("urlPathPattern")) {
             url = req.get("urlPathPattern").asText();
-        } else if (req.has("urlPath")) {
-            url = req.get("urlPath").asText();
+        } else if (req.has(REQ_KEY_URLPATH)) {
+            url = req.get(REQ_KEY_URLPATH).asText();
         }
         if (url == null) {
             url = "/";
@@ -548,48 +632,48 @@ public final class WireMockServerManager {
     }
 
     private static int bodyPatternLengthFromMapping(com.fasterxml.jackson.databind.JsonNode root) {
-        com.fasterxml.jackson.databind.JsonNode req = root != null ? root.get("request") : null;
+        com.fasterxml.jackson.databind.JsonNode req = root != null ? root.get(REQ_KEY_REQUEST) : null;
         if (req == null) {
             return 0;
         }
-        com.fasterxml.jackson.databind.JsonNode bodyPatterns = req.get("bodyPatterns");
+        com.fasterxml.jackson.databind.JsonNode bodyPatterns = req.get(BODY_PATTERNS_KEY);
         if (bodyPatterns == null || !bodyPatterns.isArray()) {
             return 0;
         }
         int len = 0;
         for (com.fasterxml.jackson.databind.JsonNode p : bodyPatterns) {
-            if (p.has("equalToXml")) {
-                len += p.get("equalToXml").asText().length();
+            if (p.has(EQUAL_TO_XML_KEY)) {
+                len += p.get(EQUAL_TO_XML_KEY).asText().length();
             }
-            if (p.has("equalToJson")) {
-                len += p.get("equalToJson").asText().length();
+            if (p.has(EQUAL_TO_JSON_KEY)) {
+                len += p.get(EQUAL_TO_JSON_KEY).asText().length();
             }
-            if (p.has("equalTo")) {
-                len += p.get("equalTo").asText().length();
+            if (p.has(EQUAL_TO_KEY)) {
+                len += p.get(EQUAL_TO_KEY).asText().length();
             }
         }
         return len;
     }
 
     private static String bodyPatternContentFromMapping(com.fasterxml.jackson.databind.JsonNode root) {
-        com.fasterxml.jackson.databind.JsonNode req = root != null ? root.get("request") : null;
+        com.fasterxml.jackson.databind.JsonNode req = root != null ? root.get(REQ_KEY_REQUEST) : null;
         if (req == null) {
             return "";
         }
-        com.fasterxml.jackson.databind.JsonNode bodyPatterns = req.get("bodyPatterns");
+        com.fasterxml.jackson.databind.JsonNode bodyPatterns = req.get(BODY_PATTERNS_KEY);
         if (bodyPatterns == null || !bodyPatterns.isArray()) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
         for (com.fasterxml.jackson.databind.JsonNode p : bodyPatterns) {
-            if (p.has("equalToXml")) {
-                sb.append(p.get("equalToXml").asText());
+            if (p.has(EQUAL_TO_XML_KEY)) {
+                sb.append(p.get(EQUAL_TO_XML_KEY).asText());
             }
-            if (p.has("equalToJson")) {
-                sb.append(p.get("equalToJson").asText());
+            if (p.has(EQUAL_TO_JSON_KEY)) {
+                sb.append(p.get(EQUAL_TO_JSON_KEY).asText());
             }
-            if (p.has("equalTo")) {
-                sb.append(p.get("equalTo").asText());
+            if (p.has(EQUAL_TO_KEY)) {
+                sb.append(p.get(EQUAL_TO_KEY).asText());
             }
         }
         return sb.toString();
@@ -680,12 +764,12 @@ public final class WireMockServerManager {
      */
     private static void applyIgnorePatternsToStubFiles(File mappingsDir, List<String> ignorePatterns, String testMethodName) {
         try {
-            File mappingsSubDir = new File(mappingsDir, "mappings");
+            File mappingsSubDir = new File(mappingsDir, DIR_MAPPINGS);
             if (!mappingsSubDir.exists() || !mappingsSubDir.isDirectory()) {
                 return;
             }
             
-            File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(JSON_EXT));
             if (mappingFiles == null) {
                 return;
             }
@@ -708,12 +792,12 @@ public final class WireMockServerManager {
                     com.fasterxml.jackson.databind.node.ObjectNode mappingObj = 
                             (com.fasterxml.jackson.databind.node.ObjectNode) mapping;
                     
-                    com.fasterxml.jackson.databind.JsonNode requestNode = mappingObj.get("request");
+                    com.fasterxml.jackson.databind.JsonNode requestNode = mappingObj.get(REQ_KEY_REQUEST);
                     if (requestNode != null && requestNode.isObject()) {
                         com.fasterxml.jackson.databind.node.ObjectNode requestObj = 
                                 (com.fasterxml.jackson.databind.node.ObjectNode) requestNode;
                         
-                        com.fasterxml.jackson.databind.JsonNode bodyPatternsNode = requestObj.get("bodyPatterns");
+                        com.fasterxml.jackson.databind.JsonNode bodyPatternsNode = requestObj.get(BODY_PATTERNS_KEY);
                         if (bodyPatternsNode != null && bodyPatternsNode.isArray()) {
                             boolean modified = false;
                             for (com.fasterxml.jackson.databind.JsonNode patternNode : bodyPatternsNode) {
@@ -722,21 +806,21 @@ public final class WireMockServerManager {
                                             (com.fasterxml.jackson.databind.node.ObjectNode) patternNode;
                                     
                                     // Check for equalToJson first (WireMock 3 format)
-                                    com.fasterxml.jackson.databind.JsonNode matcherNode = patternObj.get("equalToJson");
-                                    String matcherKey = "equalToJson";
+                                    com.fasterxml.jackson.databind.JsonNode matcherNode = patternObj.get(EQUAL_TO_JSON_KEY);
+                                    String matcherKey = EQUAL_TO_JSON_KEY;
                                     
                                     // Check for equalToXml (WireMock 3 format)
                                     if (matcherNode == null) {
-                                        matcherNode = patternObj.get("equalToXml");
+                                        matcherNode = patternObj.get(EQUAL_TO_XML_KEY);
                                         if (matcherNode != null) {
-                                            matcherKey = "equalToXml";
+                                            matcherKey = EQUAL_TO_XML_KEY;
                                         }
                                     }
                                     
                                     // Fall back to equalTo (WireMock 2 format or string matching)
                                     if (matcherNode == null) {
-                                        matcherNode = patternObj.get("equalTo");
-                                        matcherKey = "equalTo";
+                                        matcherNode = patternObj.get(EQUAL_TO_KEY);
+                                        matcherKey = EQUAL_TO_KEY;
                                     }
                                     
                                     if (matcherNode != null && matcherNode.isTextual()) {
@@ -751,9 +835,9 @@ public final class WireMockServerManager {
                                             String normalizedJson = normalizeJsonStringWithPlaceholders(expectedBody, ignorePatterns);
                                             
                                             // Convert equalTo to equalToJson for WireMock 3 compatibility
-                                            if (matcherKey.equals("equalTo") || !normalizedJson.equals(expectedBody)) {
+                                            if (matcherKey.equals(EQUAL_TO_KEY) || !normalizedJson.equals(expectedBody)) {
                                                 patternObj.remove(matcherKey);
-                                                patternObj.put("equalToJson", normalizedJson);
+                                                patternObj.put(EQUAL_TO_JSON_KEY, normalizedJson);
                                                 patternObj.put("ignoreArrayOrder", false);
                                                 patternObj.put("ignoreExtraElements", true);
                                                 modified = true;
@@ -764,9 +848,9 @@ public final class WireMockServerManager {
                                             String normalizedXml = normalizeXmlStringWithPlaceholders(expectedBody, ignorePatterns);
                                             
                                             // Convert equalTo to equalToXml for WireMock 3 compatibility
-                                            if (matcherKey.equals("equalTo") || !normalizedXml.equals(expectedBody)) {
+                                            if (matcherKey.equals(EQUAL_TO_KEY) || !normalizedXml.equals(expectedBody)) {
                                                 patternObj.remove(matcherKey);
-                                                patternObj.put("equalToXml", normalizedXml);
+                                                patternObj.put(EQUAL_TO_XML_KEY, normalizedXml);
                                                 patternObj.put("enablePlaceholders", true);
                                                 patternObj.put("ignoreWhitespace", true);
                                                 modified = true;
@@ -788,6 +872,23 @@ public final class WireMockServerManager {
                     logger.warn("Failed to modify stub file {}: {}", mappingFile.getName(), e.getMessage());
                 }
             }
+            // Deduplicate: identical normalized requests create competing stubs; keep first only.
+            java.util.Set<String> seenKeys = new java.util.HashSet<>();
+            for (File mf : mappingFiles) {
+                try {
+                    com.fasterxml.jackson.databind.JsonNode m = objectMapper.readTree(mf);
+                    String url = ((com.fasterxml.jackson.databind.node.ObjectNode)m.get(REQ_KEY_REQUEST)).get("url").asText("");
+                    String method = ((com.fasterxml.jackson.databind.node.ObjectNode)m.get(REQ_KEY_REQUEST)).get(REQ_KEY_METHOD).asText("");
+                    String body = ((com.fasterxml.jackson.databind.node.ObjectNode)m.get(REQ_KEY_REQUEST)).get(BODY_PATTERNS_KEY).isArray()
+                            ? ((com.fasterxml.jackson.databind.node.ObjectNode)((com.fasterxml.jackson.databind.node.ArrayNode)(m.get(REQ_KEY_REQUEST)).get(BODY_PATTERNS_KEY)).get(0)).toString()
+                            : "";
+                    String key = url + "|" + method + "|" + body;
+                    if (!seenKeys.add(key)) {
+                        mf.delete();
+                        logger.info("Removed duplicate stub {}", mf.getName());
+                    }
+                } catch (Exception ignore) {}
+            }
         } catch (Exception e) {
             logger.warn("Failed to apply ignore patterns to stub files: {}", e.getMessage());
         }
@@ -802,12 +903,12 @@ public final class WireMockServerManager {
             List<String> annotationIgnorePatterns,
             List<String> annotationDontIgnorePatterns) {
         try {
-            File mappingsSubDir = new File(mappingsDir, "mappings");
+            File mappingsSubDir = new File(mappingsDir, DIR_MAPPINGS);
             if (!mappingsSubDir.exists() || !mappingsSubDir.isDirectory()) {
                 return;
             }
             
-            File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            File[] mappingFiles = mappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(JSON_EXT));
             if (mappingFiles == null) {
                 return;
             }
@@ -850,12 +951,12 @@ public final class WireMockServerManager {
                     com.fasterxml.jackson.databind.node.ObjectNode mappingObj = 
                             (com.fasterxml.jackson.databind.node.ObjectNode) mapping;
                     
-                    com.fasterxml.jackson.databind.JsonNode requestNode = mappingObj.get("request");
+                    com.fasterxml.jackson.databind.JsonNode requestNode = mappingObj.get(REQ_KEY_REQUEST);
                     if (requestNode != null && requestNode.isObject()) {
                         com.fasterxml.jackson.databind.node.ObjectNode requestObj = 
                                 (com.fasterxml.jackson.databind.node.ObjectNode) requestNode;
                         
-                        com.fasterxml.jackson.databind.JsonNode bodyPatternsNode = requestObj.get("bodyPatterns");
+                        com.fasterxml.jackson.databind.JsonNode bodyPatternsNode = requestObj.get(BODY_PATTERNS_KEY);
                         if (bodyPatternsNode != null && bodyPatternsNode.isArray()) {
                             boolean modified = false;
                             for (com.fasterxml.jackson.databind.JsonNode patternNode : bodyPatternsNode) {
@@ -863,19 +964,19 @@ public final class WireMockServerManager {
                                     com.fasterxml.jackson.databind.node.ObjectNode patternObj = 
                                             (com.fasterxml.jackson.databind.node.ObjectNode) patternNode;
                                     
-                                    com.fasterxml.jackson.databind.JsonNode matcherNode = patternObj.get("equalToJson");
-                                    String matcherKey = "equalToJson";
+                                    com.fasterxml.jackson.databind.JsonNode matcherNode = patternObj.get(EQUAL_TO_JSON_KEY);
+                                    String matcherKey = EQUAL_TO_JSON_KEY;
                                     
                                     if (matcherNode == null) {
-                                        matcherNode = patternObj.get("equalToXml");
+                                        matcherNode = patternObj.get(EQUAL_TO_XML_KEY);
                                         if (matcherNode != null) {
-                                            matcherKey = "equalToXml";
+                                            matcherKey = EQUAL_TO_XML_KEY;
                                         }
                                     }
                                     
                                     if (matcherNode == null) {
-                                        matcherNode = patternObj.get("equalTo");
-                                        matcherKey = "equalTo";
+                                        matcherNode = patternObj.get(EQUAL_TO_KEY);
+                                        matcherKey = EQUAL_TO_KEY;
                                     }
                                     
                                     if (matcherNode != null && matcherNode.isTextual()) {
@@ -887,9 +988,9 @@ public final class WireMockServerManager {
                                         if (isJson) {
                                             String normalizedJson = normalizeJsonStringWithPlaceholders(expectedBody, ignorePatterns);
                                             
-                                            if (matcherKey.equals("equalTo") || !normalizedJson.equals(expectedBody)) {
+                                            if (matcherKey.equals(EQUAL_TO_KEY) || !normalizedJson.equals(expectedBody)) {
                                                 patternObj.remove(matcherKey);
-                                                patternObj.put("equalToJson", normalizedJson);
+                                                patternObj.put(EQUAL_TO_JSON_KEY, normalizedJson);
                                                 patternObj.put("ignoreArrayOrder", false);
                                                 patternObj.put("ignoreExtraElements", true);
                                                 modified = true;
@@ -899,9 +1000,9 @@ public final class WireMockServerManager {
                                         } else if (isXml) {
                                             String normalizedXml = normalizeXmlStringWithPlaceholders(expectedBody, ignorePatterns);
                                             
-                                            if (matcherKey.equals("equalTo") || !normalizedXml.equals(expectedBody)) {
+                                            if (matcherKey.equals(EQUAL_TO_KEY) || !normalizedXml.equals(expectedBody)) {
                                                 patternObj.remove(matcherKey);
-                                                patternObj.put("equalToXml", normalizedXml);
+                                                patternObj.put(EQUAL_TO_XML_KEY, normalizedXml);
                                                 patternObj.put("enablePlaceholders", true);
                                                 patternObj.put("ignoreWhitespace", true);
                                                 modified = true;
@@ -923,6 +1024,27 @@ public final class WireMockServerManager {
                 } catch (Exception e) {
                     logger.warn("Failed to modify stub file {}: {}", mappingFile.getName(), e.getMessage());
                 }
+            }
+            // Deduplicate identical normalized requests within same invocation (keep invocation prefix in key).
+            java.util.Set<String> seenKeys = new java.util.HashSet<>();
+            for (File mf : mappingFiles) {
+                try {
+                    com.fasterxml.jackson.databind.JsonNode m = objectMapper.readTree(mf);
+                    String url = ((com.fasterxml.jackson.databind.node.ObjectNode)m.get(REQ_KEY_REQUEST)).get("url").asText("");
+                    String method = ((com.fasterxml.jackson.databind.node.ObjectNode)m.get(REQ_KEY_REQUEST)).get(REQ_KEY_METHOD).asText("");
+                    String body = ((com.fasterxml.jackson.databind.node.ObjectNode)m.get(REQ_KEY_REQUEST)).get(BODY_PATTERNS_KEY).isArray()
+                            ? ((com.fasterxml.jackson.databind.node.ObjectNode)((com.fasterxml.jackson.databind.node.ArrayNode)(m.get(REQ_KEY_REQUEST)).get(BODY_PATTERNS_KEY)).get(0)).toString()
+                            : "";
+                    // Include invocation prefix (before last _hash.json) to avoid cross-invocation dedup.
+                    String fn = mf.getName().replace(JSON_EXT, "");
+                    int lastUnderscore = fn.lastIndexOf('_');
+                    String prefix = lastUnderscore > 0 ? fn.substring(0, lastUnderscore) : fn;
+                    String key = prefix + "|" + url + "|" + method + "|" + body;
+                    if (!seenKeys.add(key)) {
+                        mf.delete();
+                        logger.info("Removed duplicate stub {}", mf.getName());
+                    }
+                } catch (Exception ignore) {}
             }
         } catch (Exception e) {
             logger.warn("Failed to apply ignore patterns per method to stub files: {}", e.getMessage());
@@ -1392,7 +1514,7 @@ public final class WireMockServerManager {
                     }
                     if (!hasElementChildren) {
                         // Replace text content with placeholder while keeping structure
-                        element.setTextContent("${xmlunit.ignore}");
+                        element.setTextContent(PREFIX_JSON_IGNORE);
                     }
                 }
             }
@@ -1444,7 +1566,7 @@ public final class WireMockServerManager {
                 }
             }
             if (!hasElementChildren) {
-                element.setTextContent("${xmlunit.ignore}");
+                element.setTextContent(PREFIX_JSON_IGNORE);
             }
             return;
         }
@@ -1466,7 +1588,7 @@ public final class WireMockServerManager {
     private static void applyElementPathAttributePlaceholder(Element element, List<String> elementPath, int index, String attrName) {
         if (index == elementPath.size()) {
             if (element.hasAttribute(attrName)) {
-                element.setAttribute(attrName, "${xmlunit.ignore}");
+                element.setAttribute(attrName, PREFIX_JSON_IGNORE);
             }
             return;
         }

@@ -1,11 +1,5 @@
 [ {
-  "timestamp" : "2026-03-09T16:48:55.694875200Z",
-  "url" : "/posts",
-  "method" : "POST",
-  "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}",
-  "contentType" : "text/plain;charset=UTF-8"
-}, {
-  "timestamp" : "2026-03-09T16:49:34.011412900Z",
+  "timestamp" : "2026-07-02T15:35:42.375547600Z",
   "url" : "/posts",
   "method" : "POST",
   "body" : "{\"title\":\"Test Title\",\"body\":\"Test Body\",\"userId\":1}",

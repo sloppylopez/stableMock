@@ -28,7 +28,7 @@
    `extractPathFromProperty` prefers system property, then **classpath properties** (e.g. `application.properties`). If the project has `app.backend.url = <base-only URL>` in properties, we use that value’s path (null) and **never** reach `defaultUrl`. So path is lost. **Fix**: in the library, when the value from properties has **no path**, fall back to `defaultUrl` for path (already implemented: we only return when `path != null`, so we fall through to step 3 and use `defaultUrl`).
 
 4. **403 from upstream**  
-   If the path is correct (logs show full URL with path) but the response is **403**, the failure is from the **upstream** (e.g. TMS/BSP), not from missing path. Then “before worked” might mean a different env/auth; path preservation is already correct.
+   If the path is correct (logs show full URL with path) but the response is **403**, the failure is from the **upstream** (e.g. upstream services), not from missing path. Then “before worked” might mean a different env/auth; path preservation is already correct.
 
 ## Idea to build on
 

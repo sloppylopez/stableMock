@@ -1,24 +1,12 @@
 [ {
-  "timestamp" : "2026-03-09T16:48:52.987629300Z",
-  "url" : "/posts?page=2&limit=10&timestamp=1773074931249&correlationId=3b4f2aaa-f392-4bfc-9f02-e3640d75676a",
+  "timestamp" : "2026-07-02T15:35:37.862289700Z",
+  "url" : "/posts?page=2&limit=10&timestamp=1783006535914&correlationId=18485d75-3707-4b5d-bcd7-6b29bc83096b",
   "method" : "GET",
   "body" : "",
   "contentType" : null
 }, {
-  "timestamp" : "2026-03-09T16:48:53.052724Z",
-  "url" : "/posts?page=1&limit=10&timestamp=1773074931188&correlationId=f034e019-5210-4be0-85c8-14ee11a7ce8f",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2026-03-09T16:49:29.466857Z",
-  "url" : "/posts?page=2&limit=10&timestamp=1773074967959&correlationId=2f32cbd7-848b-4d67-9866-10e8f6a38600",
-  "method" : "GET",
-  "body" : "",
-  "contentType" : null
-}, {
-  "timestamp" : "2026-03-09T16:49:29.485688500Z",
-  "url" : "/posts?page=1&limit=10&timestamp=1773074967895&correlationId=4ec6a834-f613-41f8-ad2f-ffe4fccf2aa9",
+  "timestamp" : "2026-07-02T15:35:37.975890900Z",
+  "url" : "/posts?page=1&limit=10&timestamp=1783006535851&correlationId=9b02cd99-22f4-4313-8e95-8a6080a2e0e9",
   "method" : "GET",
   "body" : "",
   "contentType" : null

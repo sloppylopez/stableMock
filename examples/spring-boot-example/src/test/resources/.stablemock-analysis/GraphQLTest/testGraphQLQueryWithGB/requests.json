@@ -1,11 +1,5 @@
 [ {
-  "timestamp" : "2026-03-09T16:48:51.583221400Z",
-  "url" : "/graphql",
-  "method" : "POST",
-  "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",
-  "contentType" : "application/json"
-}, {
-  "timestamp" : "2026-03-09T16:49:29.255327400Z",
+  "timestamp" : "2026-07-02T15:35:38.236470800Z",
   "url" : "/graphql",
   "method" : "POST",
   "body" : "{\n  \"query\": \"query GetCountry($code: ID!) { country(code: $code) { name capital currency } }\",\n  \"variables\": {\n    \"code\": \"GB\"\n  }\n}\n",

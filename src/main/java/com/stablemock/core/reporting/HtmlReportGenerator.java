@@ -29,6 +29,34 @@ public final class HtmlReportGenerator {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static int globalRequestDetailsCounter = 0;
 
+    // Report structure keys
+    private static final String KEY_REQUESTS = "requests";
+    private static final String KEY_EXAMPLES = "examples";
+    private static final String KEY_DETECTED_FIELDS = "detectedFields";
+    private static final String KEY_DYNAMIC_FIELDS = "dynamic_fields";
+    private static final String KEY_SAMPLE_VALUES = "sample_values";
+    private static final String KEY_FIELD_PATH = "fieldPath";
+    private static final String KEY_MUTATING_FIELDS = "mutatingFields";
+    private static final String KEY_BODY_SOURCE = "bodySource";
+    private static final String KEY_BODY_FILENAME = "bodyFileName";
+    private static final String KEY_UNKNOWN = "Unknown";
+    private static final String KEY_ANNOTATIONS = "annotations";
+    private static final String KEY_ANNOTATION = "annotation";
+    private static final String PREFIX_XML = "xml://";
+
+    // HTML fragments
+    private static final String HTML_CLOSE_SPAN = "</span>";
+    private static final String HTML_TD_OPEN = "                    <td>";
+    private static final String HTML_MDASH = "                      &mdash;";
+    private static final String HTML_DIV_DOUBLE_CLOSE = "  </div>";
+    private static final String HTML_DIV_TRIPLE_CLOSE = "      </div>";
+    private static final String HTML_SUMMARY_ITEM = "      <div class=\"summary-item\">";
+    private static final String HTML_SUMMARY_VALUE = "        <div class=\"summary-value\">";
+    private static final String HTML_TR_CLOSE = "                  </tr>";
+    private static final String HTML_TD_CLOSE = "                    </td>";
+    private static final String HTML_DIV_CLOSE_INNER = "                          </div>";
+    private static final String HTML_TAG_OPEN = "<span class=\"xml-tag\">";
+
     private HtmlReportGenerator() {
         // utility class
     }
@@ -211,7 +239,7 @@ public final class HtmlReportGenerator {
     }
 
     private static void generateTestClass(PrintWriter writer, JsonNode testClass) {
-        String testClassName = testClass.has("testClass") ? testClass.get("testClass").asText() : "Unknown";
+        String testClassName = testClass.has("testClass") ? testClass.get("testClass").asText() : KEY_UNKNOWN;
         
         int methodCount = 0;
         int requestCount = 0;
@@ -227,10 +255,10 @@ public final class HtmlReportGenerator {
 
         writer.println("    <details class=\"test-class\" data-test-class=\"" + escapeHtmlAttribute(testClassName) + "\">");
         writer.println("      <summary>");
-        writer.println("        <span class=\"summary-title\">" + escapeHtml(testClassName) + "</span>");
-        writer.println("        <span class=\"badge\">Methods: " + methodCount + "</span>");
-        writer.println("        <span class=\"badge\">Requests: " + requestCount + "</span>");
-        writer.println("        <span class=\"badge\">Mutating fields: " + mutatingCount + "</span>");
+        writer.println("        <span class=\"summary-title\">" + escapeHtml(testClassName) + HTML_CLOSE_SPAN);
+        writer.println("        <span class=\"badge\">Methods: " + methodCount + HTML_CLOSE_SPAN);
+        writer.println("        <span class=\"badge\">Requests: " + requestCount + HTML_CLOSE_SPAN);
+        writer.println("        <span class=\"badge\">Mutating fields: " + mutatingCount + HTML_CLOSE_SPAN);
         writer.println("      </summary>");
         
         if (testMethods != null && testMethods.isArray()) {
@@ -243,7 +271,7 @@ public final class HtmlReportGenerator {
     }
 
     private static void generateTestMethod(PrintWriter writer, JsonNode testMethod, String testClassName) {
-        String testMethodName = testMethod.has("testMethod") ? testMethod.get("testMethod").asText() : "Unknown";
+        String testMethodName = testMethod.has("testMethod") ? testMethod.get("testMethod").asText() : KEY_UNKNOWN;
         String folderPath = testMethod.has("folderPath") ? testMethod.get("folderPath").asText() : "";
         String shortFolderPath = shortenFolderPath(folderPath);
         int requestCount = countRequests(testMethod);
@@ -252,20 +280,20 @@ public final class HtmlReportGenerator {
         
         writer.println("      <details class=\"test-method\" data-method-text=\"" + escapeHtmlAttribute(filterText) + "\">");
         writer.println("        <summary>");
-        writer.println("          <span class=\"summary-title\">" + escapeHtml(testMethodName) + "</span>");
-        writer.println("          <span class=\"badge\">Requests: " + requestCount + "</span>");
-        writer.println("          <span class=\"badge\">Mutating fields: " + mutatingCount + "</span>");
+        writer.println("          <span class=\"summary-title\">" + escapeHtml(testMethodName) + HTML_CLOSE_SPAN);
+        writer.println("          <span class=\"badge\">Requests: " + requestCount + HTML_CLOSE_SPAN);
+        writer.println("          <span class=\"badge\">Mutating fields: " + mutatingCount + HTML_CLOSE_SPAN);
         writer.println("        </summary>");
         writer.println("        <p class=\"folder-path\"><strong>Folder:</strong> <code>" + escapeHtml(shortFolderPath) + "</code></p>");
         
         // Handle single annotation
-        if (testMethod.has("annotation")) {
-            generateAnnotation(writer, testMethod.get("annotation"), null);
+        if (testMethod.has(KEY_ANNOTATION)) {
+            generateAnnotation(writer, testMethod.get(KEY_ANNOTATION), null);
         }
         
         // Handle multiple annotations
-        if (testMethod.has("annotations")) {
-            JsonNode annotations = testMethod.get("annotations");
+        if (testMethod.has(KEY_ANNOTATIONS)) {
+            JsonNode annotations = testMethod.get(KEY_ANNOTATIONS);
             if (annotations.isArray()) {
                 for (JsonNode annotation : annotations) {
                     int index = annotation.has("annotationIndex") ? annotation.get("annotationIndex").asInt() : -1;
@@ -284,12 +312,12 @@ public final class HtmlReportGenerator {
         
         // Find first request with examples for anchor links (calculate ID without incrementing counter)
         String firstRequestDetailsId = null;
-        if (annotation.has("requests")) {
-            JsonNode requests = annotation.get("requests");
+        if (annotation.has(KEY_REQUESTS)) {
+            JsonNode requests = annotation.get(KEY_REQUESTS);
             if (requests.isArray() && requests.size() > 0) {
                 for (JsonNode request : requests) {
-                    boolean hasExamples = request.has("examples") && request.get("examples").isArray()
-                            && request.get("examples").size() > 0;
+                    boolean hasExamples = request.has(KEY_EXAMPLES) && request.get(KEY_EXAMPLES).isArray()
+                            && request.get(KEY_EXAMPLES).size() > 0;
                     if (hasExamples) {
                         firstRequestDetailsId = "request-details-" + globalRequestDetailsCounter;
                         break;
@@ -299,21 +327,21 @@ public final class HtmlReportGenerator {
         }
         
         // Detected fields and ignore patterns
-        if (annotation.has("detectedFields")) {
-            JsonNode detectedFields = annotation.get("detectedFields");
+        if (annotation.has(KEY_DETECTED_FIELDS)) {
+            JsonNode detectedFields = annotation.get(KEY_DETECTED_FIELDS);
             
-            if (detectedFields.has("dynamic_fields") && detectedFields.get("dynamic_fields").isArray()) {
+            if (detectedFields.has(KEY_DYNAMIC_FIELDS) && detectedFields.get(KEY_DYNAMIC_FIELDS).isArray()) {
                 writer.println("          <div class=\"mutating-fields\">");
                 writer.println("            <h6>Ignore Patterns</h6>");
                 writer.println("            <ul>");
                 
-                for (JsonNode field : detectedFields.get("dynamic_fields")) {
-                    String fieldPath = field.has("field_path") ? field.get("field_path").asText() : "Unknown";
+                for (JsonNode field : detectedFields.get(KEY_DYNAMIC_FIELDS)) {
+                    String fieldPath = field.has("field_path") ? field.get("field_path").asText() : KEY_UNKNOWN;
                     // Extract path for anchor ID generation (remove prefix for JSON, keep full path for XML/others)
                     String pathForAnchor = fieldPath;
                     if (fieldPath.startsWith("json:")) {
                         pathForAnchor = fieldPath.substring(5);
-                    } else if (fieldPath.startsWith("xml://")) {
+                    } else if (fieldPath.startsWith(PREFIX_XML)) {
                         // For XML, use the full XPath but sanitize it for anchor ID
                         pathForAnchor = fieldPath;
                     }
@@ -333,11 +361,11 @@ public final class HtmlReportGenerator {
                         writer.println("                <code class=\"field-path\">" + escapeHtml(fieldPath) + "</code>");
                     }
                     
-                    if (field.has("sample_values") && field.get("sample_values").isArray()) {
+                    if (field.has(KEY_SAMPLE_VALUES) && field.get(KEY_SAMPLE_VALUES).isArray()) {
                         writer.println("                <details>");
                         writer.println("                  <summary>Sample values</summary>");
                         writer.println("                  <ul class=\"sample-values\">");
-                        for (JsonNode sample : field.get("sample_values")) {
+                        for (JsonNode sample : field.get(KEY_SAMPLE_VALUES)) {
                             writer.println("                    <li><code>" + escapeHtml(sample.asText()) + "</code></li>");
                         }
                         writer.println("                  </ul>");
@@ -358,8 +386,8 @@ public final class HtmlReportGenerator {
         }
         
         // Requests
-        if (annotation.has("requests")) {
-            JsonNode requests = annotation.get("requests");
+        if (annotation.has(KEY_REQUESTS)) {
+            JsonNode requests = annotation.get(KEY_REQUESTS);
             if (requests.isArray() && requests.size() > 0) {
                 writer.println("          <div class=\"requests\">");
                 writer.println("            <h6>Recorded Requests</h6>");
@@ -373,7 +401,7 @@ public final class HtmlReportGenerator {
                 writer.println("                    <th>Has Body</th>");
                 writer.println("                    <th>Mutating Fields</th>");
                 writer.println("                    <th>Details</th>");
-                writer.println("                  </tr>");
+                writer.println(HTML_TR_CLOSE);
                 writer.println("                </thead>");
                 writer.println("                <tbody>");
                 
@@ -384,52 +412,52 @@ public final class HtmlReportGenerator {
                     boolean hasBody = request.has("hasBody") && request.get("hasBody").asBoolean();
                     String requestFilterText = (method + " " + url).toLowerCase();
                     String detailsId = "request-details-" + globalRequestDetailsCounter++;
-                    boolean hasExamples = request.has("examples") && request.get("examples").isArray()
-                            && request.get("examples").size() > 0;
+                    boolean hasExamples = request.has(KEY_EXAMPLES) && request.get(KEY_EXAMPLES).isArray()
+                            && request.get(KEY_EXAMPLES).size() > 0;
                     
                     writer.println("                  <tr class=\"request-row\" data-request-text=\"" + escapeHtmlAttribute(requestFilterText) + "\">");
                     writer.println("                    <td><span class=\"method method-" + method.toLowerCase() + "\">" + escapeHtml(method) + "</span></td>");
                     writer.println("                    <td><code>" + escapeHtml(url) + "</code></td>");
-                    writer.println("                    <td>" + count + "</td>");
-                    writer.println("                    <td>" + (hasBody ? "&#10003;" : "&mdash;") + "</td>");
-                    writer.println("                    <td>");
+                    writer.println(HTML_TD_OPEN + count + "</td>");
+                    writer.println(HTML_TD_OPEN + (hasBody ? "&#10003;" : "&mdash;") + "</td>");
+                    writer.println(HTML_TD_OPEN);
                     
-                    if (request.has("mutatingFields") && request.get("mutatingFields").isArray()) {
-                        JsonNode mutatingFields = request.get("mutatingFields");
+                    if (request.has(KEY_MUTATING_FIELDS) && request.get(KEY_MUTATING_FIELDS).isArray()) {
+                        JsonNode mutatingFields = request.get(KEY_MUTATING_FIELDS);
                         if (mutatingFields.size() > 0) {
                             writer.println("                      <ul class=\"inline-list\">");
                             for (JsonNode field : mutatingFields) {
-                                String fieldPath = field.has("fieldPath") ? field.get("fieldPath").asText() : "Unknown";
+                                String fieldPath = field.has(KEY_FIELD_PATH) ? field.get(KEY_FIELD_PATH).asText() : KEY_UNKNOWN;
                                 writer.println("                        <li><code>" + escapeHtml(fieldPath) + "</code></li>");
                             }
                             writer.println("                      </ul>");
                         } else {
-                            writer.println("                      &mdash;");
+                            writer.println(HTML_MDASH);
                         }
                     } else {
-                        writer.println("                      &mdash;");
+                        writer.println(HTML_MDASH);
                     }
                     
-                    writer.println("                    </td>");
-                    writer.println("                    <td>");
+                    writer.println(HTML_TD_CLOSE);
+                    writer.println(HTML_TD_OPEN);
                     if (hasExamples) {
                         writer.println("                      <button type=\"button\" class=\"details-toggle\" onclick=\"toggleRequestDetails('"
                                 + escapeHtmlAttribute(detailsId) + "')\">View details</button>");
                     } else {
-                        writer.println("                      &mdash;");
+                        writer.println(HTML_MDASH);
                     }
-                    writer.println("                    </td>");
-                    writer.println("                  </tr>");
+                    writer.println(HTML_TD_CLOSE);
+                    writer.println(HTML_TR_CLOSE);
 
                     if (hasExamples) {
                         writer.println("                  <tr class=\"details-row\" id=\"" + escapeHtmlAttribute(detailsId) + "\">");
                         writer.println("                    <td colspan=\"6\">");
                         writer.println("                      <div class=\"details-content\">");
-                        JsonNode mutatingFields = request.has("mutatingFields") ? request.get("mutatingFields") : null;
-                        renderRequestDetails(writer, request.get("examples"), mutatingFields, detailsId);
+                        JsonNode mutatingFields = request.has(KEY_MUTATING_FIELDS) ? request.get(KEY_MUTATING_FIELDS) : null;
+                        renderRequestDetails(writer, request.get(KEY_EXAMPLES), mutatingFields, detailsId);
                         writer.println("                      </div>");
-                        writer.println("                    </td>");
-                        writer.println("                  </tr>");
+                        writer.println(HTML_TD_CLOSE);
+                        writer.println(HTML_TR_CLOSE);
                     }
                 }
                 
@@ -466,13 +494,13 @@ public final class HtmlReportGenerator {
             String bodyFileName = null;
             
             // Check for bodySource (mapping: prefix) first
-            if (requestNode != null && requestNode.has("bodySource")) {
-                String source = requestNode.get("bodySource").asText();
+            if (requestNode != null && requestNode.has(KEY_BODY_SOURCE)) {
+                String source = requestNode.get(KEY_BODY_SOURCE).asText();
                 if (source.startsWith("mapping:")) {
                     bodySource = source.substring(8);
                 }
-            } else if (responseNode != null && responseNode.has("bodySource")) {
-                String source = responseNode.get("bodySource").asText();
+            } else if (responseNode != null && responseNode.has(KEY_BODY_SOURCE)) {
+                String source = responseNode.get(KEY_BODY_SOURCE).asText();
                 if (source.startsWith("mapping:")) {
                     bodySource = source.substring(8);
                 }
@@ -480,10 +508,10 @@ public final class HtmlReportGenerator {
             
             // If no bodySource, check for bodyFileName
             if (bodySource == null) {
-                if (requestNode != null && requestNode.has("bodyFileName")) {
-                    bodyFileName = requestNode.get("bodyFileName").asText();
-                } else if (responseNode != null && responseNode.has("bodyFileName")) {
-                    bodyFileName = responseNode.get("bodyFileName").asText();
+                if (requestNode != null && requestNode.has(KEY_BODY_FILENAME)) {
+                    bodyFileName = requestNode.get(KEY_BODY_FILENAME).asText();
+                } else if (responseNode != null && responseNode.has(KEY_BODY_FILENAME)) {
+                    bodyFileName = responseNode.get(KEY_BODY_FILENAME).asText();
                 }
             }
             
@@ -496,7 +524,7 @@ public final class HtmlReportGenerator {
                         + escapeHtml(bodyFileName) + "</code></div>");
             }
             
-            writer.println("                          </div>");
+            writer.println(HTML_DIV_CLOSE_INNER);
 
             writer.println("                          <div class=\"headers-block\">");
             writer.println("                            <div class=\"section-heading\">Headers</div>");
@@ -506,7 +534,7 @@ public final class HtmlReportGenerator {
             if (responseNode != null) {
                 renderJsonBlock(writer, "Response headers", responseNode.get("headers"));
             }
-            writer.println("                          </div>");
+            writer.println(HTML_DIV_CLOSE_INNER);
 
             writer.println("                          <div class=\"request-block\">");
             writer.println("                            <div class=\"section-heading\">Request</div>");
@@ -516,7 +544,7 @@ public final class HtmlReportGenerator {
                 renderBodyBlock(writer, "Body", requestBodyJson, requestBody, mutatingFields, detailsId + "-example-" + index);
                 // bodySource/bodyFileName is now shown once in the example header
             }
-            writer.println("                          </div>");
+            writer.println(HTML_DIV_CLOSE_INNER);
 
             writer.println("                          <div class=\"response-block\">");
             writer.println("                            <div class=\"section-heading\">Response</div>");
@@ -526,7 +554,7 @@ public final class HtmlReportGenerator {
                 renderBodyBlock(writer, "Body", responseBodyJson, responseBody, null, null);
                 // bodySource/bodyFileName is now shown once in the example header
             }
-            writer.println("                          </div>");
+            writer.println(HTML_DIV_CLOSE_INNER);
 
             writer.println("                        </div>");
             index++;
@@ -563,9 +591,9 @@ public final class HtmlReportGenerator {
         if (logger.isDebugEnabled() && isXml && mutatingFields != null && mutatingFields.isArray()) {
             int xmlFieldCount = 0;
             for (JsonNode field : mutatingFields) {
-                if (field.has("fieldPath")) {
-                    String fieldPath = field.get("fieldPath").asText();
-                    if (fieldPath.startsWith("xml:") || fieldPath.startsWith("xml://")) {
+                if (field.has(KEY_FIELD_PATH)) {
+                    String fieldPath = field.get(KEY_FIELD_PATH).asText();
+                    if (fieldPath.startsWith("xml:") || fieldPath.startsWith(PREFIX_XML)) {
                         xmlFieldCount++;
                     }
                 }
@@ -617,8 +645,8 @@ public final class HtmlReportGenerator {
         java.util.Map<String, String> pathToAnchorId = new java.util.HashMap<>();
         
         for (JsonNode field : mutatingFields) {
-            if (field.has("fieldPath")) {
-                String fieldPath = field.get("fieldPath").asText();
+            if (field.has(KEY_FIELD_PATH)) {
+                String fieldPath = field.get(KEY_FIELD_PATH).asText();
                 if (fieldPath.startsWith("json:")) {
                     String jsonPath = fieldPath.substring(5);
                     jsonPaths.add(jsonPath);
@@ -676,7 +704,7 @@ public final class HtmlReportGenerator {
                 sb.append(valueStr);
                 
                 if (isMutating && anchorId != null) {
-                    sb.append("</span>");
+                    sb.append(HTML_CLOSE_SPAN);
                 }
             }
             sb.append("\n").append(indentStr).append("<span class=\"json-punctuation\">}</span>");
@@ -701,11 +729,11 @@ public final class HtmlReportGenerator {
     
     private static String formatJsonValue(JsonNode value) {
         if (value.isTextual()) {
-            return "<span class=\"json-string\">\"" + escapeHtml(value.asText()) + "\"</span>";
+            return "<span class=\"json-string\">\"" + escapeHtml(value.asText()) + "\"" + HTML_CLOSE_SPAN;
         } else if (value.isNumber()) {
-            return "<span class=\"json-number\">" + value.toString() + "</span>";
+            return "<span class=\"json-number\">" + value.toString() + HTML_CLOSE_SPAN;
         } else if (value.isBoolean()) {
-            return "<span class=\"json-boolean\">" + (value.asBoolean() ? "true" : "false") + "</span>";
+            return "<span class=\"json-boolean\">" + (value.asBoolean() ? "true" : "false") + HTML_CLOSE_SPAN;
         } else if (value.isNull()) {
             return "<span class=\"json-null\">null</span>";
         }
@@ -752,10 +780,10 @@ public final class HtmlReportGenerator {
         XPath xpath = xpathFactory.newXPath();
         
         for (JsonNode field : mutatingFields) {
-            if (field.has("fieldPath")) {
-                String fieldPath = field.get("fieldPath").asText();
-                if (fieldPath.startsWith("xml://")) {
-                    String xpathPattern = fieldPath.substring(6); // Remove "xml://" prefix
+            if (field.has(KEY_FIELD_PATH)) {
+                String fieldPath = field.get(KEY_FIELD_PATH).asText();
+                if (fieldPath.startsWith(PREFIX_XML)) {
+                    String xpathPattern = fieldPath.substring(6); // Remove PREFIX_XML prefix
                     
                     String sanitized = xpathPattern.replace("*", "-").replace("[", "-").replace("]", "-")
                             .replace("(", "-").replace(")", "-").replace("/", "-").replace("@", "-")
@@ -1068,7 +1096,7 @@ public final class HtmlReportGenerator {
                 return "<span class=\"xml-text\"><span class=\"mutating-field-line\" data-mutating-field=\"true\">" + escaped + "</span></span>";
             }
         }
-        return "<span class=\"xml-text\">" + escaped + "</span>";
+        return "<span class=\"xml-text\">" + escaped + HTML_CLOSE_SPAN;
     }
     
     /**
@@ -1086,14 +1114,14 @@ public final class HtmlReportGenerator {
         }
         
         StringBuilder result = new StringBuilder();
-        result.append("<span class=\"xml-tag\">").append(escapeHtml("<")).append("</span>");
+        result.append(HTML_TAG_OPEN).append(escapeHtml("<")).append(HTML_CLOSE_SPAN);
         
         // Check if it's a closing tag
         if (tag.startsWith("</")) {
             String tagname = tag.substring(2, tag.length() - 1).trim();
             result.append("<span class=\"xml-tag\">/</span>");
-            result.append("<span class=\"xml-tagname\">").append(escapeHtml(tagname)).append("</span>");
-            result.append("<span class=\"xml-tag\">").append(escapeHtml(">")).append("</span>");
+            result.append("<span class=\"xml-tagname\">").append(escapeHtml(tagname)).append(HTML_CLOSE_SPAN);
+            result.append(HTML_TAG_OPEN).append(escapeHtml(">")).append(HTML_CLOSE_SPAN);
             return result.toString();
         }
         
@@ -1106,7 +1134,7 @@ public final class HtmlReportGenerator {
         String tagname = parts[0];
         String attributes = parts.length > 1 ? parts[1] : "";
         
-        result.append("<span class=\"xml-tagname\">").append(escapeHtml(tagname)).append("</span>");
+        result.append("<span class=\"xml-tagname\">").append(escapeHtml(tagname)).append(HTML_CLOSE_SPAN);
         
         // Highlight attributes using elementPathForTag (the path of THIS element, not the parent)
         // This is critical: attributes belong to the element being opened, not the parent path
@@ -1118,7 +1146,7 @@ public final class HtmlReportGenerator {
         if (selfClosing) {
             result.append("<span class=\"xml-tag\">/</span>");
         }
-        result.append("<span class=\"xml-tag\">").append(escapeHtml(">")).append("</span>");
+        result.append(HTML_TAG_OPEN).append(escapeHtml(">")).append(HTML_CLOSE_SPAN);
         
         return result.toString();
     }
@@ -1154,11 +1182,11 @@ public final class HtmlReportGenerator {
             
             // Render attribute name with leading space
             result.append(" ")
-                  .append("<span class=\"xml-attrname\">").append(escapeHtml(attrName)).append("</span>");
+                  .append("<span class=\"xml-attrname\">").append(escapeHtml(attrName)).append(HTML_CLOSE_SPAN);
             
             // Render equals sign and opening quote
             result.append("<span class=\"xml-punctuation\">=</span>")
-                  .append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
+                  .append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append(HTML_CLOSE_SPAN);
             
             // Check if this attribute is mutating
             boolean isMutating = false;
@@ -1204,14 +1232,14 @@ public final class HtmlReportGenerator {
                 }
                 result.append(" class=\"mutating-field-line\" data-mutating-field=\"true\">")
                       .append(escapeHtml(attrValue))
-                      .append("</span>");
+                      .append(HTML_CLOSE_SPAN);
             } else {
                 // Non-mutating attribute: just the value
                 result.append(escapeHtml(attrValue));
             }
-            result.append("</span>");
+            result.append(HTML_CLOSE_SPAN);
             
-            result.append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append("</span>");
+            result.append("<span class=\"xml-punctuation\">").append(escapeHtml(quote)).append(HTML_CLOSE_SPAN);
             
             lastEnd = matcher.end();
         }
@@ -1283,12 +1311,12 @@ public final class HtmlReportGenerator {
     private static int countRequests(JsonNode testMethod) {
         int count = 0;
         
-        if (testMethod.has("annotation")) {
-            count += countRequestsInAnnotation(testMethod.get("annotation"));
+        if (testMethod.has(KEY_ANNOTATION)) {
+            count += countRequestsInAnnotation(testMethod.get(KEY_ANNOTATION));
         }
         
-        if (testMethod.has("annotations")) {
-            JsonNode annotations = testMethod.get("annotations");
+        if (testMethod.has(KEY_ANNOTATIONS)) {
+            JsonNode annotations = testMethod.get(KEY_ANNOTATIONS);
             if (annotations.isArray()) {
                 for (JsonNode annotation : annotations) {
                     count += countRequestsInAnnotation(annotation);
@@ -1300,9 +1328,9 @@ public final class HtmlReportGenerator {
     }
 
     private static int countRequestsInAnnotation(JsonNode annotation) {
-        if (annotation.has("requests") && annotation.get("requests").isArray()) {
+        if (annotation.has(KEY_REQUESTS) && annotation.get(KEY_REQUESTS).isArray()) {
             int total = 0;
-            for (JsonNode request : annotation.get("requests")) {
+            for (JsonNode request : annotation.get(KEY_REQUESTS)) {
                 if (request.has("requestCount")) {
                     total += request.get("requestCount").asInt();
                 } else {
@@ -1317,12 +1345,12 @@ public final class HtmlReportGenerator {
     private static int countMutatingFields(JsonNode testMethod) {
         int count = 0;
         
-        if (testMethod.has("annotation")) {
-            count += countMutatingFieldsInAnnotation(testMethod.get("annotation"));
+        if (testMethod.has(KEY_ANNOTATION)) {
+            count += countMutatingFieldsInAnnotation(testMethod.get(KEY_ANNOTATION));
         }
         
-        if (testMethod.has("annotations")) {
-            JsonNode annotations = testMethod.get("annotations");
+        if (testMethod.has(KEY_ANNOTATIONS)) {
+            JsonNode annotations = testMethod.get(KEY_ANNOTATIONS);
             if (annotations.isArray()) {
                 for (JsonNode annotation : annotations) {
                     count += countMutatingFieldsInAnnotation(annotation);
@@ -1334,10 +1362,10 @@ public final class HtmlReportGenerator {
     }
 
     private static int countMutatingFieldsInAnnotation(JsonNode annotation) {
-        if (annotation.has("detectedFields")) {
-            JsonNode detectedFields = annotation.get("detectedFields");
-            if (detectedFields.has("dynamic_fields") && detectedFields.get("dynamic_fields").isArray()) {
-                return detectedFields.get("dynamic_fields").size();
+        if (annotation.has(KEY_DETECTED_FIELDS)) {
+            JsonNode detectedFields = annotation.get(KEY_DETECTED_FIELDS);
+            if (detectedFields.has(KEY_DYNAMIC_FIELDS) && detectedFields.get(KEY_DYNAMIC_FIELDS).isArray()) {
+                return detectedFields.get(KEY_DYNAMIC_FIELDS).size();
             }
         }
         return 0;

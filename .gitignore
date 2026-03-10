@@ -69,3 +69,9 @@ replay_pid*
 package-lock.json
 package.json
 node_modules/
+
+# Local / tooling
+.claude/
+.pi-sonarqube/
+.scannerwork/
+llmwiki/

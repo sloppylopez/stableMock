@@ -1,23 +1,23 @@
 {
   "testClass" : "MultiLevelInheritanceTest",
   "testMethod" : "testXmlWithDynamicFieldsInMultiLevelInheritance",
-  "detectedAt" : "2026-03-09T16:49:33.634467200Z",
-  "analyzed_requests_count" : 4,
+  "detectedAt" : "2026-07-02T15:35:43.517078300Z",
+  "analyzed_requests_count" : 2,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ApiRequest']/*[local-name()='DateRange']/*[local-name()='Start']",
-    "sample_values" : [ "2026-01-22", "2026-01-22", "2026-01-22" ]
+    "sample_values" : [ "2026-01-22", "2026-01-22" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Header']/*[local-name()='RequestId']",
-    "sample_values" : [ "1773074933795", "1773074933253", "1773074972883" ]
+    "sample_values" : [ "1783006542939", "1783006542718" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ApiRequest']/*[local-name()='Timestamp']",
-    "sample_values" : [ "2026-03-09T16:48:53.805729800Z", "2026-03-09T16:48:53.263668Z", "2026-03-09T16:49:32.893194500Z" ]
+    "sample_values" : [ "2026-07-02T15:35:42.949321300Z", "2026-07-02T15:35:42.728570600Z" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Header']/*[local-name()='SessionToken']",
-    "sample_values" : [ "1773074933805", "1773074933263", "1773074972893" ]
+    "sample_values" : [ "1783006542949", "1783006542728" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ApiRequest']/*[local-name()='DateRange']/*[local-name()='End']",
-    "sample_values" : [ "2026-01-24", "2026-01-24", "2026-01-24" ]
+    "sample_values" : [ "2026-01-24", "2026-01-24" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ApiRequest']/*[local-name()='DateRange']/*[local-name()='Start']", "xml://*[local-name()='Envelope']/*[local-name()='Header']/*[local-name()='RequestId']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ApiRequest']/*[local-name()='Timestamp']", "xml://*[local-name()='Envelope']/*[local-name()='Header']/*[local-name()='SessionToken']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ApiRequest']/*[local-name()='DateRange']/*[local-name()='End']" ]
 }

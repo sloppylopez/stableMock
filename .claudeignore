@@ -1,0 +1,19 @@
+# Gradle build output and caches
+build/
+.gradle/
+out/
+
+# StableMock recorded stubs and analysis data
+**/src/test/resources/stablemock/**/mappings/
+**/src/test/resources/stablemock/**/__files/
+**/src/test/resources/stablemock/**/detected-fields.json
+**/src/test/resources/stablemock/recording-report.json
+**/src/test/resources/stablemock/recording-report.html
+**/src/test/resources/.stablemock-analysis/
+
+# Maven local publish artifacts
+**/build/publications/
+**/build/libs/
+
+# Logs
+*.log

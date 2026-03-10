@@ -1,0 +1,44 @@
+{
+  "id" : "7e33e7d5-d3db-4469-a5a6-aa900be96d6e",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\n  \"order\": {\n    \"id\": \"order-123\",\n    \"items\": [\n      {\n        \"productId\": \"prod-1\",\n        \"quantity\": 2,\n        \"metadata\": {\n          \"timestamp\": \"2026-07-02T15:35:37.636869300Z\",\n          \"sessionId\": \"279e4b4b-5c70-411f-bea3-5b9f4f4115dd\"\n        }\n      }\n    ],\n    \"payment\": {\n      \"transactionId\": \"b7694e37-d736-4dc2-9ab5-00587b5f939a\",\n      \"timestamp\": \"2026-07-02T15:35:37.636869300Z\"\n    }\n  },\n  \"requestId\": \"a3111e9f-6852-4a53-8a2a-6949cfc4afeb\"\n}\n",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "CF-RAY" : "a14eb8aa1b9fe8a1-MAD",
+      "Server" : "cloudflare",
+      "X-Ratelimit-Remaining" : "992",
+      "X-Content-Type-Options" : "nosniff",
+      "Cf-Cache-Status" : "DYNAMIC",
+      "Reporting-Endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=l2az66ExDV5%2FBoVRD9XoKbOK0chRg2HVh33Toyrz3p4%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1783006537\"",
+      "Pragma" : "no-cache",
+      "Date" : "Thu, 02 Jul 2026 15:35:37 GMT",
+      "Via" : "2.0 heroku-router",
+      "X-Ratelimit-Reset" : "1783006596",
+      "X-Ratelimit-Limit" : "1000",
+      "Access-Control-Expose-Headers" : "Location",
+      "Nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "Cache-Control" : "no-cache",
+      "Report-To" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=l2az66ExDV5%2FBoVRD9XoKbOK0chRg2HVh33Toyrz3p4%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1783006537\"}],\"max_age\":3600}",
+      "Access-Control-Allow-Credentials" : "true",
+      "Vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "Expires" : "-1",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "X-Powered-By" : "Express",
+      "Location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "7e33e7d5-d3db-4469-a5a6-aa900be96d6e",
+  "persistent" : true,
+  "insertionIndex" : 0
+}

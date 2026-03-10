@@ -2,6 +2,8 @@ package com.stablemock.spring;
 
 import com.stablemock.WireMockContext;
 import com.stablemock.U;
+import com.stablemock.core.config.StableMockConfig;
+import com.stablemock.core.resolver.TestContextResolver;
 import org.springframework.test.context.DynamicPropertyRegistry;
 
 import java.io.InputStream;
@@ -25,9 +27,10 @@ import java.util.Properties;
  * - Each parallel test gets a different port (e.g., Test1: 54321, Test2: 61234)
  * - Profile properties are static and loaded before tests run
  * 
- * @DynamicPropertySource is evaluated LAZILY (when Spring needs the value),
- *                        so it can read the ThreadLocal value set by
- *                        StableMockExtension after WireMock starts.
+ * @DynamicPropertySource is evaluated LAZILY when Spring reads a property.
+ * Suppliers prefer stablemock.baseUrl.&lt;ClassName&gt; (and indexed variants) set by
+ * StableMockExtension so @Async and pool threads get the right WireMock port;
+ * ThreadLocal is a fallback on the JUnit thread.
  */
 public abstract class BaseStableMockTest {
 
@@ -51,14 +54,14 @@ public abstract class BaseStableMockTest {
      * 
      * REQUIRED when using StableMock because WireMock ports are dynamic and chosen
      * at runtime.
-     * The port is only known after WireMock starts, so we must read it from
-     * ThreadLocal.
+     * The port is only known after WireMock starts; StableMockExtension publishes it
+     * via class-scoped system properties (preferred) and ThreadLocal (fallback).
      * 
      * Fallback chain:
-     * 1. ThreadLocal base URL (set by StableMockExtension after WireMock starts) -
-     * REQUIRED for dynamic port
-     * 2. Class-scoped system property: stablemock.baseUrl.<ClassName>
-     * 3. Global system property: stablemock.baseUrl
+     * 1. Class-scoped system property: stablemock.baseUrl.&lt;ClassName&gt; (set by
+     *    StableMockExtension; correct on @Async / pool threads where ThreadLocal is missing or stale)
+     * 2. Global system property: stablemock.baseUrl
+     * 3. ThreadLocal base URL (test thread only)
      * 4. Default URL (from application.properties if not provided)
      * 
      * Path preservation: Automatically preserves paths from original property values
@@ -90,22 +93,20 @@ public abstract class BaseStableMockTest {
                 ? pathOverride
                 : extractPathFromProperty(propertyName, defaultUrl);
         registry.add(propertyName, () -> {
-            // Only override if StableMock is active (has ThreadLocal value)
-            String baseUrl = getThreadLocalBaseUrl();
+            String baseUrl = System.getProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName);
+            if (baseUrl == null || baseUrl.isEmpty()) {
+                baseUrl = System.getProperty(StableMockConfig.BASE_URL_PROPERTY);
+            }
+            if (baseUrl == null || baseUrl.isEmpty()) {
+                baseUrl = getThreadLocalBaseUrl();
+            }
             if (baseUrl != null && !baseUrl.isEmpty()) {
                 if (pathToPreserve != null && !pathToPreserve.isEmpty()) {
-                    return baseUrl + pathToPreserve; // Preserve path
+                    return baseUrl + pathToPreserve;
                 }
-                return baseUrl; // StableMock is active, use WireMock URL
+                return baseUrl;
             }
-            // StableMock not active, check system properties as fallback
-            baseUrl = System.getProperty("stablemock.baseUrl." + testClassName);
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = System.getProperty("stablemock.baseUrl");
-            }
-            // If still no value, return default (which matches application.properties)
-            // Spring will use application.properties value if we return null/empty
-            String fallbackUrl = baseUrl != null && !baseUrl.isEmpty() ? baseUrl : defaultUrl;
+            String fallbackUrl = defaultUrl;
             if (fallbackUrl != null && pathToPreserve != null && !pathToPreserve.isEmpty()) {
                 // Extract base URL from fallback and append path
                 String fallbackBase = extractBaseUrl(fallbackUrl);
@@ -123,13 +124,13 @@ public abstract class BaseStableMockTest {
      * 
      * REQUIRED when using StableMock because WireMock ports are dynamic and chosen
      * at runtime.
-     * Each URL index gets its own WireMock server with its own dynamic port.
+     * Each URL index gets its own WireMock server; ports are published on system properties
+     * (preferred for @Async / pools) and ThreadLocal (fallback).
      * 
      * Fallback chain:
-     * 1. ThreadLocal base URL by index (set by StableMockExtension after WireMock
-     * starts) - REQUIRED for dynamic port
-     * 2. Class-scoped system property: stablemock.baseUrl.<ClassName>.<index>
-     * 3. Global system property: stablemock.baseUrl.<index>
+     * 1. Class-scoped system property: stablemock.baseUrl.&lt;ClassName&gt;.&lt;index&gt;
+     * 2. Global: stablemock.baseUrl.&lt;index&gt;
+     * 3. ThreadLocal by index (test thread; index 0 also uses primary ThreadLocal)
      * 4. Default URL (from application.properties if not provided)
      * 
      * Path preservation: Automatically preserves paths from original property values
@@ -150,24 +151,34 @@ public abstract class BaseStableMockTest {
             String testClassName,
             int index,
             String defaultUrl) {
-        final String pathToPreserve = extractPathFromProperty(propertyName, defaultUrl);
+        registerPropertyWithFallbackByIndex(registry, propertyName, testClassName, index, defaultUrl, null);
+    }
+
+    protected static void registerPropertyWithFallbackByIndex(
+            DynamicPropertyRegistry registry,
+            String propertyName,
+            String testClassName,
+            int index,
+            String defaultUrl,
+            String pathOverride) {
+        final String pathToPreserve = (pathOverride != null && !pathOverride.isEmpty())
+                ? pathOverride
+                : extractPathFromProperty(propertyName, defaultUrl);
         registry.add(propertyName, () -> {
-            // Only override if StableMock is active (has ThreadLocal value)
-            String wireMockUrl = getThreadLocalBaseUrlByIndex(index);
+            String wireMockUrl = System.getProperty(StableMockConfig.BASE_URL_PROPERTY + "." + testClassName + "." + index);
+            if (wireMockUrl == null || wireMockUrl.isEmpty()) {
+                wireMockUrl = System.getProperty(StableMockConfig.BASE_URL_PROPERTY + "." + index);
+            }
+            if (wireMockUrl == null || wireMockUrl.isEmpty()) {
+                wireMockUrl = getThreadLocalBaseUrlByIndex(index);
+            }
             if (wireMockUrl != null && !wireMockUrl.isEmpty()) {
                 if (pathToPreserve != null && !pathToPreserve.isEmpty()) {
-                    return wireMockUrl + pathToPreserve; // Preserve path
+                    return wireMockUrl + pathToPreserve;
                 }
-                return wireMockUrl; // StableMock is active, use WireMock URL
+                return wireMockUrl;
             }
-            // StableMock not active, check system properties as fallback
-            wireMockUrl = System.getProperty("stablemock.baseUrl." + testClassName + "." + index);
-            if (wireMockUrl == null || wireMockUrl.isEmpty()) {
-                wireMockUrl = System.getProperty("stablemock.baseUrl." + index);
-            }
-            // If still no value, return default (which matches application.properties)
-            // Spring will use application.properties value if we return null/empty
-            String fallbackUrl = wireMockUrl != null && !wireMockUrl.isEmpty() ? wireMockUrl : defaultUrl;
+            String fallbackUrl = defaultUrl;
             if (fallbackUrl != null && pathToPreserve != null && !pathToPreserve.isEmpty()) {
                 // Extract base URL from fallback and append path
                 String fallbackBase = extractBaseUrl(fallbackUrl);
@@ -295,17 +306,17 @@ public abstract class BaseStableMockTest {
                         allUrls.add(urls[i]);
                         java.util.List<String> propsForUrl = new java.util.ArrayList<>();
 
-                        // Map property at index i to URL at index i
+                        // Map property at index i to URL at index i, honoring inline "name=/path" syntax
                         if (properties != null && i < properties.length && properties[i] != null
                                 && !properties[i].isEmpty()) {
-                            propsForUrl.add(properties[i]);
+                            addPropertyToUrlMapping(propsForUrl, pathOverrides, properties[i]);
                         }
 
                         // If there are extra properties beyond URLs, map them to the last URL
                         if (i == urls.length - 1 && properties != null && properties.length > urls.length) {
                             for (int j = urls.length; j < properties.length; j++) {
                                 if (properties[j] != null && !properties[j].isEmpty()) {
-                                    propsForUrl.add(properties[j]);
+                                    addPropertyToUrlMapping(propsForUrl, pathOverrides, properties[j]);
                                 }
                             }
                         }
@@ -324,12 +335,14 @@ public abstract class BaseStableMockTest {
             for (String propertyName : propertiesForUrl) {
                 if (propertyName != null && !propertyName.isEmpty()) {
                     if (allUrls.size() == 1) {
-                        // Single URL - use single URL method; optional path from @U(paths=...)
+                        // Single URL - use single URL method; optional path from @U(paths=...) or inline "name=/path"
                         String pathOverride = pathOverrides.get(propertyName);
                         registerPropertyWithFallback(registry, propertyName, testClassName, defaultUrl, pathOverride);
                     } else {
-                        // Multiple URLs - use indexed method
-                        registerPropertyWithFallbackByIndex(registry, propertyName, testClassName, i, defaultUrl);
+                        // Multiple URLs - use indexed method; still honor path overrides and inline "name=/path"
+                        String pathOverride = pathOverrides.get(propertyName);
+                        registerPropertyWithFallbackByIndex(registry, propertyName, testClassName, i, defaultUrl,
+                                pathOverride);
                     }
                 }
             }
@@ -339,18 +352,48 @@ public abstract class BaseStableMockTest {
     /**
      * Finds keys @U annotations on the test class, including inherited ones if
      * possible?
-     * Note: @U is not @Inherited, so getAnnotationsByType might not find it on
-     * superclasses
-     * properly if we don't recurse. But TestContextResolver does extra work.
-     * 
-     * Here we just use standard Java reflection. Users should put @U on the leaf
-     * class
-     * or we should simply check the specific class passed in.
+     * Uses the same parent-first class hierarchy walk as {@link TestContextResolver}
+     * so URL indices match the WireMock servers started by {@code com.stablemock.StableMockExtension}.
      */
     private static U[] findAllUAnnotations(Class<?> testClass) {
-        // Since @U is repeating, we use getAnnotationsByType which handles the
-        // container
-        return testClass.getAnnotationsByType(U.class);
+        return TestContextResolver.findAllUDeclaredOnClassHierarchy(testClass);
+    }
+
+    /**
+     * Adds a property mapping entry for a given raw property string.
+     * Supports both simple names ("app.thirdparty.url") and inline path syntax
+     * ("propertyName=/path").
+     *
+     * @param propsForUrl   List of property names for the current URL
+     * @param pathOverrides Map of propertyName -> pathOverride ("/path")
+     * @param rawProperty   Raw property entry from @U(properties={...})
+     */
+    private static void addPropertyToUrlMapping(
+            java.util.List<String> propsForUrl,
+            java.util.Map<String, String> pathOverrides,
+            String rawProperty) {
+        if (rawProperty == null || rawProperty.isEmpty()) {
+            return;
+        }
+        String name = rawProperty;
+        String path = null;
+        int eq = rawProperty.indexOf('=');
+        if (eq > 0) {
+            name = rawProperty.substring(0, eq).trim();
+            path = rawProperty.substring(eq + 1).trim();
+        }
+        if (name.isEmpty()) {
+            return;
+        }
+        propsForUrl.add(name);
+        if (path != null && !path.isEmpty()) {
+            if (!path.startsWith("/")) {
+                path = "/" + path;
+            }
+            if (pathOverrides != null) {
+                pathOverrides.put(name, path);
+            }
+        }
     }
 
     /**
@@ -374,12 +417,24 @@ public abstract class BaseStableMockTest {
             }
         }
 
-        // 2. Try properties files
-        String activeProfile = System.getProperty("spring.profiles.active", "");
-        String[] possibleFileNames = {
-            "application-" + activeProfile + ".properties",
-            "application.properties"
-        };
+        // 2. Try properties files (including YAML and all active profiles)
+        String activeProfileRaw = System.getProperty("spring.profiles.active", "");
+        // spring.profiles.active can be a comma-separated list; try each profile
+        String[] activeProfiles = activeProfileRaw.isEmpty()
+                ? new String[0]
+                : activeProfileRaw.split("\\s*,\\s*");
+        java.util.List<String> candidateFiles = new java.util.ArrayList<>();
+        for (String profile : activeProfiles) {
+            if (!profile.isEmpty()) {
+                candidateFiles.add("application-" + profile + ".properties");
+                candidateFiles.add("application-" + profile + ".yml");
+                candidateFiles.add("application-" + profile + ".yaml");
+            }
+        }
+        candidateFiles.add("application.properties");
+        candidateFiles.add("application.yml");
+        candidateFiles.add("application.yaml");
+        String[] possibleFileNames = candidateFiles.toArray(new String[0]);
 
         for (String fileName : possibleFileNames) {
             String propValue = readPropertyFromClasspath(fileName, propertyName);
@@ -461,17 +516,26 @@ public abstract class BaseStableMockTest {
             ClassLoader.getSystemClassLoader()
         };
 
+        boolean isYaml = fileName.endsWith(".yml") || fileName.endsWith(".yaml");
+
         for (ClassLoader classLoader : classLoaders) {
             if (classLoader == null) {
                 continue;
             }
             try (InputStream inputStream = classLoader.getResourceAsStream(fileName)) {
                 if (inputStream != null) {
-                    Properties properties = new Properties();
-                    properties.load(inputStream);
-                    String value = properties.getProperty(propertyName);
-                    if (value != null && !value.trim().isEmpty()) {
-                        return value.trim();
+                    if (isYaml) {
+                        String value = readPropertyFromYaml(inputStream, propertyName);
+                        if (value != null && !value.trim().isEmpty()) {
+                            return value.trim();
+                        }
+                    } else {
+                        Properties properties = new Properties();
+                        properties.load(inputStream);
+                        String value = properties.getProperty(propertyName);
+                        if (value != null && !value.trim().isEmpty()) {
+                            return value.trim();
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -480,5 +544,78 @@ public abstract class BaseStableMockTest {
         }
 
         return null;
+    }
+
+    /**
+     * Minimal YAML property reader that handles flat key: value lines and
+     * dotted-key notation without requiring a YAML library dependency.
+     * Supports simple scalar values only (no anchors, multi-line, etc.).
+     */
+    private static String readPropertyFromYaml(InputStream inputStream, String propertyName) {
+        try {
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(inputStream, java.nio.charset.StandardCharsets.UTF_8));
+            // Build a flat properties map from the YAML by tracking indent-based key nesting
+            java.util.Deque<String> keyStack = new java.util.ArrayDeque<>();
+            java.util.Map<String, String> flat = new java.util.LinkedHashMap<>();
+            String line;
+            int prevIndent = 0;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty() || line.trim().startsWith("#")) {
+                    continue;
+                }
+                int indent = 0;
+                while (indent < line.length() && line.charAt(indent) == ' ') {
+                    indent++;
+                }
+                int colonIdx = line.indexOf(':');
+                if (colonIdx < 0) {
+                    continue;
+                }
+                String key = line.substring(indent, colonIdx).trim();
+                String val = line.substring(colonIdx + 1).trim();
+                // Remove trailing comments from value
+                if (val.startsWith("\"") || val.startsWith("'")) {
+                    // quoted value — strip quotes
+                    char q = val.charAt(0);
+                    int end = val.indexOf(q, 1);
+                    val = end > 0 ? val.substring(1, end) : val.substring(1);
+                } else {
+                    int commentIdx = val.indexOf(" #");
+                    if (commentIdx >= 0) {
+                        val = val.substring(0, commentIdx).trim();
+                    }
+                }
+                // Pop stack entries whose indent is >= current indent
+                while (!keyStack.isEmpty()) {
+                    // We track as "indentLevel:keyPart" strings
+                    String top = keyStack.peek();
+                    int topIndent = Integer.parseInt(top.substring(0, top.indexOf(':')));
+                    if (topIndent >= indent) {
+                        keyStack.pop();
+                    } else {
+                        break;
+                    }
+                }
+                if (!val.isEmpty()) {
+                    // Leaf node: compute full dotted key
+                    StringBuilder fullKey = new StringBuilder();
+                    for (String part : keyStack) {
+                        if (fullKey.length() > 0) fullKey.append('.');
+                        fullKey.append(part.substring(part.indexOf(':') + 1));
+                    }
+                    if (fullKey.length() > 0) fullKey.append('.');
+                    fullKey.append(key);
+                    flat.put(fullKey.toString(), val);
+                } else {
+                    // Intermediate node: push onto stack
+                    keyStack.push(indent + ":" + key);
+                }
+                prevIndent = indent;
+            }
+            return flat.get(propertyName);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
