@@ -596,9 +596,7 @@ public class StableMockExtension
                 return;
             }
 
-            // Sequential parameterized playback: hot-reload on the class-level WireMock server(s)
-            // so ports stay aligned with Spring/Feign URLs resolved at context refresh.
-
+            // Class-level server path: record lock + playback hot-reload as needed.
             if (StableMockConfig.isRecordMode()) {
                 ReentrantLock lock = classStore.getOrCreateClassLock();
                 lock.lock();
@@ -611,8 +609,16 @@ public class StableMockExtension
             File baseMappingsDir = new File(testResourcesDir, STABLEMOCK_DIR + testClassName);
             File mappingsDir = new File(baseMappingsDir, testMethodIdentifier);
 
-            if (StableMockConfig.isPlaybackMode() && isParameterizedInvocation(context)
-                    && StableMockConfig.isParameterizedPlaybackReloadEnabled()) {
+            // Class-level playback hot-reload:
+            // - Always for parameterized invocations (per-invocation stubs).
+            // - Also for non-param methods when useClassServer=true (shared ports with
+            //   parameterized siblings; e.g. DualU users/6 then users/5).
+            // Do NOT reload every method by default — many suites rely on class-merged stubs
+            // and have no per-method mappings dir (reload would wipe to 0 stubs).
+            if (StableMockConfig.isPlaybackMode()
+                    && StableMockConfig.isParameterizedPlaybackReloadEnabled()
+                    && (isParameterizedInvocation(context)
+                            || StableMockConfig.isParameterizedPlaybackUseClassServer())) {
                 ReentrantLock lock = classStore.getOrCreateClassLock();
                 lock.lock();
                 methodStore.putClassLock(lock);

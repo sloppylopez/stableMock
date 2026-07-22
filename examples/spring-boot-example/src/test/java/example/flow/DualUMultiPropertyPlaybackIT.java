@@ -42,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
     properties = { "app.thirdparty.url" }
 )
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@Execution(ExecutionMode.SAME_THREAD)
 class DualUMultiPropertyPlaybackIT extends BaseTestFeature {
 
     @Autowired

@@ -56,9 +56,8 @@ public final class WireMockServerManager {
     private static final String EQUAL_TO_JSON_KEY = "equalToJson";
     private static final String EQUAL_TO_KEY = "equalTo";
 
-    // Ignore pattern prefix & placeholder
-    private static final String PREFIX_JSON_IGNORE = "json:";
-    private static final String PLACEHOLDER_IGNORE = "${json-unit.ignore}";
+    // WireMock 3 xmlunit ignore placeholder (json-unit uses "${json-unit.ignore}" inline)
+    private static final String PLACEHOLDER_XML_IGNORE = "${xmlunit.ignore}";
 
     private WireMockServerManager() {
         // utility class
@@ -1514,7 +1513,7 @@ public final class WireMockServerManager {
                     }
                     if (!hasElementChildren) {
                         // Replace text content with placeholder while keeping structure
-                        element.setTextContent(PREFIX_JSON_IGNORE);
+                        element.setTextContent(PLACEHOLDER_XML_IGNORE);
                     }
                 }
             }
@@ -1566,7 +1565,7 @@ public final class WireMockServerManager {
                 }
             }
             if (!hasElementChildren) {
-                element.setTextContent(PREFIX_JSON_IGNORE);
+                element.setTextContent(PLACEHOLDER_XML_IGNORE);
             }
             return;
         }
@@ -1588,7 +1587,7 @@ public final class WireMockServerManager {
     private static void applyElementPathAttributePlaceholder(Element element, List<String> elementPath, int index, String attrName) {
         if (index == elementPath.size()) {
             if (element.hasAttribute(attrName)) {
-                element.setAttribute(attrName, PREFIX_JSON_IGNORE);
+                element.setAttribute(attrName, PLACEHOLDER_XML_IGNORE);
             }
             return;
         }

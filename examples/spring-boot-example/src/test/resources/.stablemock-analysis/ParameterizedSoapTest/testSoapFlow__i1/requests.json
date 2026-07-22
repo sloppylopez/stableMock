@@ -1,19 +1,37 @@
 [ {
-  "timestamp" : "2026-07-02T15:35:40.094803200Z",
+  "timestamp" : "2026-07-22T08:29:38.536058400Z",
   "url" : "/post",
   "method" : "POST",
-  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ConfirmReservationRQ TimeStamp=\"2026-07-02T15:35:39.242108300Z\" xmlns=\"http://example.com/service/2024/01\"><ConfirmationDetails><DateRange Start=\"2026-07-12\" End=\"2026-07-13\"/><UserType>TypeB</UserType></ConfirmationDetails></ConfirmReservationRQ></soap:Body></soap:Envelope>",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ConfirmReservationRQ TimeStamp=\"2026-07-22T08:29:37.665226400Z\" xmlns=\"http://example.com/service/2024/01\"><ConfirmationDetails><DateRange Start=\"2026-08-01\" End=\"2026-08-02\"/><UserType>TypeB</UserType></ConfirmationDetails></ConfirmReservationRQ></soap:Body></soap:Envelope>",
   "contentType" : "application/xml"
 }, {
-  "timestamp" : "2026-07-02T15:35:40.098813Z",
+  "timestamp" : "2026-07-22T08:29:38.548203400Z",
   "url" : "/post",
   "method" : "POST",
-  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><CreateReservationRQ TimeStamp=\"2026-07-02T15:35:39.008729500Z\" xmlns=\"http://example.com/service/2024/01\"><ReservationDetails><DateRange Start=\"2026-07-12\" End=\"2026-07-13\"/><UserType>TypeB</UserType></ReservationDetails></CreateReservationRQ></soap:Body></soap:Envelope>",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><CreateReservationRQ TimeStamp=\"2026-07-22T08:29:37.455198300Z\" xmlns=\"http://example.com/service/2024/01\"><ReservationDetails><DateRange Start=\"2026-08-01\" End=\"2026-08-02\"/><UserType>TypeB</UserType></ReservationDetails></CreateReservationRQ></soap:Body></soap:Envelope>",
   "contentType" : "application/xml"
 }, {
-  "timestamp" : "2026-07-02T15:35:40.101813200Z",
+  "timestamp" : "2026-07-22T08:29:38.553202700Z",
   "url" : "/post",
   "method" : "POST",
-  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><SearchAvailabilityRQ TimeStamp=\"2026-07-02T15:35:38.794809200Z\" xmlns=\"http://example.com/service/2024/01\"><SearchSegments><SearchSegment><SearchCriteria><Criterion><DateRange Start=\"2026-07-12\" End=\"2026-07-13\"/></Criterion></SearchCriteria></SearchSegment></SearchSegments><UserType>TypeB</UserType></SearchAvailabilityRQ></soap:Body></soap:Envelope>",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><SearchAvailabilityRQ TimeStamp=\"2026-07-22T08:29:37.237825700Z\" xmlns=\"http://example.com/service/2024/01\"><SearchSegments><SearchSegment><SearchCriteria><Criterion><DateRange Start=\"2026-08-01\" End=\"2026-08-02\"/></Criterion></SearchCriteria></SearchSegment></SearchSegments><UserType>TypeB</UserType></SearchAvailabilityRQ></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-07-22T08:30:15.831722800Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ConfirmReservationRQ TimeStamp=\"2026-07-22T08:30:15.083331400Z\" xmlns=\"http://example.com/service/2024/01\"><ConfirmationDetails><DateRange Start=\"2026-08-01\" End=\"2026-08-02\"/><UserType>TypeB</UserType></ConfirmationDetails></ConfirmReservationRQ></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-07-22T08:30:15.833722700Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><CreateReservationRQ TimeStamp=\"2026-07-22T08:30:14.867216100Z\" xmlns=\"http://example.com/service/2024/01\"><ReservationDetails><DateRange Start=\"2026-08-01\" End=\"2026-08-02\"/><UserType>TypeB</UserType></ReservationDetails></CreateReservationRQ></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-07-22T08:30:15.836722200Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><SearchAvailabilityRQ TimeStamp=\"2026-07-22T08:30:14.654673Z\" xmlns=\"http://example.com/service/2024/01\"><SearchSegments><SearchSegment><SearchCriteria><Criterion><DateRange Start=\"2026-08-01\" End=\"2026-08-02\"/></Criterion></SearchCriteria></SearchSegment></SearchSegments><UserType>TypeB</UserType></SearchAvailabilityRQ></soap:Body></soap:Envelope>",
   "contentType" : "application/xml"
 } ]

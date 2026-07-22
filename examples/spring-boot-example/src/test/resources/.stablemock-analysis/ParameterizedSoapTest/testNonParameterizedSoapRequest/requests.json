@@ -1,7 +1,13 @@
 [ {
-  "timestamp" : "2026-07-02T15:35:37.414871600Z",
+  "timestamp" : "2026-07-22T08:29:35.921330200Z",
   "url" : "/post",
   "method" : "POST",
-  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><SearchAvailabilityRQ TimeStamp=\"2026-07-02T15:35:36.016348800Z\" xmlns=\"http://example.com/service/2024/01\"><SearchSegments><SearchSegment><SearchCriteria><Criterion><DateRange Start=\"2026-07-12\" End=\"2026-07-13\"/></Criterion></SearchCriteria></SearchSegment></SearchSegments><UserType>TEST</UserType></SearchAvailabilityRQ></soap:Body></soap:Envelope>",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><SearchAvailabilityRQ TimeStamp=\"2026-07-22T08:29:34.564543200Z\" xmlns=\"http://example.com/service/2024/01\"><SearchSegments><SearchSegment><SearchCriteria><Criterion><DateRange Start=\"2026-08-01\" End=\"2026-08-02\"/></Criterion></SearchCriteria></SearchSegment></SearchSegments><UserType>TEST</UserType></SearchAvailabilityRQ></soap:Body></soap:Envelope>",
+  "contentType" : "application/xml"
+}, {
+  "timestamp" : "2026-07-22T08:30:13.225063100Z",
+  "url" : "/post",
+  "method" : "POST",
+  "body" : "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><SearchAvailabilityRQ TimeStamp=\"2026-07-22T08:30:11.994498200Z\" xmlns=\"http://example.com/service/2024/01\"><SearchSegments><SearchSegment><SearchCriteria><Criterion><DateRange Start=\"2026-08-01\" End=\"2026-08-02\"/></Criterion></SearchCriteria></SearchSegment></SearchSegments><UserType>TEST</UserType></SearchAvailabilityRQ></soap:Body></soap:Envelope>",
   "contentType" : "application/xml"
 } ]

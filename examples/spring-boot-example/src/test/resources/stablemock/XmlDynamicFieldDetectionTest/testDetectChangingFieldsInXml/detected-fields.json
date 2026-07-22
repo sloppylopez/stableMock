@@ -1,23 +1,23 @@
 {
   "testClass" : "XmlDynamicFieldDetectionTest",
   "testMethod" : "testDetectChangingFieldsInXml",
-  "detectedAt" : "2026-07-02T15:35:41.187534600Z",
-  "analyzed_requests_count" : 2,
+  "detectedAt" : "2026-07-22T08:30:16.570620600Z",
+  "analyzed_requests_count" : 4,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']",
-    "sample_values" : [ "61e82e68-9e9e-46a8-baaa-3e76d4327e34", "037eb6d5-31fd-478b-a931-a6f38df78e92" ]
+    "sample_values" : [ "2b45a0a2-2bc4-40ba-90d4-7fe8448715b8", "4789551c-ae75-44d3-a343-2ff6b478a412", "e13e46bc-6755-4f5a-9b8b-56d078d46d8d" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']",
-    "sample_values" : [ "61e82e68-9e9e-46a8-baaa-3e76d4327e34", "037eb6d5-31fd-478b-a931-a6f38df78e92" ]
+    "sample_values" : [ "2b45a0a2-2bc4-40ba-90d4-7fe8448715b8", "4789551c-ae75-44d3-a343-2ff6b478a412", "e13e46bc-6755-4f5a-9b8b-56d078d46d8d" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']",
-    "sample_values" : [ "1.1783006540408", "1.1783006540146" ]
+    "sample_values" : [ "1.1784708977890", "1.1784708977639", "1.1784709015843" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']",
-    "sample_values" : [ "22938749-b0cb-4d8b-bfba-c0b48c4dc75f", "11adf332-b8ef-43e3-8f15-204c7f573e59" ]
+    "sample_values" : [ "dc7be207-4d36-4f2e-9912-33a88d704410", "9f8b76ca-d7fe-42cf-bf8e-39ee5cea05bb", "d93320cd-1f79-4d74-90cf-e4eb45005040" ]
   }, {
     "field_path" : "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']",
-    "sample_values" : [ "2026-07-02T15:35:40.402061700Z", "2026-07-02T15:35:40.145362Z" ]
+    "sample_values" : [ "2026-07-22T08:29:37.890109400Z", "2026-07-22T08:29:37.638686300Z", "2026-07-22T08:30:15.843924500Z" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='request']/*[local-name()='data']/*[local-name()='user']/@*[local-name()='sessionId']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='id']", "xml://*[local-name()='request']/*[local-name()='header']/@*[local-name()='version']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='requestId']", "xml://*[local-name()='request']/*[local-name()='header']/*[local-name()='timestamp']" ]
 }

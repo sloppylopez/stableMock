@@ -1,11 +1,8 @@
 package com.stablemock.core.config;
 
 import java.io.IOException;
-import java.net.BindException;
 import java.net.ServerSocket;
-import java.util.concurrent.TimeoutException;
 import java.util.random.RandomGenerator;
-import java.util.random.RandomGeneratorFactory;
 
 
 /**
@@ -13,7 +10,7 @@ import java.util.random.RandomGeneratorFactory;
  */
 public final class PortFinder {
 
-    private static final RandomGenerator random = RandomGeneratorFactory.of("XSHROB128").create();
+    private static final RandomGenerator random = RandomGenerator.getDefault();
     private static final int MAX_RETRIES = 10;
     private static final int RETRY_DELAY_MS = 50;
 
