@@ -2,74 +2,98 @@ package com.stablemock.core.resolver;
 
 import com.stablemock.U;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Resolves test context information including annotations, directories, and Spring Boot detection.
  */
 public final class TestContextResolver {
-    
-    private static final Logger logger = LoggerFactory.getLogger(TestContextResolver.class);
-    
+
+
+    private static final String TEST_RESOURCES_PATH = "src/test/resources";
+    private static final String TARGET_CLASSES_SEP = "\\target\\classes\\";
+    private static final String BUILD_CLASSES_SEP = "\\build\\classes\\";
+
     private TestContextResolver() {
         // utility class
     }
     
     public static U[] findAllUAnnotations(ExtensionContext context) {
         java.util.List<U> annotations = new java.util.ArrayList<>();
-        
-        // Check method-level annotations first
+
+        // Method-level @U wins over class-level (same as before)
         context.getTestMethod().ifPresent(method -> {
-            U.List methodList = method.getAnnotation(U.List.class);
-            if (methodList != null) {
-                java.util.Collections.addAll(annotations, methodList.value());
-            } else {
-                U methodAnnotation = method.getAnnotation(U.class);
-                if (methodAnnotation != null) {
-                    annotations.add(methodAnnotation);
-                }
+            U[] onMethod = method.getAnnotationsByType(U.class);
+            if (onMethod.length > 0) {
+                Collections.addAll(annotations, onMethod);
             }
         });
-        
-        // If no method-level annotations, check class-level (including inheritance hierarchy)
+
         if (annotations.isEmpty()) {
-            Class<?> testClass = context.getRequiredTestClass();
-            // Traverse inheritance hierarchy to find @U annotations
-            // Note: @U is not @Inherited, so we need to manually traverse
-            Class<?> currentClass = testClass;
-            while (currentClass != null && annotations.isEmpty()) {
-                U.List classList = currentClass.getAnnotation(U.List.class);
-                if (classList != null) {
-                    java.util.Collections.addAll(annotations, classList.value());
-                } else {
-                    U classAnnotation = currentClass.getAnnotation(U.class);
-                    if (classAnnotation != null) {
-                        annotations.add(classAnnotation);
-                    }
-                }
-                // Check parent class
-                currentClass = currentClass.getSuperclass();
-                // Stop at Object or if we've gone too deep (safety check)
-                if (currentClass == null || currentClass == Object.class) {
-                    break;
-                }
+            collectClassHierarchyUAnnotations(context.getRequiredTestClass(), annotations);
+        }
+
+        return annotations.toArray(new U[0]);
+    }
+
+    /**
+     * All {@code @U} on {@code testClass} and superclasses, <b>parent classes first</b>, then the test class.
+     * Each declaring class contributes {@link Class#getAnnotationsByType(Class)} order (repeatable-safe).
+     * Used by Spring {@code autoRegisterProperties} so URL indices match
+     * {@link com.stablemock.StableMockExtension}.
+     */
+    public static U[] findAllUDeclaredOnClassHierarchy(Class<?> testClass) {
+        List<U> annotations = new ArrayList<>();
+        collectClassHierarchyUAnnotations(testClass, annotations);
+        return annotations.toArray(new U[0]);
+    }
+
+    private static void collectClassHierarchyUAnnotations(Class<?> testClass, List<U> out) {
+        if (testClass == null) {
+            return;
+        }
+        List<Class<?>> chain = new ArrayList<>();
+        for (Class<?> c = testClass; c != null && c != Object.class; c = c.getSuperclass()) {
+            chain.add(c);
+        }
+        Collections.reverse(chain);
+        for (Class<?> c : chain) {
+            U[] direct = c.getAnnotationsByType(U.class);
+            if (direct.length > 0) {
+                Collections.addAll(out, direct);
             }
         }
-        
-        return annotations.toArray(new U[0]);
     }
     
     public static boolean isSpringBootTest(ExtensionContext context) {
-        Class<?> testClass = context.getRequiredTestClass();
+        return isSpringBootTest(context.getRequiredTestClass());
+    }
+
+    /**
+     * Returns true if {@code testClass} or any class in its hierarchy is annotated
+     * with {@code @SpringBootTest}.
+     */
+    public static boolean isSpringBootTest(Class<?> testClass) {
         try {
             @SuppressWarnings("unchecked")
-            Class<? extends java.lang.annotation.Annotation> springBootTestClass = 
+            Class<? extends java.lang.annotation.Annotation> springBootTestClass =
                 (Class<? extends java.lang.annotation.Annotation>) Class.forName("org.springframework.boot.test.context.SpringBootTest");
-            return testClass.isAnnotationPresent(springBootTestClass);
+            // Walk the class hierarchy — @SpringBootTest is often on a base class,
+            // and isAnnotationPresent() only checks the concrete class.
+            Class<?> current = testClass;
+            while (current != null && current != Object.class) {
+                if (current.isAnnotationPresent(springBootTestClass)) {
+                    return true;
+                }
+                current = current.getSuperclass();
+            }
+            return false;
         } catch (ClassNotFoundException e) {
             return false;
         }
@@ -102,7 +126,7 @@ public final class TestContextResolver {
                     File jarFile = new File(jarPath);
                     File projectRoot = findProjectRootFromJar(jarFile);
                     if (projectRoot != null) {
-                        File result = new File(projectRoot, "src/test/resources");
+                        File result = new File(projectRoot, TEST_RESOURCES_PATH);
                         if (result.exists() || result.getParentFile().exists()) {
                             return result;
                         }
@@ -121,25 +145,25 @@ public final class TestContextResolver {
             
             if (path.contains("/target/classes/")) {
                 path = path.substring(0, path.indexOf("/target/classes/"));
-                File result = new File(path, "src/test/resources");
+                File result = new File(path, TEST_RESOURCES_PATH);
                 if (result.exists() || result.getParentFile().exists()) {
                     return result;
                 }
             } else if (path.contains("/build/classes/")) {
                 path = path.substring(0, path.indexOf("/build/classes/"));
-                File result = new File(path, "src/test/resources");
+                File result = new File(path, TEST_RESOURCES_PATH);
                 if (result.exists() || result.getParentFile().exists()) {
                     return result;
                 }
-            } else if (path.contains("\\target\\classes\\")) {
-                path = path.substring(0, path.indexOf("\\target\\classes\\"));
-                File result = new File(path, "src/test/resources");
+            } else if (path.contains(TARGET_CLASSES_SEP)) {
+                path = path.substring(0, path.indexOf(TARGET_CLASSES_SEP));
+                File result = new File(path, TEST_RESOURCES_PATH);
                 if (result.exists() || result.getParentFile().exists()) {
                     return result;
                 }
-            } else if (path.contains("\\build\\classes\\")) {
-                path = path.substring(0, path.indexOf("\\build\\classes\\"));
-                File result = new File(path, "src/test/resources");
+            } else if (path.contains(BUILD_CLASSES_SEP)) {
+                path = path.substring(0, path.indexOf(BUILD_CLASSES_SEP));
+                File result = new File(path, TEST_RESOURCES_PATH);
                 if (result.exists() || result.getParentFile().exists()) {
                     return result;
                 }
@@ -164,8 +188,8 @@ public final class TestContextResolver {
         int depth = 0;
         
         while (current != null && depth < maxDepth) {
-            // Check if this looks like a project root (has src/test/resources)
-            File testResources = new File(current, "src/test/resources");
+            // Check if this looks like a project root (has TEST_RESOURCES_PATH)
+            File testResources = new File(current, TEST_RESOURCES_PATH);
             if (testResources.exists()) {
                 return current;
             }
@@ -175,7 +199,7 @@ public final class TestContextResolver {
                 name.equals("out") || name.equals("dist")) {
                 File parent = current.getParentFile();
                 if (parent != null) {
-                    File testResourcesInParent = new File(parent, "src/test/resources");
+                    File testResourcesInParent = new File(parent, TEST_RESOURCES_PATH);
                     if (testResourcesInParent.exists()) {
                         return parent;
                     }
@@ -193,9 +217,9 @@ public final class TestContextResolver {
      */
     private static File getFallbackTestResourcesDirectory() {
         String userDir = System.getProperty("user.dir");
-        File fallback = new File(userDir, "src/test/resources");
+        File fallback = new File(userDir, TEST_RESOURCES_PATH);
         if (!fallback.exists()) {
-            fallback = new File("src/test/resources");
+            fallback = new File(TEST_RESOURCES_PATH);
         }
         return fallback;
     }

@@ -206,3 +206,30 @@ If timeouts persist even with increased timeouts, try these steps in order:
 4. **Reduce system load**: Close other applications that might be using network resources
 
 **Note**: WSL network performance is non-deterministic. If tests passed yesterday but fail today with the same code, it's likely a WSL network state issue, not a code problem. Restarting WSL or the computer often resolves it.
+
+---
+
+## 7. Multi-`@U` and indexed WireMock base URLs (`WireMockContext`)
+
+### Problem
+
+With **more than one logical upstream** (multiple `@U` annotations or one `@U` with several `urls`), `BaseStableMockTest.autoRegisterProperties` uses `registerPropertyWithFallbackByIndex` so each URL index maps to its own WireMock port (`url_0`, `url_1`, …). If `WireMockContext.setBaseUrls(String[])` is missing or too short, indexed resolution used to **fall back to the primary** `setBaseUrl` for every index, so two distinct upstreams could hit the same could hit the **same** localhost port → **404** on the wrong stub set.
+
+### Ordering rules (must match)
+
+1. **StableMock** builds the merged URL list in **`StableMockExtension`**: same order as iterating **`findAllUAnnotations`** and flattening each annotation’s `urls` (one `@U` with `urls = {A,B}` yields `A` then `B`; two `@U` each with one URL yields first annotation’s URL then second’s).
+2. **`autoRegisterProperties`** builds `allUrls` / `urlProperties` in the **same annotation order**; index `i` is the **i-th logical URL** in that merged list, **not** the raw `@U` annotation index.
+3. **`WireMockContext` index `i`** must be **`http://localhost:<port of url_i>`** with the same `i`.
+
+### Behaviour after the fix
+
+- **`getThreadLocalBaseUrl(index)`** for **`index >= 1`** never silently reuses the primary URL; it returns **`null`** so the dynamic-property supplier falls through to class-scoped **`stablemock.baseUrl.<ClassName>.<index>`**.
+- **`StableMockExtension`** always republishes **`setBaseUrls`** from class-level **`getPorts()`** (or **`getServers()`** if ports were not stored) on each **`beforeEach`** for Spring class-level servers.
+
+### Optional: parameterized playback on class servers
+
+Set **`-Dstablemock.parameterized.playback.useClassServer=true`** so parameterized invocations do not start per-thread WireMock instances when you need the same **`url_0` / `url_1`** ports across invocations (e.g. Feign holding base URLs from context refresh).
+
+### Example
+
+See **`DualUMultiPropertyPlaybackIT`** in `examples/spring-boot-example` (dual `@U`, multiple path-style properties on the first URL + `app.thirdparty.url` on the second).

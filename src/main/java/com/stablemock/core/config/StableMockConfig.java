@@ -18,6 +18,13 @@ public final class StableMockConfig {
     public static final String STARTUP_EXTRA_SLEEP_MS_PROPERTY = "stablemock.wiremock.startupExtraSleepMs";
     public static final int DEFAULT_STARTUP_EXTRA_SLEEP_MS = 0;
     public static final String PARAMETERIZED_PLAYBACK_RELOAD_PROPERTY = "stablemock.parameterized.playback.reload";
+    /**
+     * When true, parameterized playback never starts per-invocation WireMock servers (even under
+     * {@code @Execution(CONCURRENT)}); stubs reload on class-level server(s). Use when every
+     * invocation must keep the same port(s) as Spring/Feign (e.g. multi-{@code @U} with indexed URLs).
+     */
+    public static final String PARAMETERIZED_PLAYBACK_USE_CLASS_SERVER_PROPERTY =
+            "stablemock.parameterized.playback.useClassServer";
     
     private StableMockConfig() {
         // utility class
@@ -66,5 +73,9 @@ public final class StableMockConfig {
      */
     public static boolean isParameterizedPlaybackReloadEnabled() {
         return Boolean.parseBoolean(System.getProperty(PARAMETERIZED_PLAYBACK_RELOAD_PROPERTY, "true"));
+    }
+
+    public static boolean isParameterizedPlaybackUseClassServer() {
+        return Boolean.parseBoolean(System.getProperty(PARAMETERIZED_PLAYBACK_USE_CLASS_SERVER_PROPERTY, "false"));
     }
 }

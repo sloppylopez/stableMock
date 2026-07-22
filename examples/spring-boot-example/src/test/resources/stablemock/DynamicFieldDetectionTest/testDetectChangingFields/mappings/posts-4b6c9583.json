@@ -1,0 +1,44 @@
+{
+  "id" : "7144df23-79da-4680-b3c1-7e5a04b996ba",
+  "name" : "posts",
+  "request" : {
+    "url" : "/posts",
+    "method" : "POST",
+    "bodyPatterns" : [ {
+      "equalTo" : "{\"title\":\"Test Post\",\"body\":\"This is a test post body\",\"userId\":1,\"timestamp\":\"2026-07-22T08:30:11.324109300Z\",\"requestId\":\"8d4a22b2-718b-4bde-84b9-77c54413ee0e\"}",
+      "caseInsensitive" : false
+    } ]
+  },
+  "response" : {
+    "status" : 201,
+    "body" : "{\n  \"id\": 101\n}",
+    "headers" : {
+      "expires" : "-1",
+      "CF-RAY" : "a1f114f42f2acff4-MAD",
+      "Server" : "cloudflare",
+      "x-ratelimit-limit" : "1000",
+      "vary" : "Origin, X-HTTP-Method-Override, Accept-Encoding",
+      "cf-cache-status" : "DYNAMIC",
+      "x-ratelimit-reset" : "1784709037",
+      "x-ratelimit-remaining" : "997",
+      "pragma" : "no-cache",
+      "Date" : "Wed, 22 Jul 2026 08:30:10 GMT",
+      "via" : "2.0 heroku-router",
+      "access-control-expose-headers" : "Location",
+      "reporting-endpoints" : "heroku-nel=\"https://nel.heroku.com/reports?s=y9x4FMV8WsUe5XhkpPVfpIRbETAjFBOD2CT%2F%2BQYeFFg%3D&sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d&ts=1784709010\"",
+      "access-control-allow-credentials" : "true",
+      "x-content-type-options" : "nosniff",
+      "nel" : "{\"report_to\":\"heroku-nel\",\"response_headers\":[\"Via\"],\"max_age\":3600,\"success_fraction\":0.01,\"failure_fraction\":0.1}",
+      "Cache-Control" : "no-cache",
+      "x-powered-by" : "Express",
+      "location" : "https://jsonplaceholder.typicode.com/posts/101",
+      "etag" : "W/\"f-4jjw4Y8q22Yv1PV9m28FczJgjzk\"",
+      "report-to" : "{\"group\":\"heroku-nel\",\"endpoints\":[{\"url\":\"https://nel.heroku.com/reports?s=y9x4FMV8WsUe5XhkpPVfpIRbETAjFBOD2CT%2F%2BQYeFFg%3D\\u0026sid=e11707d5-02a7-43ef-b45e-2cf4d2036f7d\\u0026ts=1784709010\"}],\"max_age\":3600}",
+      "alt-svc" : "h3=\":443\"; ma=86400",
+      "Content-Type" : "application/json; charset=utf-8"
+    }
+  },
+  "uuid" : "7144df23-79da-4680-b3c1-7e5a04b996ba",
+  "persistent" : true,
+  "insertionIndex" : 0
+}

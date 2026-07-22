@@ -1,35 +1,35 @@
 {
   "testClass" : "ParameterizedSoapTest",
   "testMethod" : "testSoapFlow__i2",
-  "detectedAt" : "2026-03-06T15:04:26.284148500Z",
+  "detectedAt" : "2026-07-22T08:30:17.085348Z",
   "analyzed_requests_count" : 6,
   "dynamic_fields" : [ {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/*[local-name()='ConfirmationDetails']/*[local-name()='DateRange']/@*[local-name()='End']",
-    "sample_values" : [ "2026-03-17", "2026-03-17" ]
+    "sample_values" : [ "2026-08-02", "2026-08-02" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/*[local-name()='ConfirmationDetails']/*[local-name()='DateRange']/@*[local-name()='Start']",
-    "sample_values" : [ "2026-03-16", "2026-03-16" ]
+    "sample_values" : [ "2026-08-01", "2026-08-01" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/@*[local-name()='TimeStamp']",
-    "sample_values" : [ "2026-03-06T15:03:47.984906400Z", "2026-03-06T15:04:25.633103100Z" ]
+    "sample_values" : [ "2026-07-22T08:29:38.986246Z", "2026-07-22T08:30:16.271787900Z" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/*[local-name()='ReservationDetails']/*[local-name()='DateRange']/@*[local-name()='End']",
-    "sample_values" : [ "2026-03-17", "2026-03-17" ]
+    "sample_values" : [ "2026-08-02", "2026-08-02" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/*[local-name()='ReservationDetails']/*[local-name()='DateRange']/@*[local-name()='Start']",
-    "sample_values" : [ "2026-03-16", "2026-03-16" ]
+    "sample_values" : [ "2026-08-01", "2026-08-01" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/@*[local-name()='TimeStamp']",
-    "sample_values" : [ "2026-03-06T15:03:47.767038100Z", "2026-03-06T15:04:25.408821800Z" ]
+    "sample_values" : [ "2026-07-22T08:29:38.768727900Z", "2026-07-22T08:30:16.066380700Z" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/*[local-name()='SearchSegments']/*[local-name()='SearchSegment']/*[local-name()='SearchCriteria']/*[local-name()='Criterion']/*[local-name()='DateRange']/@*[local-name()='End']",
-    "sample_values" : [ "2026-03-17", "2026-03-17" ]
+    "sample_values" : [ "2026-08-02", "2026-08-02" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/@*[local-name()='TimeStamp']",
-    "sample_values" : [ "2026-03-06T15:03:47.559632400Z", "2026-03-06T15:04:25.167995600Z" ]
+    "sample_values" : [ "2026-07-22T08:29:38.567234Z", "2026-07-22T08:30:15.849437300Z" ]
   }, {
     "field_path" : "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/*[local-name()='SearchSegments']/*[local-name()='SearchSegment']/*[local-name()='SearchCriteria']/*[local-name()='Criterion']/*[local-name()='DateRange']/@*[local-name()='Start']",
-    "sample_values" : [ "2026-03-16", "2026-03-16" ]
+    "sample_values" : [ "2026-08-01", "2026-08-01" ]
   } ],
   "ignore_patterns" : [ "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/*[local-name()='ConfirmationDetails']/*[local-name()='DateRange']/@*[local-name()='End']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/*[local-name()='ConfirmationDetails']/*[local-name()='DateRange']/@*[local-name()='Start']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='ConfirmReservationRQ']/@*[local-name()='TimeStamp']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/*[local-name()='ReservationDetails']/*[local-name()='DateRange']/@*[local-name()='End']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/*[local-name()='ReservationDetails']/*[local-name()='DateRange']/@*[local-name()='Start']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='CreateReservationRQ']/@*[local-name()='TimeStamp']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/*[local-name()='SearchSegments']/*[local-name()='SearchSegment']/*[local-name()='SearchCriteria']/*[local-name()='Criterion']/*[local-name()='DateRange']/@*[local-name()='End']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/@*[local-name()='TimeStamp']", "xml://*[local-name()='Envelope']/*[local-name()='Body']/*[local-name()='SearchAvailabilityRQ']/*[local-name()='SearchSegments']/*[local-name()='SearchSegment']/*[local-name()='SearchCriteria']/*[local-name()='Criterion']/*[local-name()='DateRange']/@*[local-name()='Start']" ]
 }

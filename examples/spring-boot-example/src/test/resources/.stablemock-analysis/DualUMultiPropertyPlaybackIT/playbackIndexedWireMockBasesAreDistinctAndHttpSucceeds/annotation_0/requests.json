@@ -1,0 +1,25 @@
+[ {
+  "timestamp" : "2026-07-22T08:29:39.907041200Z",
+  "url" : "/get?id=702",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2026-07-22T08:29:39.946101500Z",
+  "url" : "/get?id=701",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2026-07-22T08:30:17.054468200Z",
+  "url" : "/get?id=702",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+}, {
+  "timestamp" : "2026-07-22T08:30:17.063628400Z",
+  "url" : "/get?id=701",
+  "method" : "GET",
+  "body" : "",
+  "contentType" : null
+} ]

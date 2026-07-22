@@ -5,6 +5,7 @@ import com.stablemock.core.server.WireMockServerManager;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -55,8 +56,8 @@ public final class ExtensionContextManager {
         @SuppressWarnings("unchecked")
         public List<WireMockServer> getServers() {
             Object value = store.get("wireMockServers");
-            if (value == null) {
-                return null;
+            if (value == null || ((java.util.List<?>) value).isEmpty()) {
+                return Collections.emptyList();
             }
             if (!(value instanceof List<?>)) {
                 throw new ClassCastException("Stored 'wireMockServers' value is not a List: " + value.getClass());
@@ -77,8 +78,8 @@ public final class ExtensionContextManager {
         @SuppressWarnings("unchecked")
         public List<Integer> getPorts() {
             Object value = store.get("ports");
-            if (value == null) {
-                return null;
+            if (value == null || ((java.util.List<?>) value).isEmpty()) {
+                return Collections.emptyList();
             }
             if (!(value instanceof List<?>)) {
                 throw new ClassCastException("Stored 'ports' value is not a List: " + value.getClass());
@@ -234,8 +235,8 @@ public final class ExtensionContextManager {
         @SuppressWarnings("unchecked")
         public List<WireMockServer> getServers() {
             Object value = store.get("wireMockServers");
-            if (value == null) {
-                return null;
+            if (value == null || ((java.util.List<?>) value).isEmpty()) {
+                return Collections.emptyList();
             }
             if (!(value instanceof List<?>)) {
                 throw new ClassCastException("Stored 'wireMockServers' value is not a List: " + value.getClass());
@@ -256,8 +257,8 @@ public final class ExtensionContextManager {
         @SuppressWarnings("unchecked")
         public List<Integer> getPorts() {
             Object value = store.get("ports");
-            if (value == null) {
-                return null;
+            if (value == null || ((java.util.List<?>) value).isEmpty()) {
+                return Collections.emptyList();
             }
             if (!(value instanceof List<?>)) {
                 throw new ClassCastException("Stored 'ports' value is not a List: " + value.getClass());

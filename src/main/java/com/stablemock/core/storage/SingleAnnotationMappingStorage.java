@@ -27,7 +27,17 @@ import java.util.List;
 public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
     
     private static final Logger logger = LoggerFactory.getLogger(SingleAnnotationMappingStorage.class);
-    
+
+    private static final String DIR_MAPPINGS = "mappings";
+    private static final String DIR_FILES = "__files";
+    private static final String JSON_EXT = ".json";
+    private static final String REQ_KEY_REQUEST = "request";
+    private static final String REQ_KEY_METHOD = "method";
+    private static final String REQ_KEY_URLPATH = "urlPath";
+    private static final String METHOD_PATCH = "PATCH";
+    private static final String STATUS_UNKNOWN = "UNKNOWN";
+    private static final String KEY_HEADERS = "headers";
+
     private SingleAnnotationMappingStorage() {
         // utility class
     }
@@ -106,7 +116,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
     }
     
     public static void saveMappings(WireMockServer wireMockServer, File mappingsDir, String targetUrl) throws IOException {
-        File mappingsSubDir = new File(mappingsDir, "mappings");
+        File mappingsSubDir = new File(mappingsDir, DIR_MAPPINGS);
         File filesSubDir = new File(mappingsDir, "__files");
 
         // Use Files.createDirectories() which is atomic and handles race conditions
@@ -153,6 +163,9 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             }
             tempServer.saveMappings();
             
+            // Shorten filenames to avoid Git 256-char path limit
+            shortenMappingFilenames(mappingsDir);
+            
             // Small delay to ensure files are flushed to disk (especially important for WSL)
             try {
                 Thread.sleep(200);
@@ -184,7 +197,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
     public static void saveMappingsForTestMethod(WireMockServer wireMockServer, File testMethodMappingsDir, 
             File baseMappingsDir, String targetUrl, int existingRequestCount, boolean scenario, Long testMethodStartTime,
             String[] ignoreResponseHeaders) throws IOException {
-        File testMethodMappingsSubDir = new File(testMethodMappingsDir, "mappings");
+        File testMethodMappingsSubDir = new File(testMethodMappingsDir, DIR_MAPPINGS);
         File testMethodFilesSubDir = new File(testMethodMappingsDir, "__files");
 
         if (!testMethodMappingsSubDir.exists() && !testMethodMappingsSubDir.mkdirs()) {
@@ -211,7 +224,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             if (existingMappings != null && existingMappings.length > 0) {
                 logger.info("Cleaning {} existing mapping(s) from test method directory before saving new ones", existingMappings.length);
                 for (java.io.File mapping : existingMappings) {
-                    if (mapping.isFile() && mapping.getName().endsWith(".json")) {
+                    if (mapping.isFile() && mapping.getName().endsWith(JSON_EXT)) {
                         if (!mapping.delete()) {
                             logger.warn("Failed to delete existing mapping file: {}", mapping.getAbsolutePath());
                         }
@@ -521,7 +534,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         
         java.nio.file.Path mappingsPath = testMethodMappingsSubDir.toPath();
         if (java.nio.file.Files.exists(mappingsPath) && java.nio.file.Files.isDirectory(mappingsPath)) {
-            File[] jsonFiles = testMethodMappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            File[] jsonFiles = testMethodMappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(JSON_EXT));
             if (jsonFiles != null && jsonFiles.length > 0) {
                 logger.info("=== RECORDING: Found {} existing mapping file(s) to merge ===", jsonFiles.length);
                 for (File mappingFile : jsonFiles) {
@@ -579,7 +592,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         // Use a temporary directory for the temp server to avoid conflicts
         String uniqueId = java.util.UUID.randomUUID().toString();
         File tempMappingsDir = new java.io.File(java.lang.System.getProperty("java.io.tmpdir"), "stablemock-temp-" + uniqueId);
-        File tempMappingsSubDir = new File(tempMappingsDir, "mappings");
+        File tempMappingsSubDir = new File(tempMappingsDir, DIR_MAPPINGS);
         File tempFilesSubDir = new File(tempMappingsDir, "__files");
         
         try {
@@ -618,7 +631,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             tempServer.saveMappings();
             
             // Copy saved mappings from temp directory to actual directory
-            File[] tempSavedFiles = tempMappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            File[] tempSavedFiles = tempMappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(JSON_EXT));
             if (tempSavedFiles != null) {
                 for (File savedFile : tempSavedFiles) {
                     File destFile = new File(testMethodMappingsSubDir, savedFile.getName());
@@ -626,6 +639,12 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 }
             }
+            
+            // Also copy body files from temp/__files/ to dest/__files/
+            copyJsonFiles(tempFilesSubDir, testMethodFilesSubDir);
+            
+            // Shorten filenames to avoid Git 256-char path limit
+            shortenMappingFilenames(testMethodMappingsDir);
             
             // Small delay to ensure files are flushed to disk (especially important for WSL)
             try {
@@ -638,7 +657,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 mergedMappings.size(), existingMappings.size(), testMethodMappings.size(), testMethodMappingsSubDir.getAbsolutePath());
             
             // Verify files were actually written
-            File[] savedFiles = testMethodMappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            File[] savedFiles = testMethodMappingsSubDir.listFiles((dir, name) -> name.toLowerCase().endsWith(JSON_EXT));
             if (savedFiles != null) {
                 logger.info("=== RECORDING: Verified {} file(s) written to disk ===", savedFiles.length);
                 for (File f : savedFiles) {
@@ -660,7 +679,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             return;
         }
         
-        File classMappingsDir = new File(baseMappingsDir, "mappings");
+        File classMappingsDir = new File(baseMappingsDir, DIR_MAPPINGS);
         File classFilesDir = new File(baseMappingsDir, "__files");
         
         logger.info("Class mappings dir: {}", classMappingsDir.getAbsolutePath());
@@ -699,7 +718,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         }
         
         File[] testMethodDirs = baseMappingsDir.listFiles(file ->
-            file.isDirectory() && !file.getName().equals("mappings") && !file.getName().equals("__files") && !file.getName().startsWith("url_"));
+            file.isDirectory() && !file.getName().equals(DIR_MAPPINGS) && !file.getName().equals("__files") && !file.getName().startsWith("url_"));
         if (testMethodDirs == null || testMethodDirs.length == 0) {
             logger.error("No test method directories found in {} - merge cannot proceed!", baseMappingsDir.getAbsolutePath());
             return;
@@ -737,7 +756,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         int getMappingsCopied = 0;
         int skippedMethods = 0;
         for (File testMethodDir : testMethodDirs) {
-            File methodMappingsDir = new File(testMethodDir, "mappings");
+            File methodMappingsDir = new File(testMethodDir, DIR_MAPPINGS);
             File methodFilesDir = new File(testMethodDir, "__files");
             
             logger.info("Processing test method: {}", testMethodDir.getName());
@@ -749,7 +768,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             }
             
             if (methodMappingsDir.exists() && methodMappingsDir.isDirectory()) {
-                File[] mappingFiles = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                File[] mappingFiles = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(JSON_EXT));
                 if (mappingFiles != null && mappingFiles.length > 0) {
                     logger.info("  Found {} mapping file(s) in {}", mappingFiles.length, testMethodDir.getName());
                     // Log all files found for debugging
@@ -764,14 +783,14 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                         }
                         try {
                             // Read mapping to log method and URL
-                            String method = "UNKNOWN";
-                            String url = "UNKNOWN";
+                            String method = STATUS_UNKNOWN;
+                            String url = STATUS_UNKNOWN;
                             try {
                                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                                 com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(mappingFile);
-                                com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
+                                com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get(REQ_KEY_REQUEST);
                                 if (requestNode != null) {
-                                    method = requestNode.has("method") ? requestNode.get("method").asText() : "UNKNOWN";
+                                    method = requestNode.has(REQ_KEY_METHOD) ? requestNode.get(REQ_KEY_METHOD).asText() : STATUS_UNKNOWN;
                                     if (requestNode.has("url")) {
                                         url = requestNode.get("url").asText();
                                     } else if (requestNode.has("urlPath")) {
@@ -857,7 +876,10 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
             logger.warn("{} test method(s) had no mappings directory - they may not have made HTTP requests during recording", skippedMethods);
         }
         
-        File[] finalMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+        // Final pass: ensure all merged files have short names (catches pre-existing unshortened stubs)
+        shortenMappingFilenames(baseMappingsDir);
+        
+        File[] finalMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(JSON_EXT));
         if (finalMappings != null && finalMappings.length > 0) {
             logger.info("Final merged mappings in class-level directory ({} file(s)):", finalMappings.length);
             int postCount = 0;
@@ -866,10 +888,10 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 try {
                     com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                     com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(mappingFile);
-                    com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
+                    com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get(REQ_KEY_REQUEST);
                     if (requestNode != null) {
-                        String method = requestNode.has("method") ? requestNode.get("method").asText() : "UNKNOWN";
-                        String url = "UNKNOWN";
+                        String method = requestNode.has(REQ_KEY_METHOD) ? requestNode.get(REQ_KEY_METHOD).asText() : STATUS_UNKNOWN;
+                        String url = STATUS_UNKNOWN;
                         if (requestNode.has("url")) {
                             url = requestNode.get("url").asText();
                         } else if (requestNode.has("urlPath")) {
@@ -899,13 +921,13 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                     logger.error("All files in class-level mappings directory:");
                     for (File f : allFiles) {
                         // Try to parse each file to see what method it is
-                        String fileMethod = "UNKNOWN";
+                        String fileMethod = STATUS_UNKNOWN;
                         try {
                             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                             com.fasterxml.jackson.databind.JsonNode mappingJson = mapper.readTree(f);
-                            com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get("request");
-                            if (requestNode != null && requestNode.has("method")) {
-                                fileMethod = requestNode.get("method").asText();
+                            com.fasterxml.jackson.databind.JsonNode requestNode = mappingJson.get(REQ_KEY_REQUEST);
+                            if (requestNode != null && requestNode.has(REQ_KEY_METHOD)) {
+                                fileMethod = requestNode.get(REQ_KEY_METHOD).asText();
                             }
                         } catch (Exception e) {
                             fileMethod = "PARSE_ERROR";
@@ -926,10 +948,10 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
                 // List all test method directories to help debug
                 logger.error("Test method directories checked:");
                 for (File testMethodDir : testMethodDirs) {
-                    File methodMappingsDir = new File(testMethodDir, "mappings");
+                    File methodMappingsDir = new File(testMethodDir, DIR_MAPPINGS);
                     int fileCount = 0;
                     if (methodMappingsDir.exists()) {
-                        File[] files = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                        File[] files = methodMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(JSON_EXT));
                         fileCount = files != null ? files.length : 0;
                     }
                     logger.error("  - {}: {} mapping file(s)", testMethodDir.getName(), fileCount);
@@ -948,7 +970,7 @@ public final class SingleAnnotationMappingStorage extends BaseMappingStorage {
         // Ensure files are flushed to disk before WireMock tries to load them
         // This is especially important in CI environments where file system operations may be slower
         try {
-            File[] flushMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+            File[] flushMappings = classMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(JSON_EXT));
             if (flushMappings != null && flushMappings.length > 0) {
                 // Force flush by checking file existence and size
                 for (File mappingFile : flushMappings) {

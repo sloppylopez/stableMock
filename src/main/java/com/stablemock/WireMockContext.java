@@ -29,22 +29,40 @@ public final class WireMockContext {
 
     /**
      * Sets per-index base URLs for multi-annotation / multi-URL tests.
-     * Index corresponds to {@code stablemock.baseUrl.<index>}.
+     * Index order must match {@link com.stablemock.StableMockExtension} merged {@code allUrls} /
+     * {@code url_0}, {@code url_1}, ... and {@link com.stablemock.spring.BaseStableMockTest#autoRegisterProperties}.
+     * Pass {@code null} to clear (single-URL tests after a multi-URL run).
      */
     public static void setBaseUrls(String[] baseUrls) {
-        threadLocalBaseUrls.set(baseUrls);
+        if (baseUrls == null) {
+            threadLocalBaseUrls.remove();
+        } else {
+            threadLocalBaseUrls.set(baseUrls);
+        }
     }
 
     /**
      * Returns the per-index base URL for multi-annotation / multi-URL tests.
-     * Falls back to the single base URL if per-index values are not set.
+     * <ul>
+     *   <li>If a {@link #setBaseUrls(String[])} array exists and {@code index} is in range, returns that element.</li>
+     *   <li>Index {@code 0} with no array (or empty array) falls back to {@link #getThreadLocalBaseUrl()} for
+     *       single-WireMock setups.</li>
+     *   <li>Index {@code >= 1} never falls back to the primary URL — returns {@code null} so callers use
+     *       class-scoped system properties instead of hitting the wrong WireMock.</li>
+     * </ul>
      */
     public static String getThreadLocalBaseUrl(int index) {
+        if (index < 0) {
+            return null;
+        }
         String[] urls = threadLocalBaseUrls.get();
-        if (urls == null || index < 0 || index >= urls.length) {
+        if (urls != null && index < urls.length) {
+            return urls[index];
+        }
+        if (index == 0) {
             return getThreadLocalBaseUrl();
         }
-        return urls[index];
+        return null;
     }
 
     public static Integer getThreadLocalPort() {

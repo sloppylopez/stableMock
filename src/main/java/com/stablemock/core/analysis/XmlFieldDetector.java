@@ -234,7 +234,10 @@ public final class XmlFieldDetector {
         
         // Remove namespace prefix if present
         lastPart = extractLocalName(lastPart);
-        
+        if (lastPart == null || lastPart.isEmpty()) {
+            return false;
+        }
+
         // Check for date/time-related keywords (case-insensitive)
         String lowerPart = lastPart.toLowerCase();
         return lowerPart.contains("date") ||

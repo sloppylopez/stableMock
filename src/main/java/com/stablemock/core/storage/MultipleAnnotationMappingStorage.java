@@ -173,6 +173,9 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
                 }
                 tempServer.saveMappings();
 
+                // Shorten filenames to avoid Git 256-char path limit
+                shortenMappingFilenames(annotationMappingsDir);
+
                 // Small delay to ensure files are flushed to disk (especially important for WSL)
                 try {
                     Thread.sleep(200);
@@ -304,7 +307,10 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
             File annotationFilesDir = new File(annotationDir, "__files");
 
             if (!annotationMappingsDir.exists() || !annotationMappingsDir.isDirectory()) {
-                logger.debug("No annotation_{} mappings directory found for test method {}", urlIndex, testMethodDir.getName());
+                File[] avail = testMethodDir.listFiles();
+                String[] names = (avail != null) ? java.util.Arrays.stream(avail).map(File::getName).toArray(String[]::new) : new String[0];
+                logger.info("No annotation_{} mappings directory found for test method '{}' — expected at {}. Available entries in test method dir: {}",
+                        urlIndex, testMethodDir.getName(), new File(testMethodDir, "annotation_" + urlIndex + "/mappings").getAbsolutePath(), java.util.Arrays.toString(names));
                 continue;
             }
 
@@ -394,6 +400,16 @@ public final class MultipleAnnotationMappingStorage extends BaseMappingStorage {
             }
         }
 
-        logger.info("Completed merging mappings for url_{}", urlIndex);
+        // Final pass: ensure all merged files have short names (catches pre-existing unshortened stubs)
+        shortenMappingFilenames(urlDir);
+
+        // Post-merge integrity check: verify url_X/mappings/ has content
+        File[] mergedMappings = urlMappingsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+        int totalMerged = (mergedMappings != null) ? mergedMappings.length : 0;
+        if (totalMerged == 0) {
+            logger.info("Merge complete for url_{}: 0 mapping files copied. If mocks were recorded, ensure structure matches <className>/<methodName>/annotation_<index>/mappings/. Re-run './gradlew stableMockRecord' if mocks are missing.", urlIndex);
+        } else {
+            logger.info("Completed merging mappings for url_{}: {} mapping file(s) loaded into {}", urlIndex, totalMerged, urlMappingsDir.getAbsolutePath());
+        }
     }
 }
